@@ -1,0 +1,273 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family: Arial, sans-serif;
+}
+
+body{
+    background:#000;
+    color:white;
+}
+
+/* HERO */
+.hero{
+    background: url('Imagenes/1.png') center/cover no-repeat;
+    height:150px;
+    position:relative;
+    overflow:hidden;
+}
+
+/* OVERLAY */
+.overlay{
+    width:100%;
+    height:100%;
+    position:absolute;
+    top:0;
+    left:0;
+
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.05) 0%,
+        rgba(0,0,0,0.20) 35%,
+        rgba(0,0,0,0.65) 70%,
+        rgba(0,0,0,1) 100%
+    );
+}
+/* NAVBAR */
+.navbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px 40px;
+    height:100%;
+    position:relative;
+    z-index:10;
+}
+
+/* LOGO */
+.logo{
+    position:relative;
+    z-index:100;
+}
+
+.logo img{
+    width:140px;
+    transition:0.3s;
+}
+
+.logo img:hover{
+    transform:scale(1.05);
+}
+
+/* MENU */
+.menu{
+    display:flex;
+    align-items:center;
+    gap:30px;
+    margin-left:80px;
+     position:relative;
+    z-index:100;
+}
+
+.menu li{
+    list-style:none;
+}
+
+.menu li a{
+    text-decoration:none;
+    color:white;
+    font-weight:bold;
+    font-size:16px;
+    transition:0.3s;
+    position:relative;
+}
+
+/* HOVER */
+.menu li a:hover{
+    color:#ffc400;
+}
+
+/* LINEA ANIMADA */
+.menu li a::after{
+    content:'';
+    position:absolute;
+    left:0;
+    bottom:-6px;
+    width:0%;
+    height:2px;
+    background:#ffc400;
+    transition:0.3s;
+}
+
+.menu li a:hover::after{
+    width:100%;
+}
+
+/* ACTIVO */
+.menu li a.active{
+    color:#ffc400;
+}
+
+.menu li a.active::after{
+    width:100%;
+}
+
+/* BOTON CONTACTO */
+.contact-btn{
+    background:#ffc400;
+    color:#000;
+    border:none;
+    padding:14px 28px;
+    border-radius:10px;
+    font-size:17px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.contact-btn:hover{
+    background:white;
+    transform:scale(1.05);
+}
+
+/* CONTENIDO */
+.content{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:40px;
+    padding:50px 20px;
+    flex-wrap:wrap;
+}
+
+/* CARDS */
+.card{
+    width:45%;
+    min-height:420px;
+    padding:30px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,0.18);
+    border-radius:20px;
+    box-shadow:
+        0 10px 40px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+    position:relative;
+    overflow:hidden;
+    transition:0.4s ease;
+}
+
+/* EFECTO HOVER */
+.card:hover{
+    transform:translateY(-8px);
+    border:1px solid rgba(255,196,0,0.35);
+}
+
+/* TITULO */
+.card h2{
+    color:#ffc400;
+    margin-bottom:30px;
+    font-size:32px;
+}
+
+/* GRID INFO */
+.info-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap:18px;
+    column-gap:20px;
+    font-size:18px;
+}
+
+/* LABELS */
+.info-grid span{
+    color:#ffc400;
+    font-weight:bold;
+}
+
+/* VALORES */
+.info-grid strong{
+    color:white;
+    font-weight:normal;
+}
+
+/* FOOTER */
+footer{
+    height:70px;
+    background:#ffc400;
+    margin-top:40px;
+}
+
+/* RESPONSIVE */
+@media(max-width:1100px){
+
+    .content{
+        flex-direction:column;
+        align-items:center;
+    }
+
+    .card{
+        width:90%;
+    }
+
+    .navbar{
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .menu{
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:20px;
+        margin-left:0;
+    }
+
+    .info-grid{
+        grid-template-columns:1fr;
+        font-size:16px;
+    }
+
+    .card h2{
+        font-size:26px;
+    }
+}
+
+@media(max-width:768px){
+
+    .hero{
+        height:auto;
+        padding-bottom:20px;
+    }
+
+    .navbar{
+        padding:20px;
+    }
+
+    .logo img{
+        width:130px;
+    }
+
+    .menu li a{
+        font-size:15px;
+    }
+
+    .contact-btn{
+        font-size:15px;
+        padding:12px 20px;
+    }
+
+    .card{
+        width:95%;
+        padding:25px;
+    }
+
+    .card h2{
+        font-size:22px;
+    }
+
+    .info-grid{
+        font-size:15px;
+    }
+}

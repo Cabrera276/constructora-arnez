@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plazos</title>
+
+    <link rel="stylesheet" href="plazos.css">
+</head>
+<body>
+
+    <header class="hero">
+
+        <!-- OVERLAY -->
+        <div class="overlay"></div>
+
+        <!-- NAVBAR -->
+        <nav class="navbar">
+
+            <div class="logo">
+                <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo">
+            </div>
+
+            <ul class="menu">
+
+                <li><a href="inicio.html">INICIO</a></li>
+
+                <li><a href="datos.html">
+                    DATOS DEL <br>PROYECTO
+                </a></li>
+
+                <li><a href="items.html">
+                    ITEMS
+                </a></li>
+
+                <li><a href="plantillas.html">
+                    PLANILLAS
+                </a></li>
+
+                <li><a href="plazos.html" >
+                    AMPLIACIONES <br>DE PLAZO
+                </a></li>
+
+            </ul>
+
+            <button class="contact-btn">
+                📞 CONTACTOS
+            </button>
+
+        </nav>
+
+    </header>
+<!-- BOTON -->
+<div class="botones-plazos">
+
+<button class="btn-ampliacion" id="btnAgregarPlazo">
+⏳ Añadir ampliación de plazo
+</button>
+
+<button class="btn-guardar-plazos">
+💾 Guardar 
+</button>
+
+</div>
+
+<div class="tabla-container">
+
+    <table class="tabla-plazos">
+
+        <thead>
+
+            <tr>
+
+                <th>DESCRIPCION</th>
+
+                <th>INICIO</th>
+
+                <th>FIN</th>
+
+                <th>PLAZO</th>
+
+                <th>PLAZO ACUMULADO</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody id="tablaPlazos">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+    </table>
+
+</div>
+</div>
+<script src="plazos.js"></script>
+</body>
+</html>
