@@ -455,4 +455,144 @@ body{
     margin-right:10px;
     color:#d4a017;
 }
+/* =========================
+   RESPONSIVE CELULAR
+========================= */
+
+@media(max-width:768px){
+
+    body{
+        overflow-x:hidden;
+    }
+
+    .hero{
+        background-size: cover;
+        background-position: center;
+        padding-top: 160px;
+    }
+
+    .navbar{
+        height: auto;
+        padding: 20px;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .navbar::after{
+        left: 20px;
+        width: calc(100% - 40px);
+    }
+
+    .logo img{
+        width: 110px;
+        margin-top: 0;
+    }
+
+    .menu{
+        width: 100%;
+        flex-direction: column;
+        gap: 18px;
+        text-align: center;
+    }
+
+    .menu a{
+        font-size: 14px;
+    }
+
+    .btn-contacto{
+        width: 100%;
+    }
+
+    .hero-content{
+        width: 100%;
+        padding: 20px;
+        margin-top: 40px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .linea{
+        height: 120px;
+        margin-top: 0;
+    }
+
+    .titulo{
+        font-size: 52px;
+        line-height: 1.05;
+        width: 100%;
+    }
+
+    .descripcion{
+        width: 100%;
+        margin-left: 0;
+        font-size: 16px;
+        line-height: 1.7;
+    }
+
+    .botones{
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .botones button,
+    .botones a{
+        width: 100%;
+    }
+
+    .cards{
+        width: 95%;
+        flex-direction: column;
+        padding: 30px 20px;
+    }
+
+    .card{
+        width: 100%;
+    }
+
+    .card i{
+        font-size: 32px;
+    }
+
+    .card h3{
+        font-size: 20px;
+    }
+
+    .card p{
+        font-size: 15px;
+    }
+
+    .estadisticas{
+        flex-direction: column;
+        gap: 30px;
+        padding: 35px 20px;
+    }
+
+    .stat{
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .stat h2{
+        font-size: 32px;
+    }
+
+    .stat p{
+        font-size: 13px;
+    }
+
+    .panel-contactos{
+        width: 92%;
+        padding: 25px 20px;
+    }
+
+    .botones-contacto{
+        flex-direction: column;
+    }
+
+    .botones-contacto a{
+        width: 100%;
+        text-align: center;
+    }
+
+}
 

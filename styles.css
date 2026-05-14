@@ -776,3 +776,141 @@ linear-gradient(
     margin-right:10px;
     color:#d4a017;
 }
+/* =========================
+   RESPONSIVE CELULAR
+========================= */
+
+@media(max-width:768px){
+
+body{
+overflow-x:hidden;
+}
+
+/* HEADER */
+
+.header{
+padding:18px 20px;
+}
+
+.navbar{
+flex-direction:column;
+gap:20px;
+}
+
+.logo img{
+width:110px;
+}
+
+.menu{
+flex-direction:column;
+align-items:center;
+gap:18px;
+width:100%;
+}
+
+.menu li a{
+font-size:15px;
+text-align:center;
+}
+
+.contact-btn{
+width:100%;
+padding:14px;
+font-size:15px;
+}
+
+/* BOTONES */
+
+.actions{
+padding:20px 15px;
+gap:12px;
+}
+
+.actions button{
+width:100%;
+font-size:15px;
+}
+
+/* TABLA */
+
+.table-container{
+width:100%;
+border-radius:0;
+margin:10px 0;
+overflow-x:auto;
+}
+
+table{
+min-width:1200px;
+}
+
+/* MODAL */
+
+.confirm-box{
+width:92%;
+padding:25px 20px;
+}
+
+.confirm-actions{
+flex-direction:column;
+}
+
+.confirm-actions button{
+width:100%;
+}
+
+/* IMAGEN */
+
+.image-box{
+width:96vw;
+height:92vh;
+padding:12px;
+}
+
+.image-box img{
+height:60vh;
+}
+
+.image-box p{
+font-size:14px;
+text-align:center;
+}
+
+.close-image{
+width:32px;
+height:32px;
+font-size:14px;
+}
+
+/* GUARDAR */
+
+.guardar-container{
+justify-content:center;
+padding:0 15px;
+}
+
+#btnGuardar{
+width:100%;
+}
+
+/* CONTACTOS */
+
+.panel-contactos{
+width:92%;
+padding:25px 20px;
+}
+
+.contacto-item{
+font-size:15px;
+}
+
+.botones-contacto{
+flex-direction:column;
+}
+
+.botones-contacto a{
+width:100%;
+text-align:center;
+}
+
+}

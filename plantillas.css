@@ -635,3 +635,142 @@ word-wrap:break-word;
     margin-right:10px;
     color:#d4a017;
 }
+/* =========================
+   RESPONSIVE CELULAR
+========================= */
+
+@media(max-width:768px){
+
+body{
+overflow-x:hidden;
+}
+
+/* HERO */
+
+.hero{
+height:auto;
+padding-bottom:25px;
+}
+
+/* NAVBAR */
+
+.navbar{
+flex-direction:column;
+gap:20px;
+padding:20px;
+}
+
+.logo img{
+width:110px;
+}
+
+.menu{
+flex-direction:column;
+align-items:center;
+gap:18px;
+margin-left:0;
+width:100%;
+}
+
+.menu li a{
+font-size:15px;
+}
+
+.contact-btn{
+width:100%;
+padding:14px;
+font-size:15px;
+}
+
+/* TITULO */
+
+.titulo-reporte{
+font-size:24px;
+padding:0 10px;
+line-height:1.4;
+}
+
+/* TABLA */
+
+.reporte-container{
+width:100%;
+margin:25px auto;
+}
+
+.table-container{
+border-radius:0;
+padding:8px;
+overflow-x:auto;
+}
+
+table{
+min-width:1400px;
+}
+
+/* PLANILLAS */
+
+.planilla-box{
+min-width:360px;
+padding:8px;
+}
+
+.planilla-head,
+.planilla-body{
+gap:6px;
+}
+
+.planilla-body input,
+.planilla-input,
+.avance-input,
+.planilla-total{
+width:100%;
+font-size:14px;
+}
+
+/* BOTONES */
+
+.acciones-planilla{
+justify-content:center;
+padding:0 15px;
+}
+
+.btn-planilla-general{
+width:100%;
+justify-content:center;
+font-size:15px;
+padding:14px;
+}
+
+/* IMAGENES */
+
+.evidencia-reporte img{
+width:90px;
+height:90px;
+}
+
+.evidencia-texto{
+font-size:12px;
+max-width:120px;
+}
+
+/* CONTACTOS */
+
+.panel-contactos{
+width:92%;
+padding:25px 20px;
+}
+
+.contacto-item{
+font-size:15px;
+}
+
+.botones-contacto{
+flex-direction:column;
+}
+
+.botones-contacto a{
+width:100%;
+text-align:center;
+}
+
+}
