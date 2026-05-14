@@ -47,17 +47,7 @@ async function iniciarSesion(){
 
         if(data.success){
 
-            /* GUARDAR DATOS */
-
-            localStorage.setItem(
-                "rol",
-                data.usuario.rol
-            );
-
-            localStorage.setItem(
-                "usuario",
-                data.usuario.usuario
-            );
+           
 
             /* REDIRECCION */
 

@@ -1,3 +1,11 @@
+const usuario = localStorage.getItem("usuario");
+
+if(!usuario){
+
+    window.location.replace("index.html");
+
+}
+
 let moduloActual = 1;
 
 let ordenCambio = 0;

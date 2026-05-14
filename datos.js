@@ -1,3 +1,10 @@
+const usuario = localStorage.getItem("usuario");
+
+if(!usuario){
+
+    window.location.replace("index.html");
+
+}
 function abrirContactos(){
     document.getElementById("modalContactos").style.display = "flex";
 }

@@ -1,3 +1,10 @@
+const usuario = localStorage.getItem("usuario");
+
+if(!usuario){
+
+    window.location.replace("index.html");
+
+}
 const btnAgregar =
 document.getElementById(
 "btnAgregarPlazo"

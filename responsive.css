@@ -1,0 +1,72 @@
+/* =========================
+   RESPONSIVE GLOBAL
+========================= */
+
+@media(max-width:1024px){
+
+    .navbar{
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:20px;
+    }
+
+    .menu{
+        flex-wrap:wrap;
+        justify-content:center;
+    }
+
+    .actions{
+        flex-wrap:wrap;
+        justify-content:center;
+    }
+
+}
+
+@media(max-width:768px){
+
+    body{
+        overflow-x:hidden;
+    }
+
+    .navbar{
+        flex-direction:column;
+        padding:15px;
+    }
+
+    .logo img{
+        width:120px;
+    }
+
+    .menu{
+        flex-direction:column;
+        width:100%;
+        align-items:center;
+        gap:15px;
+    }
+
+    .actions{
+        flex-direction:column;
+        width:100%;
+    }
+
+    .actions button{
+        width:100%;
+    }
+
+    .table-container{
+        overflow-x:auto;
+    }
+
+    table{
+        min-width:900px;
+    }
+
+}
+
+@media(max-width:480px){
+
+    .logo img{
+        width:90px;
+    }
+
+}
