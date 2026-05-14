@@ -19,10 +19,11 @@ extended:true
 /* CONEXION MYSQL */
 
 const db = mysql.createConnection({
-    host: 'localhost',
+    host: 'roundhouse.proxy.rlwy.net',
     user: 'root',
-    password: '12714883',
-    database: 'constructora_arnez'
+    password: 'mysql://root:agLkZoAxCzRvHkmLFpKBSMDpSTgAmNoH@roundhouse.proxy.rlwy.net:49780/railway',
+    database: 'railway',
+    port: 49780
 });
 
 /* CONECTAR MYSQL */
