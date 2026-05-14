@@ -814,3 +814,32 @@ text-align:center;
     }
 
 }
+@media(max-width:768px){
+
+    .acciones{
+        display:flex;
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .acciones button{
+        width:100%;
+    }
+
+    .menu-lista{
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:15px;
+    }
+
+    .tabla-container{
+        width:100%;
+        overflow-x:auto;
+    }
+
+    table{
+        min-width:900px;
+    }
+
+}

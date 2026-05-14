@@ -647,4 +647,44 @@ body{
     }
 
 }
+@media(max-width:768px){
+
+    .menu-lista{
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:18px;
+    }
+
+    .menu-lista li{
+        width:100%;
+        text-align:center;
+    }
+
+    .hero{
+        padding:30px 20px;
+        text-align:center;
+    }
+
+    .hero h1{
+        font-size:52px;
+        line-height:1.1;
+    }
+
+    .hero p{
+        font-size:18px;
+        line-height:1.5;
+    }
+
+    .servicios{
+        display:flex;
+        flex-direction:column;
+        gap:25px;
+    }
+
+    .servicio-card{
+        width:100%;
+    }
+
+}
 
