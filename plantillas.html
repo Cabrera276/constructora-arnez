@@ -69,7 +69,7 @@ AMPLIACIONES <br>DE PLAZO
 
 </ul>
 
-<button class="contact-btn">
+<button  onclick="abrirContactos()" class="contact-btn">
 
 📞 CONTACTOS
 
@@ -100,6 +100,21 @@ onclick="agregarPlanillaGeneral()"
 class="btn-planilla-general">
 
 ➕ Añadir Planilla
+
+</button>
+
+<button
+onclick="eliminarPlanillaGeneral()"
+class="btn-planilla-general btn-eliminar-planilla">
+
+🗑 Eliminar Planilla
+
+</button>
+<button
+onclick="guardarPlanillas()"
+class="btn-planilla-general">
+
+💾 Guardar Planillas
 
 </button>
 
@@ -197,6 +212,47 @@ TOTAL CONTRATO
 </div>
 
 </section>
+
+<div id="modalContactos" class="modal-contactos">
+
+    <div class="panel-contactos">
+
+        <button class="cerrar-contactos" onclick="cerrarContactos()">✕</button>
+
+        <h2>
+            <i class="fa-solid fa-address-book"></i>
+            Contactos
+        </h2>
+
+        <div class="contacto-item">
+            <i class="fa-solid fa-mobile-screen"></i>
+            <strong>Cel:</strong> 72782366
+        </div>
+
+        <div class="contacto-item">
+            <i class="fa-solid fa-phone"></i>
+            <strong>Tel:</strong> 4284022
+        </div>
+
+        <div class="contacto-item">
+            <i class="fa-solid fa-phone-volume"></i>
+            <strong>Oficina:</strong> 4490299
+        </div>
+
+        <div class="contacto-item">
+            <i class="fa-solid fa-envelope"></i>
+            <strong>Correo:</strong> ingecivil36@.com
+        </div>
+
+        <div class="contacto-item">
+            <i class="fa-solid fa-location-dot"></i>
+            <strong>Ubicación:</strong>
+            Pacata Baja Calle Vizcarra N138
+        </div>
+
+    </div>
+
+</div>
 
 <script src="plantillas.js"></script>
 

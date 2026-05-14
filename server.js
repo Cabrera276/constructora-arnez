@@ -7,7 +7,14 @@ const app = express();
 /* CONFIGURACION */
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+limit:'50mb'
+}));
+
+app.use(express.urlencoded({
+limit:'50mb',
+extended:true
+}));
 
 /* CONEXION MYSQL */
 
@@ -100,7 +107,7 @@ app.post('/login', (req, res) => {
    GUARDAR ITEMS
 ========================= */
 
-app.post('/guardar-item', (req, res) => {
+app.post('/guardar-item', async (req, res) => {
 
     const items = req.body;
 
@@ -113,145 +120,153 @@ app.post('/guardar-item', (req, res) => {
 
     }
 
-    /* LIMPIAR TABLAS */
-
-    db.query("DELETE FROM ordenes_cambio");
-    db.query("DELETE FROM contratos_mod");
-    db.query("DELETE FROM items");
-
-    const sql = `
-       INSERT INTO items (
-
-    modulo_id,
-    descripcion,
-    unidad,
-
-    cantidad,
-    precio_unitario,
-    total,
-
-    porcentaje_incidencia,
-
-    imagen,
-    descripcion_imagen
-
-)
-
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    items.forEach(item => {
+    db.query(
+        "DELETE FROM ordenes_cambio",
+        () => {
 
         db.query(
+            "DELETE FROM contratos_mod",
+            () => {
 
-            sql,
+            db.query(
+                "DELETE FROM items",
+                () => {
 
-            [
+                const sql = `
+                INSERT INTO items (
 
-                item.modulo_id,
-                item.descripcion,
-                item.unidad,
+                    modulo_id,
+                    descripcion,
+                    unidad,
+                    cantidad,
+                    precio_unitario,
+                    total,
+                    porcentaje_incidencia,
+                    imagen,
+                    descripcion_imagen
 
-                item.cantidad,
-                item.precio_unitario,
-                item.total,
+                )
 
-                item.porcentaje_incidencia,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
 
-                item.imagen,
-                item.descripcion_imagen
+                let pendientes = items.length;
 
-            ],
+                if(pendientes === 0){
 
-            (err, result) => {
-
-                if(err){
-
-                    console.log(err);
-                    return;
+                    return res.json({
+                        success:true
+                    });
 
                 }
 
-                const itemId = result.insertId;
-
-                /* ORDENES CAMBIO */
-
-                item.ordenesCambio.forEach(oc => {
+                items.forEach(item => {
 
                     db.query(
 
-                        `
-                        INSERT INTO ordenes_cambio (
-
-                            item_id,
-                            numero_oc,
-                            cantidad,
-                            precio,
-                            total
-
-                        )
-
-                        VALUES (?, ?, ?, ?, ?)
-                        `,
+                        sql,
 
                         [
 
-                            itemId,
-                            oc.numero,
-                            oc.cantidad,
-                            oc.precio,
-                            oc.total
+                            item.modulo_id,
+                            item.descripcion,
+                            item.unidad,
+                            item.cantidad,
+                            item.precio_unitario,
+                            item.total,
+                            item.porcentaje_incidencia,
+                            item.imagen,
+                            item.descripcion_imagen
 
-                        ]
+                        ],
+
+                        (err, result) => {
+
+                            if(err){
+
+                                console.log(err);
+
+                                return;
+
+                            }
+
+                            const itemId =
+                            result.insertId;
+
+                            item.ordenesCambio.forEach(oc => {
+
+                                db.query(
+
+                                    `
+                                    INSERT INTO ordenes_cambio (
+                                        item_id,
+                                        numero_oc,
+                                        cantidad,
+                                        precio,
+                                        total
+                                    )
+                                    VALUES (?, ?, ?, ?, ?)
+                                    `,
+
+                                    [
+                                        itemId,
+                                        oc.numero,
+                                        oc.cantidad,
+                                        oc.precio,
+                                        oc.total
+                                    ]
+
+                                );
+
+                            });
+
+                            item.contratosMod.forEach(cm => {
+
+                                db.query(
+
+                                    `
+                                    INSERT INTO contratos_mod (
+                                        item_id,
+                                        numero_cm,
+                                        cantidad,
+                                        precio,
+                                        total
+                                    )
+                                    VALUES (?, ?, ?, ?, ?)
+                                    `,
+
+                                    [
+                                        itemId,
+                                        cm.numero,
+                                        cm.cantidad,
+                                        cm.precio,
+                                        cm.total
+                                    ]
+
+                                );
+
+                            });
+
+                            pendientes--;
+
+                            if(pendientes === 0){
+
+                                res.json({
+                                    success:true,
+                                    mensaje:'Items guardados'
+                                });
+
+                            }
+
+                        }
 
                     );
 
                 });
 
-                /* CONTRATOS MOD */
+            });
 
-                item.contratosMod.forEach(cm => {
-
-                    db.query(
-
-                        `
-                        INSERT INTO contratos_mod (
-
-                            item_id,
-                            numero_cm,
-                            cantidad,
-                            precio,
-                            total
-
-                        )
-
-                        VALUES (?, ?, ?, ?, ?)
-                        `,
-
-                        [
-
-                            itemId,
-                            cm.numero,
-                            cm.cantidad,
-                            cm.precio,
-                            cm.total
-
-                        ]
-
-                    );
-
-                });
-
-            }
-
-        );
-
-    });
-
-    res.json({
-
-        success:true,
-        mensaje:'Items guardados'
+        });
 
     });
 
@@ -470,5 +485,76 @@ success:true
 app.listen(3000, () => {
 
     console.log('Servidor corriendo en puerto 3000');
+
+});
+/* =========================
+   GUARDAR PLANILLAS
+========================= */
+
+app.post('/guardar-planillas', (req,res) => {
+
+const datos = req.body;
+
+if(!Array.isArray(datos)){
+
+return res.json({
+success:false
+});
+
+}
+
+const sql = `
+INSERT INTO planillas
+(numero_planilla,item_id,cantidad,total,avance)
+VALUES (?, ?, ?, ?, ?)
+`;
+
+datos.forEach(planilla => {
+
+ db.query(
+ sql,
+ [
+ planilla.numero_planilla,
+ planilla.item_id,
+ planilla.cantidad,
+ planilla.total,
+ planilla.avance
+ ],
+ (err) => {
+ if(err){
+ console.log(err);
+ }
+ }
+ );
+
+});
+
+res.json({
+success:true
+});
+
+});
+/* =========================
+   OBTENER PLANILLAS
+========================= */
+
+app.get('/planillas', (req,res) => {
+
+const sql =
+'SELECT * FROM planillas';
+
+db.query(sql,(err,result)=>{
+
+if(err){
+
+console.log(err);
+
+return res.json([]);
+
+}
+
+res.json(result);
+
+});
 
 });

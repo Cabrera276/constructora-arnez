@@ -12,6 +12,10 @@ let contadorPlanillas = 0;
    MOSTRAR DATOS
 ========================= */
 
+
+
+
+
 async function mostrarDatos(){
 
 const itemsRes =
@@ -28,7 +32,10 @@ const cmRes =
 await fetch(
 'http://localhost:3000/contratos-mod'
 );
-
+const planillasRes =
+await fetch(
+'http://localhost:3000/planillas'
+);
 const datos =
 await itemsRes.json();
 
@@ -37,6 +44,30 @@ await ocRes.json();
 
 const contratosMod =
 await cmRes.json();
+const planillas =
+await planillasRes.json();
+
+/* =========================
+   CREAR BLOQUES PLANILLAS
+========================= */
+
+const maxPlanilla =
+Math.max(
+0,
+...planillas.map(
+p => p.numero_planilla
+)
+);
+
+for(
+let i = 1;
+i <= maxPlanilla;
+i++
+){
+
+agregarPlanillaGeneral();
+
+}
 
 const tabla =
 document.getElementById(
@@ -45,23 +76,80 @@ document.getElementById(
 
 tabla.innerHTML = '';
 
+let moduloAnterior = null;
+
 datos.forEach(filaData => {
-  const ocItem =
+
+/* =========================
+   CREAR BLOQUE MODULO
+========================= */
+
+if(moduloAnterior != filaData.modulo_id){
+
+moduloAnterior =
+filaData.modulo_id;
+
+const filaModulo =
+document.createElement('tr');
+
+filaModulo.classList.add(
+'fila-modulo'
+);
+
+filaModulo.innerHTML = `
+
+<td colspan="30"
+style="
+background:#dcdcdc;
+font-weight:bold;
+font-size:18px;
+text-align:left;
+padding:14px;
+color:black;
+">
+
+MODULO ${String(filaData.modulo_id)
+.padStart(2,'0')}
+
+</td>
+
+`;
+
+tabla.appendChild(filaModulo);
+
+}
+
+/* =========================
+   OC
+========================= */
+
+const ocItem =
 ordenesCambio.find(
 oc => oc.item_id == filaData.id
 ) || {};
+
+/* =========================
+   CM
+========================= */
 
 const cmItem =
 contratosMod.find(
 cm => cm.item_id == filaData.id
 ) || {};
+
+/* =========================
+   FILA ITEM
+========================= */
+
 const fila =
 document.createElement('tr');
+
+fila.dataset.itemId =
+filaData.id;
 
 fila.classList.add(
 'fila-item'
 );
-
 
 fila.innerHTML = `
 
@@ -71,7 +159,7 @@ fila.innerHTML = `
 
 <td>${filaData.unidad || ''}</td>
 
-<!-- CONTRATO ORIGINAL -->
+<!-- ORIGINAL -->
 
 <td>${filaData.cantidad || ''}</td>
 <td>${filaData.precio_unitario || ''}</td>
@@ -82,7 +170,8 @@ fila.innerHTML = `
 <td>${ocItem.cantidad || ''}</td>
 <td>${ocItem.precio || ''}</td>
 <td>${ocItem.total || ''}</td>
-<!-- CM1 -->
+
+<!-- CM -->
 
 <td>${cmItem.cantidad || ''}</td>
 <td>${cmItem.precio || ''}</td>
@@ -119,11 +208,11 @@ onclick="verImagen(
 <div class="acciones">
 
 <button class="edit-btn">
-✏️
+<i class="fa fa-pen"></i>
 </button>
 
 <button class="delete-btn">
-🗑️
+<i class="fa fa-trash"></i>
 </button>
 
 </div>
@@ -133,8 +222,53 @@ onclick="verImagen(
 `;
 
 tabla.appendChild(fila);
+/* =========================
+   LLENAR PLANILLAS
+========================= */
 
-/* TOTAL MODULO */
+const planillasItem =
+planillas.filter(
+p => p.item_id == filaData.id
+);
+
+planillasItem.forEach(planilla => {
+
+const inicio =
+15 + (
+(planilla.numero_planilla - 1) * 3
+);
+
+fila.cells[inicio]
+.querySelector('input')
+.value =
+planilla.cantidad;
+
+fila.cells[inicio + 1]
+.querySelector('input')
+.value =
+planilla.total;
+
+fila.cells[inicio + 2]
+.querySelector('input')
+.value =
+planilla.avance;
+
+});
+
+/* =========================
+   TOTAL MODULO
+========================= */
+
+const siguiente =
+datos[
+datos.indexOf(filaData) + 1
+];
+
+if(
+!siguiente
+||
+siguiente.modulo_id != filaData.modulo_id
+){
 
 const filaTotal =
 document.createElement('tr');
@@ -165,6 +299,39 @@ TOTAL MODULO
 
 tabla.appendChild(filaTotal);
 
+
+/* LLENAR DATOS */
+
+setTimeout(() => {
+
+planillasItem.forEach(planilla => {
+
+const inicio =
+15 + (
+(planilla.numero_planilla - 1) * 3
+);
+
+fila.cells[inicio]
+.querySelector('input')
+.value =
+planilla.cantidad;
+
+fila.cells[inicio + 1]
+.querySelector('input')
+.value =
+planilla.total;
+
+fila.cells[inicio + 2]
+.querySelector('input')
+.value =
+planilla.avance;
+
+});
+
+},100);
+
+}
+
 });
 
 }
@@ -177,38 +344,13 @@ function agregarPlanillaGeneral(){
 
 contadorPlanillas++;
 
-/* HEADERS */
-
 const filaPrincipal =
-document.getElementById(
-'filaPrincipal'
-);
+document.querySelector('thead tr:first-child');
 
 const filaSecundaria =
-document.getElementById(
-'filaSecundaria'
-);
+document.querySelector('thead tr:last-child');
 
-/* ELIMINAR ACUMULADO ANTERIOR */
-
-const acumuladoAnterior =
-document.getElementById(
-'thAcumulado'
-);
-
-if(acumuladoAnterior){
-
-acumuladoAnterior.remove();
-
-document
-.querySelectorAll(
-'.td-acumulado'
-)
-.forEach(td => td.remove());
-
-}
-
-/* HEADER PLANILLA */
+/* HEADER */
 
 const thPlanilla =
 document.createElement('th');
@@ -216,26 +358,36 @@ document.createElement('th');
 thPlanilla.colSpan = 3;
 
 thPlanilla.innerHTML = `
-
 PLANILLA Nº${contadorPlanillas}
-
 `;
 
-filaPrincipal.appendChild(
-thPlanilla
+/* INSERTAR ANTES DE % */
+
+filaPrincipal.insertBefore(
+thPlanilla,
+filaPrincipal.children[
+filaPrincipal.children.length - 3
+]
 );
 
 /* SUBHEADERS */
 
-filaSecundaria.innerHTML += `
+['CANTIDAD','TOTAL [Bs]','% AVANCE']
+.forEach(texto => {
 
-<th>CANTIDAD</th>
+const th =
+document.createElement('th');
 
-<th>TOTAL [Bs]</th>
+th.innerText = texto;
 
-<th>% AVANCE</th>
+filaSecundaria.insertBefore(
+th,
+filaSecundaria.children[
+filaSecundaria.children.length
+]
+);
 
-`;
+});
 
 /* FILAS ITEMS */
 
@@ -260,8 +412,6 @@ class="planilla-input"
 
 `;
 
-fila.appendChild(tdCantidad);
-
 /* TOTAL */
 
 const tdTotal =
@@ -276,8 +426,6 @@ oninput="actualizarTotalesPlanilla()"
 >
 
 `;
-
-fila.appendChild(tdTotal);
 
 /* AVANCE */
 
@@ -294,53 +442,28 @@ value="100,00%"
 
 `;
 
-fila.appendChild(tdAvance);
+/* INSERTAR ANTES DE % */
 
-});
-
-/* CREAR NUEVO ACUMULADO */
-
-const thAcumulado =
-document.createElement('th');
-
-thAcumulado.id =
-'thAcumulado';
-
-thAcumulado.rowSpan = 2;
-
-thAcumulado.innerHTML = `
-
-% AVANCE
-ACUMULADO
-
-`;
-
-filaPrincipal.appendChild(
-thAcumulado
+fila.insertBefore(
+tdCantidad,
+fila.children[
+fila.children.length - 3
+]
 );
 
-/* INPUTS ACUMULADOS */
-
-filas.forEach(fila => {
-
-const td =
-document.createElement('td');
-
-td.classList.add(
-'td-acumulado'
+fila.insertBefore(
+tdTotal,
+fila.children[
+fila.children.length - 3
+]
 );
 
-td.innerHTML = `
-
-<input
-type="text"
-class="avance-acumulado"
-value="100,00%"
->
-
-`;
-
-fila.appendChild(td);
+fila.insertBefore(
+tdAvance,
+fila.children[
+fila.children.length - 3
+]
+);
 
 });
 
@@ -447,3 +570,168 @@ onclick="this.parentElement.parentElement.remove()">
 document.body.appendChild(modal);
 
 }
+/* =========================
+   ELIMINAR PLANILLA
+========================= */
+
+function eliminarPlanillaGeneral(){
+
+if(contadorPlanillas <= 0){
+return;
+}
+
+const filaPrincipal =
+document.querySelector('thead tr:first-child');
+
+const filaSecundaria =
+document.querySelector('thead tr:last-child');
+
+/* ELIMINAR HEADER PLANILLA */
+
+filaPrincipal.children[
+filaPrincipal.children.length - 4
+].remove();
+
+/* ELIMINAR SUBHEADERS */
+
+for(let i=0;i<3;i++){
+
+filaSecundaria.lastElementChild.remove();
+
+}
+
+/* ELIMINAR COLUMNAS ITEMS */
+
+const filas =
+document.querySelectorAll('.fila-item');
+
+filas.forEach(fila => {
+
+for(let i=0;i<3;i++){
+
+fila.deleteCell(
+fila.cells.length - 4
+);
+
+}
+
+});
+
+contadorPlanillas--;
+
+actualizarTotalesPlanilla();
+
+}
+/* =========================
+   GUARDAR PLANILLAS
+========================= */
+
+async function guardarPlanillas(){
+
+const filas =
+document.querySelectorAll('.fila-item');
+
+let datosPlanilla = [];
+
+filas.forEach((fila,index) => {
+
+const itemId =
+fila.dataset.itemId;
+
+for(let p=1; p<=contadorPlanillas; p++){
+
+const inicio = 15 + ((p - 1) * 3);
+
+const cantidad =
+fila.cells[inicio]
+.querySelector('input')?.value || 0;
+
+const total =
+fila.cells[inicio + 1]
+.querySelector('input')?.value || 0;
+
+const avance =
+fila.cells[inicio + 2]
+.querySelector('input')?.value || '0%';
+
+if(cantidad || total){
+
+datosPlanilla.push({
+
+numero_planilla:p,
+
+item_id:itemId,
+
+cantidad,
+
+total,
+
+avance
+
+});
+
+}
+
+}
+});
+try{
+
+const respuesta = await fetch(
+'http://localhost:3000/guardar-planillas',
+{
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify(datosPlanilla)
+
+}
+);
+
+const data =
+await respuesta.json();
+
+if(data.success){
+
+alert(
+'Planillas guardadas correctamente'
+);
+
+}else{
+
+alert(
+'Error al guardar planillas'
+);
+
+}
+
+}catch(error){
+
+console.log(error);
+
+alert(
+'Error conectando con el servidor'
+);
+
+}
+
+}
+function abrirContactos(){
+    document.getElementById("modalContactos").style.display = "flex";
+}
+
+function cerrarContactos(){
+    document.getElementById("modalContactos").style.display = "none";
+}
+
+window.addEventListener("click", function(e){
+
+    const modal = document.getElementById("modalContactos");
+
+    if(e.target === modal){
+        cerrarContactos();
+    }
+
+});

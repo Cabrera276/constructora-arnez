@@ -357,7 +357,6 @@ background:white;
 
 }
 /* BOTON AÑADIR PLANILLA */
-
 .acciones-planilla{
 
 width:95%;
@@ -368,6 +367,8 @@ display:flex;
 
 justify-content:flex-end;
 
+gap:18px;
+
 }
 
 .btn-planilla-general{
@@ -375,43 +376,61 @@ justify-content:flex-end;
 background:
 linear-gradient(
 145deg,
-#1dd1a1,
-#10ac84
+#ffd84d,
+#ffbf00
 );
 
-color:white;
+color:#000;
 
 border:none;
 
-padding:14px 24px;
+padding:16px 28px;
 
-border-radius:14px;
+border-radius:16px;
 
-font-size:16px;
+font-size:17px;
 
 font-weight:bold;
 
 cursor:pointer;
 
-transition:.3s;
+transition:.35s;
 
 box-shadow:
-0 6px 18px rgba(16,172,132,.35);
+0 10px 25px rgba(255,191,0,.35);
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+letter-spacing:.3px;
 
 }
 
 .btn-planilla-general:hover{
 
-transform:translateY(-3px);
+transform:
+translateY(-4px)
+scale(1.04);
 
 background:
 linear-gradient(
 145deg,
-#10ac84,
-#0e9c76
+#ffbf00,
+#ff9900
 );
 
+color:white;
+
+box-shadow:
+0 14px 30px rgba(255,191,0,.55);
+
 }
+
+
+
 
 /* PLANILLAS */
 
@@ -513,4 +532,106 @@ max-width:150px;
 
 word-wrap:break-word;
 
+}
+.modal-contactos{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    animation: fadeIn 0.3s ease;
+}
+
+.panel-contactos{
+    width: 400px;
+    max-width: 90%;
+    background: #111;
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    border: 2px solid #d4a017;
+    animation: subir 0.3s ease;
+}
+
+.panel-contactos h2{
+    text-align: center;
+    margin-bottom: 25px;
+    color: #d4a017;
+}
+
+.contacto-item{
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.botones-contacto{
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    justify-content: center;
+}
+
+.botones-contacto a{
+    text-decoration: none;
+    background: #d4a017;
+    color: black;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.botones-contacto a:hover{
+    transform: scale(1.05);
+}
+
+.cerrar-contactos{
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: red;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+    }
+    to{
+        opacity:1;
+    }
+}
+
+@keyframes subir{
+    from{
+        transform: translateY(40px);
+        opacity:0;
+    }
+    to{
+        transform: translateY(0);
+        opacity:1;
+    }
+}
+.contacto-item i{
+    color:#d4a017;
+    margin-right:10px;
+    font-size:18px;
+    width:25px;
+    text-align:center;
+}
+
+.panel-contactos h2 i{
+    margin-right:10px;
+    color:#d4a017;
 }

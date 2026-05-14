@@ -80,13 +80,13 @@ MODULO ${moduloActual
 <button
 class="edit-btn"
 onclick="editarModulo(this)">
-✏️
+<i class="fa fa-pen"></i>
 </button>
 
 <button
 class="delete-btn"
 onclick="eliminarModulo(this)">
-🗑
+<i class="fa fa-trash"></i>
 </button>
 
 </div>
@@ -111,7 +111,7 @@ moduloActual;
 filaTotal.innerHTML = `
 
 <td colspan="5">
-<strong>TOTAL MODULO</strong>
+<strong>TOTAL MÓDULO</strong>
 </td>
 
 <td>0.00</td>
@@ -147,7 +147,7 @@ document.querySelectorAll('.grupo-modulo');
 
 if(modulos.length === 0){
 
-alert('Primero crea un modulo');
+alert('Primero crea un módulo');
 
 return;
 
@@ -219,20 +219,20 @@ ${columnasCM}
 <td>
 
 <div class="evidencia-box">
-
 <input
 type="file"
 class="input-imagen"
 accept="image/*"
+
 onchange="cargarImagen(event,this)"
-data-imagen=""
-hidden
+data-imagenes="[]"
+style="display:none"
 >
 
 <button
 type="button"
 class="btn-subir"
-onclick="this.previousElementSibling.click()"
+onclick="this.closest('.evidencia-box').querySelector('.input-imagen').click()"
 >
 Subir
 </button>
@@ -264,14 +264,14 @@ Ver
 type="button"
 class="edit-btn"
 onclick="editarFila(this)">
-✏️
+<i class="fa fa-pen"></i>
 </button>
 
 <button
 type="button"
 class="delete-btn"
 onclick="eliminarFila(this)">
-🗑
+<i class="fa fa-trash"></i>
 </button>
 
 </div>
@@ -471,7 +471,7 @@ fila.classList.contains('total-modulo')
 let htmlTotales = `
 
 <td colspan="5">
-<strong>TOTAL MODULO</strong>
+<strong>TOTAL MÓDULO</strong>
 </td>
 
 <td>
@@ -831,25 +831,58 @@ actualizarTotales();
 /* =========================
    IMAGEN
 ========================= */
+async function cargarImagen(event,input){
 
-function cargarImagen(event,input){
+const archivos = Array.from(input.files);
 
-const archivo = event.target.files[0];
+if(archivos.length === 0){
+return;
+}
 
-if(!archivo) return;
+
+
+try{
+
+const imagenesActuales =
+JSON.parse(
+decodeURIComponent(
+input.dataset.imagenes || '[]'
+)
+);
+if(imagenesActuales.length >= 4){
+
+alert('Máximo 4 imágenes');
+
+return;
+
+}
+
+archivos.forEach(archivo => {
 
 const reader = new FileReader();
 
-reader.onload = function(e){
+reader.onload = e => {
 
-input.dataset.imagen = e.target.result;
+imagenesActuales.push(e.target.result);
 
-alert('Imagen cargada correctamente');
+input.dataset.imagenes =
+JSON.stringify(imagenesActuales);
 
 };
 
 reader.readAsDataURL(archivo);
 
+});
+
+
+
+}catch(error){
+
+console.log(error);
+
+alert('Error cargando imágenes');
+
+}
 }
 
 function verImagen(btn){
@@ -862,23 +895,103 @@ fila.querySelector('.input-imagen');
 const inputDescripcion =
 fila.querySelector('.descripcion-img');
 
-const imagen =
-inputImagen.getAttribute('data-imagen');
+let imagenes = [];
+
+try{
+
+imagenes = JSON.parse(
+decodeURIComponent(
+inputImagen.dataset.imagenes || '[]'
+)
+);
+
+}catch{
+
+try{
+
+imagenes = JSON.parse(
+inputImagen.dataset.imagenes || '[]'
+);
+
+}catch{
+
+imagenes = [];
+
+}
+
+}
 
 const descripcion =
 inputDescripcion.value;
 
-if(!imagen){
+if(imagenes.length === 0){
 
-alert('Primero selecciona una imagen');
+alert('Primero selecciona imágenes');
+
 return;
 
 }
+
+let indiceActual = 0;
+
+const htmlImagenes = `
+
+<div class="carrusel-container">
+
+<button
+class="carrusel-btn prev"
+onclick="cambiarImagen(-1)">
+❮
+</button>
+
+<img
+id="imagenCarrusel"
+src="${imagenes[0]}"
+style="
+width:100%;
+max-height:600px;
+object-fit:contain;
+border-radius:15px;
+"
+>
+
+<button
+class="carrusel-btn next"
+onclick="cambiarImagen(1)">
+❯
+</button>
+
+</div>
+
+`;
 
 const modal =
 document.createElement('div');
 
 modal.innerHTML = `
+
+<style>
+
+.carrusel-container{
+position:relative;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:20px;
+}
+
+.carrusel-btn{
+background:#f5b400;
+border:none;
+width:50px;
+height:50px;
+border-radius:50%;
+font-size:25px;
+cursor:pointer;
+font-weight:bold;
+}
+
+</style>
 
 <div style="
 position:fixed;
@@ -886,11 +999,12 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.7);
+background:rgba(0,0,0,0.8);
 display:flex;
 justify-content:center;
 align-items:center;
 z-index:9999;
+overflow:auto;
 ">
 
 <div style="
@@ -899,7 +1013,7 @@ padding:20px;
 border-radius:20px;
 position:relative;
 max-width:700px;
-width:90%;
+width:80%;
 text-align:center;
 ">
 
@@ -907,6 +1021,7 @@ text-align:center;
 position:absolute;
 top:10px;
 right:10px;
+z-index:99999;
 background:red;
 color:white;
 border:none;
@@ -919,18 +1034,12 @@ cursor:pointer;
 ×
 </button>
 
-<img
-src="${imagen}"
-style="
-width:100%;
-border-radius:15px;
-margin-bottom:15px;
-"
->
+${htmlImagenes}
 
 <p style="
 color:white;
 font-size:20px;
+margin-top:10px;
 ">
 ${descripcion}
 </p>
@@ -943,6 +1052,28 @@ ${descripcion}
 
 document.body.appendChild(modal);
 
+window.cambiarImagen = function(direccion){
+
+indiceActual += direccion;
+
+if(indiceActual < 0){
+
+indiceActual = imagenes.length - 1;
+
+}
+
+if(indiceActual >= imagenes.length){
+
+indiceActual = 0;
+
+}
+
+document.getElementById(
+'imagenCarrusel'
+).src = imagenes[indiceActual];
+
+};
+
 document
 .getElementById('cerrarModal')
 .onclick = () => {
@@ -952,6 +1083,8 @@ modal.remove();
 };
 
 }
+
+
 function cerrarImagen(){
 
 document.getElementById(
@@ -984,7 +1117,7 @@ continue;
 }
 
 const celdas =
-fila.querySelectorAll("td");
+fila.children;
 
 let ordenesCambio = [];
 let contratosMod = [];
@@ -994,9 +1127,9 @@ continue;
 }
 
 const descripcion =
-celdas[1]?.innerText.trim();
+celdas[1]?.textContent.trim();
 
-if(!descripcion){
+if(descripcion === ''){
 continue;
 }
 
@@ -1102,7 +1235,7 @@ ordenesCambio,
 contratosMod,
 
 imagen:
-inputImagen.dataset.imagen || '',
+inputImagen.dataset.imagenes || '',
 
 descripcion_imagen:
 descripcionImagen.value || '',
@@ -1232,7 +1365,7 @@ filaModulo.innerHTML = `
 <div class="modulo-content">
 
 <span>
-MODULO ${String(numeroVisualModulo)
+MÓDULO ${String(numeroVisualModulo)
 .padStart(2,'0')}
 </span>
 
@@ -1365,20 +1498,20 @@ ${item.porcentaje_incidencia || 0}%
 <td>
 
 <div class="evidencia-box">
-
 <input
 type="file"
 class="input-imagen"
 accept="image/*"
+
 onchange="cargarImagen(event,this)"
-data-imagen="${item.imagen || ''}"
-hidden
+data-imagenes='${item.imagen || "[]"}'
+style="display:none"
 >
 
 <button
 type="button"
 class="btn-subir"
-onclick="this.previousElementSibling.click()"
+onclick="this.closest('.evidencia-box').querySelector('.input-imagen').click()"
 >
 Subir
 </button>
@@ -1410,14 +1543,14 @@ Ver
 type="button"
 class="edit-btn"
 onclick="editarFila(this)">
-✏️
+<i class="fa fa-pen"></i>
 </button>
 
 <button
 type="button"
 class="delete-btn"
 onclick="eliminarFila(this)">
-🗑
+<i class="fa fa-trash"></i>
 </button>
 
 </div>
@@ -1448,7 +1581,7 @@ item.modulo_id;
 filaTotal.innerHTML = `
 
 <td colspan="5">
-<strong>TOTAL MODULO</strong>
+<strong>TOTAL MÓDULO</strong>
 </td>
 
 <td>0.00</td>
@@ -1499,7 +1632,7 @@ item.modulo_id;
 filaTotal.innerHTML = `
 
 <td colspan="5">
-<strong>TOTAL MODULO</strong>
+<strong>TOTAL MÓDULO</strong>
 </td>
 
 <td>0.00</td>
@@ -1566,7 +1699,7 @@ moduloId;
 filaTotal.innerHTML = `
 
 <td colspan="5">
-<strong>TOTAL MODULO</strong>
+<strong>TOTAL MÓDULO</strong>
 </td>
 
 <td class="total-original">0.00</td>
@@ -1624,3 +1757,155 @@ window.addEventListener(
 'load',
 cargarItems
 );
+/* =========================
+   ELIMINAR ORDEN CAMBIO
+========================= */
+
+function eliminarOC(){
+
+if(ordenCambio <= 0){
+return;
+}
+
+abrirModal(
+
+'Eliminar Orden Cambio',
+
+'¿Seguro que deseas eliminar la última Orden de Cambio?',
+
+() => {
+
+const filaPrincipal =
+document.getElementById('filaPrincipal');
+
+const filaSecundaria =
+document.getElementById('filaSecundaria');
+
+/* ELIMINAR HEADERS */
+
+filaPrincipal.children[
+filaPrincipal.children.length - 4
+].remove();
+
+for(let i=0;i<3;i++){
+
+filaSecundaria.lastElementChild.remove();
+
+}
+
+/* ELIMINAR COLUMNAS TABLA */
+
+document
+.querySelectorAll('#tablaItems tr')
+.forEach(fila => {
+
+if(
+!fila.classList.contains('grupo-modulo')
+){
+
+for(let i=0;i<3;i++){
+
+fila.deleteCell(
+fila.cells.length - 4
+);
+
+}
+
+}
+
+});
+
+ordenCambio--;
+
+actualizarTotales();
+
+}
+
+);
+
+}
+
+/* =========================
+   ELIMINAR CONTRATO MOD
+========================= */
+
+function eliminarCM(){
+
+if(contratoMod <= 0){
+return;
+}
+
+abrirModal(
+
+'Eliminar Contrato Mod.',
+
+'¿Seguro que deseas eliminar el último Contrato Modificatorio?',
+
+() => {
+
+const filaPrincipal =
+document.getElementById('filaPrincipal');
+
+const filaSecundaria =
+document.getElementById('filaSecundaria');
+
+/* ELIMINAR HEADERS */
+
+filaPrincipal.children[
+filaPrincipal.children.length - 4
+].remove();
+
+for(let i=0;i<3;i++){
+
+filaSecundaria.lastElementChild.remove();
+
+}
+
+/* ELIMINAR COLUMNAS TABLA */
+
+document
+.querySelectorAll('#tablaItems tr')
+.forEach(fila => {
+
+if(
+!fila.classList.contains('grupo-modulo')
+){
+
+for(let i=0;i<3;i++){
+
+fila.deleteCell(
+fila.cells.length - 4
+);
+
+}
+
+}
+
+});
+
+contratoMod--;
+
+actualizarTotales();
+
+}
+
+);
+
+}
+function abrirContactos(){
+    document.getElementById("modalContactos").style.display = "flex";
+}
+
+function cerrarContactos(){
+    document.getElementById("modalContactos").style.display = "none";
+}
+
+window.addEventListener("click", function(e){
+
+    const modal = document.getElementById("modalContactos");
+
+    if(e.target === modal){
+        cerrarContactos();
+    }
+
+});

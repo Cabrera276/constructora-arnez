@@ -116,17 +116,19 @@ padding:25px;
 
 transform:
 translateY(-3px)
-scale(1.03);
+scale(1.05);
 
 box-shadow:
-0 10px 25px rgba(255,191,0,.45);
+0 12px 30px rgba(255,191,0,.60);
 
 background:
 linear-gradient(
 145deg,
-#ffe27a,
-#ffc933
+#ffbf00,
+#ff9900
 );
+
+color:white;
 
 }
 
@@ -671,4 +673,106 @@ linear-gradient(
 #ffc933
 );
 
+}
+.modal-contactos{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    animation: fadeIn 0.3s ease;
+}
+
+.panel-contactos{
+    width: 400px;
+    max-width: 90%;
+    background: #111;
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    border: 2px solid #d4a017;
+    animation: subir 0.3s ease;
+}
+
+.panel-contactos h2{
+    text-align: center;
+    margin-bottom: 25px;
+    color: #d4a017;
+}
+
+.contacto-item{
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.botones-contacto{
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    justify-content: center;
+}
+
+.botones-contacto a{
+    text-decoration: none;
+    background: #d4a017;
+    color: black;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.botones-contacto a:hover{
+    transform: scale(1.05);
+}
+
+.cerrar-contactos{
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: red;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+    }
+    to{
+        opacity:1;
+    }
+}
+
+@keyframes subir{
+    from{
+        transform: translateY(40px);
+        opacity:0;
+    }
+    to{
+        transform: translateY(0);
+        opacity:1;
+    }
+}
+.contacto-item i{
+    color:#d4a017;
+    margin-right:10px;
+    font-size:18px;
+    width:25px;
+    text-align:center;
+}
+
+.panel-contactos h2 i{
+    margin-right:10px;
+    color:#d4a017;
 }
