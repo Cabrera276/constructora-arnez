@@ -595,4 +595,56 @@ body{
     }
 
 }
+@media(max-width:768px){
+
+    .header{
+        flex-direction:column;
+        gap:20px;
+        padding:20px;
+        text-align:center;
+    }
+
+    .menu{
+        width:100%;
+    }
+
+    .menu ul{
+        flex-direction:column;
+        align-items:center;
+        gap:20px;
+    }
+
+    .contenido{
+        padding:20px;
+        text-align:center;
+    }
+
+    .contenido h1{
+        font-size:55px;
+        line-height:1.1;
+    }
+
+    .contenido p{
+        font-size:18px;
+    }
+
+    .botones{
+        flex-direction:column;
+        width:100%;
+    }
+
+    .botones a{
+        width:100%;
+    }
+
+    .cards{
+        flex-direction:column;
+        align-items:center;
+    }
+
+    .card{
+        width:95%;
+    }
+
+}
 
