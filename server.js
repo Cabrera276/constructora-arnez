@@ -23,7 +23,10 @@ const db = mysql.createConnection({
     user: 'root',
     password: 'agLkZoAxCzRvHkmLFpKBSMDpSTgAmNoH',
     database: 'railway',
-    port: 49780
+    port: 49780,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 /* CONECTAR MYSQL */
