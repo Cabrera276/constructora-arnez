@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -15,7 +16,7 @@ const db = mysql.createConnection({
     host: 'roundhouse.proxy.rlwy.net',
     user: 'root',
     password: 'agLkZoAxCzRvHkmLFpKBSMDpSTgAmNoH',
-    database: 'constructora_arnez', // ✅ CORREGIDO
+    database: 'railway',
     port: 49780,
     ssl: {
         rejectUnauthorized: false
@@ -25,52 +26,64 @@ const db = mysql.createConnection({
 /* CONECTAR MYSQL */
 db.connect((err) => {
     if (err) {
-        console.log('Error conexion MySQL:', err);
+        console.log('❌ Error conexion MySQL:', err.message);
         return;
     }
-    console.log('MySQL conectado');
+    console.log('✅ MySQL conectado correctamente');
+    
+    // Verificar que la tabla usuarios existe
+    db.query("SHOW TABLES LIKE 'usuarios'", (err, result) => {
+        if (err) console.log('Error verificando tabla:', err);
+        else if (result.length === 0) console.log('⚠️ Tabla "usuarios" NO existe');
+        else console.log('✅ Tabla "usuarios" encontrada');
+    });
 });
 
 /* RUTA PRINCIPAL */
 app.get('/', (req, res) => {
-    res.send('Servidor funcionando');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 /* =========================
-   LOGIN
+   LOGIN - CON DEBUG
 ========================= */
 app.post('/login', (req, res) => {
+    console.log('📩 Login recibido:', req.body);
+    
     const { usuario, password } = req.body;
 
     if (!usuario || !password) {
+        console.log('⚠️ Campos vacíos');
         return res.json({
             success: false,
             mensaje: 'Complete todos los campos'
         });
     }
 
-    const sql = `
-        SELECT * FROM usuarios
-        WHERE usuario = ?
-        AND password = ?
-    `;
-
+    const sql = `SELECT * FROM usuarios WHERE usuario = ? AND password = ?`;
+    
+    console.log('🔍 Buscando usuario:', usuario);
+    
     db.query(sql, [usuario, password], (err, result) => {
         if (err) {
-            console.log(err);
+            console.log('❌ Error SQL:', err.message);
             return res.status(500).json({
                 success: false,
-                mensaje: 'Error del servidor'
+                mensaje: 'Error del servidor: ' + err.message
             });
         }
 
+        console.log('📊 Resultados encontrados:', result.length);
+
         if (result.length > 0) {
+            console.log('✅ Login exitoso para:', usuario);
             res.json({
                 success: true,
                 mensaje: 'Login correcto',
-                usuario: result[0]
+                usuario: { id: result[0].id, usuario: result[0].usuario }
             });
         } else {
+            console.log('❌ Credenciales incorrectas para:', usuario);
             res.json({
                 success: false,
                 mensaje: 'Usuario o contraseña incorrectos'
@@ -97,17 +110,10 @@ app.post('/guardar-item', async (req, res) => {
             db.query("DELETE FROM items", () => {
                 const sql = `
                     INSERT INTO items (
-                        modulo_id,
-                        descripcion,
-                        unidad,
-                        cantidad,
-                        precio_unitario,
-                        total,
-                        porcentaje_incidencia,
-                        imagen,
-                        descripcion_imagen
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        modulo_id, descripcion, unidad, cantidad,
+                        precio_unitario, total, porcentaje_incidencia,
+                        imagen, descripcion_imagen
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
 
                 let pendientes = items.length;
@@ -117,278 +123,111 @@ app.post('/guardar-item', async (req, res) => {
                 }
 
                 items.forEach(item => {
-                    db.query(
-                        sql,
-                        [
-                            item.modulo_id,
-                            item.descripcion,
-                            item.unidad,
-                            item.cantidad,
-                            item.precio_unitario,
-                            item.total,
-                            item.porcentaje_incidencia,
-                            item.imagen,
-                            item.descripcion_imagen
-                        ],
-                        (err, result) => {
-                            if (err) {
-                                console.log(err);
-                                return;
-                            }
+                    db.query(sql, [
+                        item.modulo_id, item.descripcion, item.unidad,
+                        item.cantidad, item.precio_unitario, item.total,
+                        item.porcentaje_incidencia, item.imagen, item.descripcion_imagen
+                    ], (err, result) => {
+                        if (err) { console.log(err); return; }
 
-                            const itemId = result.insertId;
+                        const itemId = result.insertId;
 
+                        if (item.ordenesCambio) {
                             item.ordenesCambio.forEach(oc => {
                                 db.query(
-                                    `
-                                    INSERT INTO ordenes_cambio (
-                                        item_id,
-                                        numero_oc,
-                                        cantidad,
-                                        precio,
-                                        total
-                                    )
-                                    VALUES (?, ?, ?, ?, ?)
-                                    `,
-                                    [
-                                        itemId,
-                                        oc.numero,
-                                        oc.cantidad,
-                                        oc.precio,
-                                        oc.total
-                                    ]
+                                    `INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
+                                    [itemId, oc.numero, oc.cantidad, oc.precio, oc.total]
                                 );
                             });
+                        }
 
+                        if (item.contratosMod) {
                             item.contratosMod.forEach(cm => {
                                 db.query(
-                                    `
-                                    INSERT INTO contratos_mod (
-                                        item_id,
-                                        numero_cm,
-                                        cantidad,
-                                        precio,
-                                        total
-                                    )
-                                    VALUES (?, ?, ?, ?, ?)
-                                    `,
-                                    [
-                                        itemId,
-                                        cm.numero,
-                                        cm.cantidad,
-                                        cm.precio,
-                                        cm.total
-                                    ]
+                                    `INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
+                                    [itemId, cm.numero, cm.cantidad, cm.precio, cm.total]
                                 );
                             });
-
-                            pendientes--;
-
-                            if (pendientes === 0) {
-                                res.json({
-                                    success: true,
-                                    mensaje: 'Items guardados'
-                                });
-                            }
                         }
-                    );
+
+                        pendientes--;
+                        if (pendientes === 0) {
+                            res.json({ success: true, mensaje: 'Items guardados' });
+                        }
+                    });
                 });
             });
         });
     });
 });
 
-/* =========================
-   OBTENER ITEMS
-========================= */
+/* OBTENER ITEMS, OC, CM */
 app.get('/items', (req, res) => {
-    const sql = `
-        SELECT * FROM items
-        ORDER BY modulo_id ASC, id ASC
-    `;
-
-    db.query(sql, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json(err);
-        }
+    db.query("SELECT * FROM items ORDER BY modulo_id ASC, id ASC", (err, result) => {
+        if (err) return res.status(500).json(err);
         res.json(result);
     });
 });
 
-/* =========================
-   OBTENER ORDENES CAMBIO
-========================= */
 app.get('/ordenes-cambio', (req, res) => {
-    const sql = `
-        SELECT * FROM ordenes_cambio
-        ORDER BY id ASC
-    `;
-
-    db.query(sql, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json(err);
-        }
+    db.query("SELECT * FROM ordenes_cambio ORDER BY id ASC", (err, result) => {
+        if (err) return res.status(500).json(err);
         res.json(result);
     });
 });
 
-/* =========================
-   OBTENER CONTRATOS MOD
-========================= */
 app.get('/contratos-mod', (req, res) => {
-    const sql = `
-        SELECT * FROM contratos_mod
-        ORDER BY id ASC
-    `;
-
-    db.query(sql, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).json(err);
-        }
+    db.query("SELECT * FROM contratos_mod ORDER BY id ASC", (err, result) => {
+        if (err) return res.status(500).json(err);
         res.json(result);
     });
 });
 
-/* =========================
-   EDITAR ITEM
-========================= */
+/* EDITAR ITEM */
 app.put('/editar-item/:id', (req, res) => {
     const id = req.params.id;
-    const {
-        descripcion,
-        unidad,
-        cantidad,
-        precio_unitario,
-        total
-    } = req.body;
-
+    const { descripcion, unidad, cantidad, precio_unitario, total } = req.body;
     db.query(
-        `UPDATE items
-         SET descripcion=?,
-             unidad=?,
-             cantidad=?,
-             precio_unitario=?,
-             total=?
-         WHERE id=?`,
-        [
-            descripcion,
-            unidad,
-            cantidad,
-            precio_unitario,
-            total,
-            id
-        ],
+        `UPDATE items SET descripcion=?, unidad=?, cantidad=?, precio_unitario=?, total=? WHERE id=?`,
+        [descripcion, unidad, cantidad, precio_unitario, total, id],
         (err) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).json(err);
-            }
+            if (err) return res.status(500).json(err);
             res.json({ success: true });
         }
     );
 });
 
-/* =========================
-   ELIMINAR ITEM
-========================= */
+/* ELIMINAR ITEM */
 app.delete('/eliminar-item/:id', (req, res) => {
     const id = req.params.id;
-
-    db.query(
-        'DELETE FROM ordenes_cambio WHERE item_id=?',
-        [id],
-        (err) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).json(err);
-            }
-
-            db.query(
-                'DELETE FROM contratos_mod WHERE item_id=?',
-                [id],
-                (err) => {
-                    if (err) {
-                        console.log(err);
-                        return res.status(500).json(err);
-                    }
-
-                    db.query(
-                        'DELETE FROM items WHERE id=?',
-                        [id],
-                        (err) => {
-                            if (err) {
-                                console.log(err);
-                                return res.status(500).json(err);
-                            }
-                            res.json({ success: true });
-                        }
-                    );
-                }
-            );
-        }
-    );
+    db.query('DELETE FROM ordenes_cambio WHERE item_id=?', [id], () => {
+        db.query('DELETE FROM contratos_mod WHERE item_id=?', [id], () => {
+            db.query('DELETE FROM items WHERE id=?', [id], (err) => {
+                if (err) return res.status(500).json(err);
+                res.json({ success: true });
+            });
+        });
+    });
 });
 
-/* =========================
-   GUARDAR PLANILLAS
-========================= */
+/* PLANILLAS */
 app.post('/guardar-planillas', (req, res) => {
     const datos = req.body;
-
-    if (!Array.isArray(datos)) {
-        return res.json({ success: false });
-    }
-
-    const sql = `
-        INSERT INTO planillas
-        (numero_planilla, item_id, cantidad, total, avance)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-
-    datos.forEach(planilla => {
-        db.query(
-            sql,
-            [
-                planilla.numero_planilla,
-                planilla.item_id,
-                planilla.cantidad,
-                planilla.total,
-                planilla.avance
-            ],
-            (err) => {
-                if (err) {
-                    console.log(err);
-                }
-            }
-        );
-    });
-
+    if (!Array.isArray(datos)) return res.json({ success: false });
+    const sql = `INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)`;
+    datos.forEach(p => db.query(sql, [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance]));
     res.json({ success: true });
 });
 
-/* =========================
-   OBTENER PLANILLAS
-========================= */
 app.get('/planillas', (req, res) => {
-    const sql = 'SELECT * FROM planillas';
-
-    db.query(sql, (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.json([]);
-        }
+    db.query('SELECT * FROM planillas', (err, result) => {
+        if (err) return res.json([]);
         res.json(result);
     });
 });
 
-/* =========================
-   INICIAR SERVIDOR
-========================= */
+/* INICIAR SERVIDOR */
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
