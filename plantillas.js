@@ -65,33 +65,37 @@ async function cargarDatos() {
                 <td>${item.imagen ? `<img src="${item.imagen}" class="mini-img" style="width:80px;border-radius:10px;cursor:pointer" onclick="verImagen('${item.imagen}','${item.descripcion_imagen || ''}')">` : 'Sin imagen'}</td>
             `;
 
+            // Agregar columnas de planilla en ORDEN CORRECTO
             for (let p = 1; p <= maxPlanilla; p++) {
-                const td1 = document.createElement('td');
+                const td1 = document.createElement('td'); // CANTIDAD
                 td1.contentEditable = 'true';
                 td1.className = 'planilla-input';
                 td1.textContent = '0';
                 td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-                const td2 = document.createElement('td');
+                const td2 = document.createElement('td'); // TOTAL (Bs)
                 td2.contentEditable = 'true';
                 td2.className = 'planilla-total';
                 td2.textContent = '0';
                 td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
                 td2.addEventListener('input', actualizarTotalesPlanilla);
 
-                const td3 = document.createElement('td');
+                const td3 = document.createElement('td'); // % AVANCE
                 td3.contentEditable = 'true';
                 td3.className = 'avance-input';
                 td3.textContent = '100%';
                 td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-                fila.insertBefore(td1, fila.children[fila.children.length - 1]);
-                fila.insertBefore(td2, fila.children[fila.children.length - 1]);
-                fila.insertBefore(td3, fila.children[fila.children.length - 1]);
+                // Agregar ANTES de la última columna (ACCIONES)
+                const penultima = fila.children.length - 1;
+                fila.insertBefore(td1, fila.children[penultima]);
+                fila.insertBefore(td2, fila.children[penultima + 1]);
+                fila.insertBefore(td3, fila.children[penultima + 2]);
             }
 
             tabla.appendChild(fila);
 
+            // Llenar valores guardados
             const plansItem = planillas.filter(p => p.item_id == item.id);
             plansItem.forEach(plan => {
                 const inicio = 14 + ((plan.numero_planilla - 1) * 3);
@@ -116,37 +120,42 @@ function agregarPlanillaGeneral() {
     const th = document.createElement('th');
     th.colSpan = 3;
     th.textContent = `PLANILLA Nº${contadorPlanillas}`;
+    // Insertar antes de % INCIDENCIA
     fp.insertBefore(th, fp.children[fp.children.length - 2]);
 
+    // Subheaders en orden: CANTIDAD, TOTAL (Bs), % AVANCE
     ['CANTIDAD', 'TOTAL (Bs)', '% AVANCE'].forEach(t => {
         const th2 = document.createElement('th');
         th2.textContent = t;
+        // Insertar antes de EVIDENCIA
         fs.insertBefore(th2, fs.children[fs.children.length - 1]);
     });
 
     document.querySelectorAll('.fila-item').forEach(fila => {
-        const td1 = document.createElement('td');
+        const td1 = document.createElement('td'); // CANTIDAD
         td1.contentEditable = 'true';
         td1.className = 'planilla-input';
         td1.textContent = '0';
         td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-        const td2 = document.createElement('td');
+        const td2 = document.createElement('td'); // TOTAL (Bs)
         td2.contentEditable = 'true';
         td2.className = 'planilla-total';
         td2.textContent = '0';
         td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
         td2.addEventListener('input', actualizarTotalesPlanilla);
 
-        const td3 = document.createElement('td');
+        const td3 = document.createElement('td'); // % AVANCE
         td3.contentEditable = 'true';
         td3.className = 'avance-input';
         td3.textContent = '100%';
         td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-        fila.insertBefore(td1, fila.children[fila.children.length - 2]);
-        fila.insertBefore(td2, fila.children[fila.children.length - 2]);
-        fila.insertBefore(td3, fila.children[fila.children.length - 2]);
+        // Agregar ANTES de la última columna (IMAGEN)
+        const penultima = fila.children.length - 1;
+        fila.insertBefore(td1, fila.children[penultima]);
+        fila.insertBefore(td2, fila.children[penultima + 1]);
+        fila.insertBefore(td3, fila.children[penultima + 2]);
     });
 }
 
