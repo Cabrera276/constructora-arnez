@@ -1,744 +1,242 @@
 const usuario = localStorage.getItem("usuario");
+if (!usuario) window.location.replace("index.html");
 
-if(!usuario){
-
-    window.location.replace("index.html");
-
-}
-window.addEventListener('load', () => {
-
-mostrarDatos();
-
-});
-
-/* CONTADOR PLANILLAS */
-
+const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
 let contadorPlanillas = 0;
 
-/* =========================
-   MOSTRAR DATOS
-========================= */
+// ============================
+// CARGAR DATOS
+// ============================
+window.addEventListener('load', () => cargarDatos());
 
+async function cargarDatos() {
+    try {
+        const [itemsRes, ocRes, cmRes, planRes] = await Promise.all([
+            fetch(`${URL_SERVIDOR}/items`),
+            fetch(`${URL_SERVIDOR}/ordenes-cambio`),
+            fetch(`${URL_SERVIDOR}/contratos-mod`),
+            fetch(`${URL_SERVIDOR}/planillas`)
+        ]);
 
+        const items = await itemsRes.json();
+        const ocs = await ocRes.json();
+        const cms = await cmRes.json();
+        const planillas = await planRes.json();
 
+        // Restaurar planillas existentes
+        const maxPlanilla = Math.max(...planillas.map(p => p.numero_planilla), 0);
+        for (let i = 1; i <= maxPlanilla; i++) {
+            agregarPlanillaGeneral();
+        }
 
+        const tabla = document.getElementById('tablaReporte');
+        tabla.innerHTML = '';
 
-async function mostrarDatos(){
+        let moduloAnterior = null;
 
-const itemsRes =
-await fetch(
-'http://localhost:3000/items'
-);
+        items.forEach(item => {
+            // Módulo
+            if (moduloAnterior != item.modulo_id) {
+                moduloAnterior = item.modulo_id;
+                const fm = document.createElement('tr');
+                fm.className = 'fila-modulo';
+                fm.style.background = '#dcdcdc';
+                fm.innerHTML = `<td colspan="20" style="font-weight:bold;font-size:18px;text-align:left;padding:14px;color:black">MÓDULO ${String(item.modulo_id).padStart(2, '0')}</td>`;
+                tabla.appendChild(fm);
+            }
 
-const ocRes =
-await fetch(
-'http://localhost:3000/ordenes-cambio'
-);
+            // OC y CM del ítem
+            const oc = ocs.find(o => o.item_id == item.id) || {};
+            const cm = cms.find(c => c.item_id == item.id) || {};
 
-const cmRes =
-await fetch(
-'http://localhost:3000/contratos-mod'
-);
-const planillasRes =
-await fetch(
-'http://localhost:3000/planillas'
-);
-const datos =
-await itemsRes.json();
+            const fila = document.createElement('tr');
+            fila.className = 'fila-item';
+            fila.dataset.itemId = item.id;
 
-const ordenesCambio =
-await ocRes.json();
+            fila.innerHTML = `
+                <td>${item.modulo_id || ''}</td>
+                <td>${item.descripcion || ''}</td>
+                <td>${item.unidad || ''}</td>
+                <td>${item.cantidad || 0}</td>
+                <td>${item.precio_unitario || 0}</td>
+                <td>${item.total || 0}</td>
+                <td>${oc.cantidad || 0}</td>
+                <td>${oc.precio || 0}</td>
+                <td>${oc.total || 0}</td>
+                <td>${cm.cantidad || 0}</td>
+                <td>${cm.precio || 0}</td>
+                <td>${cm.total || 0}</td>
+                <td>${item.porcentaje_incidencia || '0%'}</td>
+                <td>${item.imagen ? `<img src="${item.imagen}" class="mini-img" style="width:80px;border-radius:10px;cursor:pointer" onclick="verImagen('${item.imagen}','${item.descripcion_imagen || ''}')">` : 'Sin imagen'}</td>
+            `;
 
-const contratosMod =
-await cmRes.json();
-const planillas =
-await planillasRes.json();
+            tabla.appendChild(fila);
 
-/* =========================
-   CREAR BLOQUES PLANILLAS
-========================= */
+            // Llenar planillas guardadas
+            const plansItem = planillas.filter(p => p.item_id == item.id);
+            plansItem.forEach(plan => {
+                const inicio = 14 + ((plan.numero_planilla - 1) * 3);
+                if (fila.cells[inicio]) {
+                    fila.cells[inicio].querySelector('input').value = plan.cantidad;
+                    fila.cells[inicio + 1].querySelector('input').value = plan.total;
+                    fila.cells[inicio + 2].querySelector('input').value = plan.avance;
+                }
+            });
+        });
 
-const maxPlanilla =
-Math.max(
-0,
-...planillas.map(
-p => p.numero_planilla
-)
-);
+        actualizarTotalesPlanilla();
 
-for(
-let i = 1;
-i <= maxPlanilla;
-i++
-){
-
-agregarPlanillaGeneral();
-
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+    }
 }
 
-const tabla =
-document.getElementById(
-'tablaReporte'
-);
+// ============================
+// AÑADIR PLANILLA
+// ============================
+function agregarPlanillaGeneral() {
+    contadorPlanillas++;
 
-tabla.innerHTML = '';
+    const fp = document.getElementById('filaPrincipal');
+    const fs = document.getElementById('filaSecundaria');
 
-let moduloAnterior = null;
+    // Header
+    const th = document.createElement('th');
+    th.colSpan = 3;
+    th.textContent = `PLANILLA Nº${contadorPlanillas}`;
+    fp.insertBefore(th, fp.children[fp.children.length - 2]);
 
-datos.forEach(filaData => {
+    // Subheaders
+    ['CANTIDAD', 'TOTAL Bs', '% AVANCE'].forEach(t => {
+        const th2 = document.createElement('th');
+        th2.textContent = t;
+        fs.insertBefore(th2, fs.children[fs.children.length - 1]);
+    });
 
-/* =========================
-   CREAR BLOQUE MODULO
-========================= */
+    // Columnas en cada ítem
+    document.querySelectorAll('.fila-item').forEach(fila => {
+        const td1 = document.createElement('td');
+        td1.innerHTML = '<input type="number" class="planilla-input" placeholder="0">';
+        const td2 = document.createElement('td');
+        td2.innerHTML = '<input type="number" class="planilla-total" placeholder="0" oninput="actualizarTotalesPlanilla()">';
+        const td3 = document.createElement('td');
+        td3.innerHTML = '<input type="text" class="avance-input" value="100%">';
 
-if(moduloAnterior != filaData.modulo_id){
-
-moduloAnterior =
-filaData.modulo_id;
-
-const filaModulo =
-document.createElement('tr');
-
-filaModulo.classList.add(
-'fila-modulo'
-);
-
-filaModulo.innerHTML = `
-
-<td colspan="30"
-style="
-background:#dcdcdc;
-font-weight:bold;
-font-size:18px;
-text-align:left;
-padding:14px;
-color:black;
-">
-
-MODULO ${String(filaData.modulo_id)
-.padStart(2,'0')}
-
-</td>
-
-`;
-
-tabla.appendChild(filaModulo);
-
+        fila.insertBefore(td1, fila.children[fila.children.length - 2]);
+        fila.insertBefore(td2, fila.children[fila.children.length - 2]);
+        fila.insertBefore(td3, fila.children[fila.children.length - 2]);
+    });
 }
 
-/* =========================
-   OC
-========================= */
+// ============================
+// ELIMINAR PLANILLA
+// ============================
+function eliminarPlanillaGeneral() {
+    if (contadorPlanillas <= 0) return;
 
-const ocItem =
-ordenesCambio.find(
-oc => oc.item_id == filaData.id
-) || {};
+    const fp = document.getElementById('filaPrincipal');
+    const fs = document.getElementById('filaSecundaria');
 
-/* =========================
-   CM
-========================= */
+    fp.children[fp.children.length - 3].remove();
+    for (let i = 0; i < 3; i++) fs.lastElementChild.remove();
 
-const cmItem =
-contratosMod.find(
-cm => cm.item_id == filaData.id
-) || {};
+    document.querySelectorAll('.fila-item').forEach(fila => {
+        for (let i = 0; i < 3; i++) fila.deleteCell(fila.cells.length - 3);
+    });
 
-/* =========================
-   FILA ITEM
-========================= */
-
-const fila =
-document.createElement('tr');
-
-fila.dataset.itemId =
-filaData.id;
-
-fila.classList.add(
-'fila-item'
-);
-
-fila.innerHTML = `
-
-<td>${filaData.modulo_id || ''}</td>
-
-<td>${filaData.descripcion || ''}</td>
-
-<td>${filaData.unidad || ''}</td>
-
-<!-- ORIGINAL -->
-
-<td>${filaData.cantidad || ''}</td>
-<td>${filaData.precio_unitario || ''}</td>
-<td>${filaData.total || ''}</td>
-
-<!-- OC -->
-
-<td>${ocItem.cantidad || ''}</td>
-<td>${ocItem.precio || ''}</td>
-<td>${ocItem.total || ''}</td>
-
-<!-- CM -->
-
-<td>${cmItem.cantidad || ''}</td>
-<td>${cmItem.precio || ''}</td>
-<td>${cmItem.total || ''}</td>
-
-<!-- CM2 -->
-
-<td>${filaData.cm2_cantidad || ''}</td>
-<td>${filaData.cm2_pu || ''}</td>
-<td>${filaData.cm2_total || ''}</td>
-
-<td>
-${filaData.porcentaje_incidencia || 0}%
-</td>
-
-<td>
-
-${filaData.imagen
-? `<img
-src="${filaData.imagen}"
-class="mini-img"
-onclick="verImagen(
-'${filaData.imagen}',
-'${filaData.descripcion_imagen || ''}'
-)"
->`
-: ''
+    contadorPlanillas--;
+    actualizarTotalesPlanilla();
 }
 
-</td>
-
-<td>
-
-<div class="acciones">
-
-<button class="edit-btn">
-<i class="fa fa-pen"></i>
-</button>
-
-<button class="delete-btn">
-<i class="fa fa-trash"></i>
-</button>
-
-</div>
-
-</td>
-
-`;
-
-tabla.appendChild(fila);
-/* =========================
-   LLENAR PLANILLAS
-========================= */
-
-const planillasItem =
-planillas.filter(
-p => p.item_id == filaData.id
-);
-
-planillasItem.forEach(planilla => {
-
-const inicio =
-15 + (
-(planilla.numero_planilla - 1) * 3
-);
-
-fila.cells[inicio]
-.querySelector('input')
-.value =
-planilla.cantidad;
-
-fila.cells[inicio + 1]
-.querySelector('input')
-.value =
-planilla.total;
-
-fila.cells[inicio + 2]
-.querySelector('input')
-.value =
-planilla.avance;
-
-});
-
-/* =========================
-   TOTAL MODULO
-========================= */
-
-const siguiente =
-datos[
-datos.indexOf(filaData) + 1
-];
-
-if(
-!siguiente
-||
-siguiente.modulo_id != filaData.modulo_id
-){
-
-const filaTotal =
-document.createElement('tr');
-
-filaTotal.classList.add(
-'fila-total-modulo'
-);
-
-filaTotal.innerHTML = `
-
-<td colspan="5">
-
-<strong>
-TOTAL MODULO
-</strong>
-
-</td>
-
-<td class="modulo-total">
-
-0.00
-
-</td>
-
-<td colspan="20"></td>
-
-`;
-
-tabla.appendChild(filaTotal);
-
-
-/* LLENAR DATOS */
-
-setTimeout(() => {
-
-planillasItem.forEach(planilla => {
-
-const inicio =
-15 + (
-(planilla.numero_planilla - 1) * 3
-);
-
-fila.cells[inicio]
-.querySelector('input')
-.value =
-planilla.cantidad;
-
-fila.cells[inicio + 1]
-.querySelector('input')
-.value =
-planilla.total;
-
-fila.cells[inicio + 2]
-.querySelector('input')
-.value =
-planilla.avance;
-
-});
-
-},100);
-
+// ============================
+// ACTUALIZAR TOTALES
+// ============================
+function actualizarTotalesPlanilla() {
+    let totalContrato = 0;
+    document.querySelectorAll('.fila-item').forEach(fila => {
+        let suma = 0;
+        fila.querySelectorAll('.planilla-total').forEach(input => {
+            suma += parseFloat(input.value) || 0;
+        });
+        totalContrato += suma;
+    });
+    const totalEl = document.getElementById('totalContratoPlanilla');
+    if (totalEl) totalEl.textContent = totalContrato.toFixed(2);
 }
 
-});
-
-}
-
-/* =========================
-   AÑADIR PLANILLA
-========================= */
-
-function agregarPlanillaGeneral(){
-
-contadorPlanillas++;
-
-const filaPrincipal =
-document.querySelector('thead tr:first-child');
-
-const filaSecundaria =
-document.querySelector('thead tr:last-child');
-
-/* HEADER */
-
-const thPlanilla =
-document.createElement('th');
-
-thPlanilla.colSpan = 3;
-
-thPlanilla.innerHTML = `
-PLANILLA Nº${contadorPlanillas}
-`;
-
-/* INSERTAR ANTES DE % */
-
-filaPrincipal.insertBefore(
-thPlanilla,
-filaPrincipal.children[
-filaPrincipal.children.length - 3
-]
-);
-
-/* SUBHEADERS */
-
-['CANTIDAD','TOTAL [Bs]','% AVANCE']
-.forEach(texto => {
-
-const th =
-document.createElement('th');
-
-th.innerText = texto;
-
-filaSecundaria.insertBefore(
-th,
-filaSecundaria.children[
-filaSecundaria.children.length
-]
-);
-
-});
-
-/* FILAS ITEMS */
-
-const filas =
-document.querySelectorAll(
-'.fila-item'
-);
-
-filas.forEach(fila => {
-
-/* CANTIDAD */
-
-const tdCantidad =
-document.createElement('td');
-
-tdCantidad.innerHTML = `
-
-<input
-type="number"
-class="planilla-input"
->
-
-`;
-
-/* TOTAL */
-
-const tdTotal =
-document.createElement('td');
-
-tdTotal.innerHTML = `
-
-<input
-type="number"
-class="planilla-total"
-oninput="actualizarTotalesPlanilla()"
->
-
-`;
-
-/* AVANCE */
-
-const tdAvance =
-document.createElement('td');
-
-tdAvance.innerHTML = `
-
-<input
-type="text"
-class="avance-input"
-value="100,00%"
->
-
-`;
-
-/* INSERTAR ANTES DE % */
-
-fila.insertBefore(
-tdCantidad,
-fila.children[
-fila.children.length - 3
-]
-);
-
-fila.insertBefore(
-tdTotal,
-fila.children[
-fila.children.length - 3
-]
-);
-
-fila.insertBefore(
-tdAvance,
-fila.children[
-fila.children.length - 3
-]
-);
-
-});
-
-}
-
-/* =========================
-   ACTUALIZAR TOTALES
-========================= */
-
-function actualizarTotalesPlanilla(){
-
-let totalContrato = 0;
-
-const filas =
-document.querySelectorAll(
-'.fila-item'
-);
-
-filas.forEach(fila => {
-
-let totalModulo = 0;
-
-const inputs =
-fila.querySelectorAll(
-'.planilla-total'
-);
-
-inputs.forEach(input => {
-
-totalModulo +=
-parseFloat(input.value) || 0;
-
-});
-
-/* TOTAL MODULO */
-
-const filaTotal =
-fila.nextElementSibling;
-
-const totalCelda =
-filaTotal.querySelector(
-'.modulo-total'
-);
-
-if(totalCelda){
-
-totalCelda.textContent =
-totalModulo.toFixed(2);
-
-}
-
-totalContrato += totalModulo;
-
-});
-
-/* TOTAL CONTRATO */
-
-const totalGeneral =
-document.getElementById(
-'totalContratoPlanilla'
-);
-
-if(totalGeneral){
-
-totalGeneral.textContent =
-totalContrato.toFixed(2);
-
-}
-
-}
-
-/* =========================
-   VER IMAGEN
-========================= */
-
-function verImagen(src, descripcion){
-
-const modal =
-document.createElement('div');
-
-modal.className =
-'modal-imagen';
-
-modal.innerHTML = `
-
-<div class="contenido-modal">
-
-<button
-class="cerrar-modal"
-onclick="this.parentElement.parentElement.remove()">
-
-✖
-
-</button>
-
-<img src="${src}">
-
-<p>${descripcion}</p>
-
-</div>
-
-`;
-
-document.body.appendChild(modal);
-
-}
-/* =========================
-   ELIMINAR PLANILLA
-========================= */
-
-function eliminarPlanillaGeneral(){
-
-if(contadorPlanillas <= 0){
-return;
-}
-
-const filaPrincipal =
-document.querySelector('thead tr:first-child');
-
-const filaSecundaria =
-document.querySelector('thead tr:last-child');
-
-/* ELIMINAR HEADER PLANILLA */
-
-filaPrincipal.children[
-filaPrincipal.children.length - 4
-].remove();
-
-/* ELIMINAR SUBHEADERS */
-
-for(let i=0;i<3;i++){
-
-filaSecundaria.lastElementChild.remove();
-
-}
-
-/* ELIMINAR COLUMNAS ITEMS */
-
-const filas =
-document.querySelectorAll('.fila-item');
-
-filas.forEach(fila => {
-
-for(let i=0;i<3;i++){
-
-fila.deleteCell(
-fila.cells.length - 4
-);
-
-}
-
-});
-
-contadorPlanillas--;
-
-actualizarTotalesPlanilla();
-
-}
-/* =========================
-   GUARDAR PLANILLAS
-========================= */
-
-async function guardarPlanillas(){
-
-const filas =
-document.querySelectorAll('.fila-item');
-
-let datosPlanilla = [];
-
-filas.forEach((fila,index) => {
-
-const itemId =
-fila.dataset.itemId;
-
-for(let p=1; p<=contadorPlanillas; p++){
-
-const inicio = 15 + ((p - 1) * 3);
-
-const cantidad =
-fila.cells[inicio]
-.querySelector('input')?.value || 0;
-
-const total =
-fila.cells[inicio + 1]
-.querySelector('input')?.value || 0;
-
-const avance =
-fila.cells[inicio + 2]
-.querySelector('input')?.value || '0%';
-
-if(cantidad || total){
-
-datosPlanilla.push({
-
-numero_planilla:p,
-
-item_id:itemId,
-
-cantidad,
-
-total,
-
-avance
-
-});
-
-}
-
-}
-});
-try{
-
-const respuesta = await fetch(
-'http://localhost:3000/guardar-planillas',
-{
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify(datosPlanilla)
-
-}
-);
-
-const data =
-await respuesta.json();
-
-if(data.success){
-
-alert(
-'Planillas guardadas correctamente'
-);
-
-}else{
-
-alert(
-'Error al guardar planillas'
-);
-
-}
-
-}catch(error){
-
-console.log(error);
-
-alert(
-'Error conectando con el servidor'
-);
-
-}
-
-}
-function abrirContactos(){
-    document.getElementById("modalContactos").style.display = "flex";
-}
-
-function cerrarContactos(){
-    document.getElementById("modalContactos").style.display = "none";
-}
-
-window.addEventListener("click", function(e){
-
-    const modal = document.getElementById("modalContactos");
-
-    if(e.target === modal){
-        cerrarContactos();
+// ============================
+// GUARDAR PLANILLAS
+// ============================
+async function guardarPlanillas() {
+    const filas = document.querySelectorAll('.fila-item');
+    const datos = [];
+
+    filas.forEach(fila => {
+        const itemId = fila.dataset.itemId;
+        for (let p = 1; p <= contadorPlanillas; p++) {
+            const inicio = 14 + ((p - 1) * 3);
+            const cantidad = fila.cells[inicio]?.querySelector('input')?.value || 0;
+            const total = fila.cells[inicio + 1]?.querySelector('input')?.value || 0;
+            const avance = fila.cells[inicio + 2]?.querySelector('input')?.value || '0%';
+
+            datos.push({
+                numero_planilla: p,
+                item_id: parseInt(itemId),
+                cantidad: parseFloat(cantidad) || 0,
+                total: parseFloat(total) || 0,
+                avance
+            });
+        }
+    });
+
+    if (datos.length === 0) {
+        alert('No hay datos para guardar');
+        return;
     }
 
-});
+    try {
+        const r = await fetch(`${URL_SERVIDOR}/guardar-planillas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        const data = await r.json();
+        alert(data.success ? '✅ Planillas guardadas' : '❌ Error al guardar');
+    } catch (e) {
+        alert('❌ Error de conexión');
+    }
+}
+
+// ============================
+// VER IMAGEN
+// ============================
+function verImagen(src, desc) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:flex;justify-content:center;align-items:center;z-index:99999';
+    modal.innerHTML = `
+        <div style="background:#111;padding:20px;border-radius:20px;max-width:700px;text-align:center">
+            <button onclick="this.parentElement.parentElement.remove()" style="background:red;color:white;border:none;width:35px;height:35px;border-radius:50%;font-size:18px;cursor:pointer;float:right">×</button>
+            <img src="${src}" style="max-width:100%;max-height:500px;border-radius:15px;margin-top:10px">
+            <p style="color:white;margin-top:15px;font-size:18px">${desc}</p>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+// ============================
+// MODAL CONTACTOS
+// ============================
+function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
+function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
+window.addEventListener("click", function(e) { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
+
+// ============================
+// MENÚ HAMBURGUESA
+// ============================
+function toggleMenu() {
+    const menu = document.querySelector('.menu'), boton = document.querySelector('.menu-hamburguesa');
+    if (!menu || !boton) return;
+    menu.classList.toggle('activo'); boton.classList.toggle('activo');
+    const icono = boton.querySelector('i');
+    if (menu.classList.contains('activo')) { icono.classList.remove('fa-bars'); icono.classList.add('fa-times'); }
+    else { icono.classList.remove('fa-times'); icono.classList.add('fa-bars'); }
+}

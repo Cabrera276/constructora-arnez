@@ -843,3 +843,13 @@ text-align:center;
     }
 
 }
+/* Menú hamburguesa */
+.menu-hamburguesa { display: none; background: none; border: none; color: #ffc400; font-size: 30px; cursor: pointer; z-index: 1000; }
+.menu.activo { display: flex !important; }
+.mini-img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid #ffc400; }
+.mini-img:hover { transform: scale(1.1); }
+
+@media(max-width: 768px) {
+    .menu-hamburguesa { display: block; position: absolute; right: 20px; top: 20px; }
+    .menu { display: none; width: 100%; flex-direction: column; background: rgba(0,0,0,.9); padding: 20px; border-radius: 10px; }
+}
