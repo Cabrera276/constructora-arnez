@@ -674,3 +674,42 @@ text-align:center;
     .menu { display: none; width: 100%; flex-direction: column; background: rgba(0,0,0,.9); padding: 20px; border-radius: 10px; }
     .menu.activo { display: flex; }
 }
+.inicio-input, .fin-input {
+    width: 140px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+}
+
+.plazo-input {
+    width: 100px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.acumulado-cell {
+    font-size: 18px;
+    font-weight: 900;
+    color: #111;
+    background: #e8e8e8 !important;
+}
+
+.delete-btn {
+    background: #ff3b3b;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+.delete-btn:hover { background: #cc0000; }

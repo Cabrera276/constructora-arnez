@@ -2,26 +2,24 @@ const usuario = localStorage.getItem("usuario");
 if (!usuario) window.location.replace("index.html");
 
 const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
-let contadorFilas = 1;
+let contador = 1;
 
 // ============================
-// CARGAR DATOS AL INICIAR
+// CARGAR DATOS
 // ============================
-window.addEventListener('load', cargarAmpliaciones);
+window.addEventListener('load', cargarDatos);
 
-async function cargarAmpliaciones() {
+async function cargarDatos() {
     try {
         const res = await fetch(`${URL_SERVIDOR}/ampliaciones`);
         const datos = await res.json();
-        
         if (datos.length > 0) {
-            datos.forEach(dato => {
-                agregarFila(dato);
-            });
-            contadorFilas = datos.length + 1;
+            datos.forEach(d => agregarFila(d));
+            contador = datos.length + 1;
         }
-    } catch (error) {
-        console.error('Error cargando:', error);
+        recalcularAcumulados();
+    } catch (e) {
+        console.error('Error:', e);
     }
 }
 
@@ -32,93 +30,73 @@ document.getElementById('btnAgregarPlazo').addEventListener('click', () => agreg
 
 function agregarFila(dato = null) {
     const tabla = document.getElementById('tablaPlazos');
+    const num = dato ? dato.id : contador;
+    
     const fila = document.createElement('tr');
+    fila.dataset.id = num;
     
     fila.innerHTML = `
-        <td>${dato ? dato.id : contadorFilas}</td>
+        <td>${num}</td>
         <td contenteditable="true">${dato ? dato.descripcion || '' : ''}</td>
-        <td><input type="date" class="fecha-inicio" value="${dato ? dato.inicio || '' : ''}" onchange="calcularDias(this)"></td>
-        <td><input type="date" class="fecha-fin" value="${dato ? dato.fin || '' : ''}" onchange="calcularDias(this)"></td>
-        <td class="plazo">${dato ? dato.plazo || 0 : 0}</td>
-        <td class="plazo-acumulado">0</td>
-        <td>
-            <button class="delete-btn" onclick="eliminarFila(this)" title="Eliminar fila">
-                <i class="fa fa-trash"></i>
-            </button>
-        </td>
+        <td><input type="date" class="inicio-input" value="${dato ? dato.inicio || '' : ''}"></td>
+        <td><input type="date" class="fin-input" value="${dato ? dato.fin || '' : ''}"></td>
+        <td><input type="number" class="plazo-input" value="${dato ? dato.plazo || 0 : 0}" oninput="recalcularAcumulados()"></td>
+        <td class="acumulado-cell">${dato ? dato.acumulado || 0 : 0}</td>
+        <td><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></td>
     `;
     
     tabla.appendChild(fila);
-    if (!dato) contadorFilas++;
-    calcularAcumulados();
+    if (!dato) contador++;
+    recalcularAcumulados();
 }
 
 // ============================
-// CALCULAR DÍAS ENTRE FECHAS
+// RECALCULAR ACUMULADOS
 // ============================
-function calcularDias(input) {
-    const fila = input.closest('tr');
-    const inicio = fila.querySelector('.fecha-inicio').value;
-    const fin = fila.querySelector('.fecha-fin').value;
-    const plazoCelda = fila.querySelector('.plazo');
-    
-    if (inicio && fin) {
-        const fechaInicio = new Date(inicio);
-        const fechaFin = new Date(fin);
-        const diferencia = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24));
-        plazoCelda.textContent = diferencia >= 0 ? diferencia : 0;
-        calcularAcumulados();
-    }
-}
-
-// ============================
-// CALCULAR ACUMULADOS
-// ============================
-function calcularAcumulados() {
+function recalcularAcumulados() {
     const filas = document.querySelectorAll('#tablaPlazos tr');
     let acumulado = 0;
     
     filas.forEach(fila => {
-        const plazo = parseInt(fila.querySelector('.plazo')?.textContent) || 0;
-        acumulado += plazo;
-        const acumCelda = fila.querySelector('.plazo-acumulado');
-        if (acumCelda) acumCelda.textContent = acumulado;
+        const plazoInput = fila.querySelector('.plazo-input');
+        const acumCelda = fila.querySelector('.acumulado-cell');
+        
+        if (plazoInput && acumCelda) {
+            const plazo = parseInt(plazoInput.value) || 0;
+            acumulado += plazo;
+            acumCelda.textContent = acumulado;
+        }
     });
-    
-    const totalEl = document.getElementById('totalAcumulado');
-    if (totalEl) totalEl.textContent = acumulado + ' días';
 }
 
 // ============================
 // ELIMINAR FILA
 // ============================
 function eliminarFila(btn) {
-    if (confirm('¿Eliminar esta ampliación?')) {
-        btn.closest('tr').remove();
-        calcularAcumulados();
-    }
+    btn.closest('tr').remove();
+    recalcularAcumulados();
 }
 
 // ============================
-// GUARDAR EN MYSQL
+// GUARDAR
 // ============================
-document.getElementById('btnGuardarPlazos').addEventListener('click', guardarDatos);
+document.getElementById('btnGuardarPlazos').addEventListener('click', guardar);
 
-async function guardarDatos() {
+async function guardar() {
     const filas = document.querySelectorAll('#tablaPlazos tr');
     const datos = [];
     
     filas.forEach(fila => {
         datos.push({
             descripcion: fila.cells[1]?.textContent.trim() || '',
-            inicio: fila.querySelector('.fecha-inicio')?.value || '',
-            fin: fila.querySelector('.fecha-fin')?.value || '',
-            plazo: parseInt(fila.querySelector('.plazo')?.textContent) || 0,
-            acumulado: parseInt(fila.querySelector('.plazo-acumulado')?.textContent) || 0
+            inicio: fila.querySelector('.inicio-input')?.value || '',
+            fin: fila.querySelector('.fin-input')?.value || '',
+            plazo: parseInt(fila.querySelector('.plazo-input')?.value) || 0,
+            acumulado: parseInt(fila.querySelector('.acumulado-cell')?.textContent) || 0
         });
     });
     
-    if (datos.length === 0) { alert('No hay datos'); return; }
+    if (!datos.length) { alert('No hay datos'); return; }
     
     try {
         const r = await fetch(`${URL_SERVIDOR}/guardar-ampliaciones`, {
@@ -126,24 +104,19 @@ async function guardarDatos() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        const data = await r.json();
-        alert(data.success ? '✅ Ampliaciones guardadas' : '❌ Error');
-        if (data.success) location.reload();
+        alert((await r.json()).success ? '✅ Guardado' : '❌ Error');
     } catch (e) {
         alert('❌ Error de conexión');
     }
 }
 
 // ============================
-// MODAL CONTACTOS
+// CONTACTOS Y MENÚ
 // ============================
 function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
 function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
 window.addEventListener("click", function(e) { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
 
-// ============================
-// MENÚ HAMBURGUESA
-// ============================
 function toggleMenu() {
     const menu = document.querySelector('.menu'), boton = document.querySelector('.menu-hamburguesa');
     if (!menu || !boton) return;

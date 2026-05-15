@@ -35,7 +35,7 @@
 
 <div class="botones-plazos">
     <button class="btn-ampliacion" id="btnAgregarPlazo">
-        <i class="fa fa-clock"></i> Añadir Ampliación
+        <i class="fa fa-plus"></i> Añadir Fila
     </button>
     <button class="btn-guardar-plazos" id="btnGuardarPlazos">
         <i class="fa fa-save"></i> Guardar
@@ -48,21 +48,14 @@
             <tr>
                 <th>Nº</th>
                 <th>DESCRIPCIÓN</th>
-                <th>FECHA INICIO</th>
-                <th>FECHA FIN</th>
-                <th>DÍAS</th>
-                <th>ACUMULADO</th>
-                <th>ACCIONES</th>
+                <th>INICIO</th>
+                <th>FIN</th>
+                <th>PLAZO (días)</th>
+                <th>PLAZO ACUMULADO</th>
+                <th></th>
             </tr>
         </thead>
         <tbody id="tablaPlazos"></tbody>
-        <tfoot>
-            <tr style="background:#ffd84d;font-weight:bold">
-                <td colspan="5" style="text-align:right;padding-right:20px">PLAZO TOTAL:</td>
-                <td id="totalAcumulado" style="font-size:20px">0</td>
-                <td></td>
-            </tr>
-        </tfoot>
     </table>
 </div>
 
