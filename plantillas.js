@@ -62,31 +62,33 @@ async function cargarDatos() {
                 <td>${cm.precio || 0}</td>
                 <td>${cm.total || 0}</td>
                 <td>${item.porcentaje_incidencia || '0%'}</td>
-                <td>${item.imagen ? `<img src="${item.imagen}" class="mini-img" style="width:80px;border-radius:10px;cursor:pointer" onclick="verImagen('${item.imagen}','${item.descripcion_imagen || ''}')">` : 'Sin imagen'}</td>
+                <td style="text-align:center">
+                    ${item.imagen && item.imagen !== '[]' ? 
+                        `<button onclick="verImagen('${item.imagen.replace(/'/g, "\\'")}','${(item.descripcion_imagen || '').replace(/'/g, "\\'")}')" style="background:#ffc933;color:black;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px"><i class="fa fa-image"></i> Ver</button>` 
+                        : 'Sin imagen'}
+                </td>
             `;
 
-            // Agregar columnas de planilla en ORDEN CORRECTO
             for (let p = 1; p <= maxPlanilla; p++) {
-                const td1 = document.createElement('td'); // CANTIDAD
+                const td1 = document.createElement('td');
                 td1.contentEditable = 'true';
                 td1.className = 'planilla-input';
                 td1.textContent = '0';
                 td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-                const td2 = document.createElement('td'); // TOTAL (Bs)
+                const td2 = document.createElement('td');
                 td2.contentEditable = 'true';
                 td2.className = 'planilla-total';
                 td2.textContent = '0';
                 td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
                 td2.addEventListener('input', actualizarTotalesPlanilla);
 
-                const td3 = document.createElement('td'); // % AVANCE
+                const td3 = document.createElement('td');
                 td3.contentEditable = 'true';
                 td3.className = 'avance-input';
                 td3.textContent = '100%';
                 td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
-                // Agregar ANTES de la última columna (ACCIONES)
                 const penultima = fila.children.length - 1;
                 fila.insertBefore(td1, fila.children[penultima]);
                 fila.insertBefore(td2, fila.children[penultima + 1]);
@@ -95,7 +97,6 @@ async function cargarDatos() {
 
             tabla.appendChild(fila);
 
-            // Llenar valores guardados
             const plansItem = planillas.filter(p => p.item_id == item.id);
             plansItem.forEach(plan => {
                 const inicio = 14 + ((plan.numero_planilla - 1) * 3);
@@ -113,45 +114,19 @@ async function cargarDatos() {
 
 function agregarPlanillaGeneral() {
     contadorPlanillas++;
-
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
-
-    const th = document.createElement('th');
-    th.colSpan = 3;
+    const th = document.createElement('th'); th.colSpan = 3;
     th.textContent = `PLANILLA Nº${contadorPlanillas}`;
-    // Insertar antes de % INCIDENCIA
     fp.insertBefore(th, fp.children[fp.children.length - 2]);
-
-    // Subheaders en orden: CANTIDAD, TOTAL (Bs), % AVANCE
     ['CANTIDAD', 'TOTAL (Bs)', '% AVANCE'].forEach(t => {
-        const th2 = document.createElement('th');
-        th2.textContent = t;
-        // Insertar antes de EVIDENCIA
+        const th2 = document.createElement('th'); th2.textContent = t;
         fs.insertBefore(th2, fs.children[fs.children.length - 1]);
     });
-
     document.querySelectorAll('.fila-item').forEach(fila => {
-        const td1 = document.createElement('td'); // CANTIDAD
-        td1.contentEditable = 'true';
-        td1.className = 'planilla-input';
-        td1.textContent = '0';
-        td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
-
-        const td2 = document.createElement('td'); // TOTAL (Bs)
-        td2.contentEditable = 'true';
-        td2.className = 'planilla-total';
-        td2.textContent = '0';
-        td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
-        td2.addEventListener('input', actualizarTotalesPlanilla);
-
-        const td3 = document.createElement('td'); // % AVANCE
-        td3.contentEditable = 'true';
-        td3.className = 'avance-input';
-        td3.textContent = '100%';
-        td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
-
-        // Agregar ANTES de la última columna (IMAGEN)
+        const td1 = document.createElement('td'); td1.contentEditable = 'true'; td1.className = 'planilla-input'; td1.textContent = '0'; td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+        const td2 = document.createElement('td'); td2.contentEditable = 'true'; td2.className = 'planilla-total'; td2.textContent = '0'; td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px'; td2.addEventListener('input', actualizarTotalesPlanilla);
+        const td3 = document.createElement('td'); td3.contentEditable = 'true'; td3.className = 'avance-input'; td3.textContent = '100%'; td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
         const penultima = fila.children.length - 1;
         fila.insertBefore(td1, fila.children[penultima]);
         fila.insertBefore(td2, fila.children[penultima + 1]);
@@ -161,13 +136,9 @@ function agregarPlanillaGeneral() {
 
 function eliminarPlanillaGeneral() {
     if (contadorPlanillas <= 0) return;
-    const fp = document.getElementById('filaPrincipal');
-    const fs = document.getElementById('filaSecundaria');
-    fp.children[fp.children.length - 3].remove();
-    for (let i = 0; i < 3; i++) fs.lastElementChild.remove();
-    document.querySelectorAll('.fila-item').forEach(fila => {
-        for (let i = 0; i < 3; i++) fila.deleteCell(fila.cells.length - 3);
-    });
+    document.getElementById('filaPrincipal').children[document.getElementById('filaPrincipal').children.length - 3].remove();
+    for (let i = 0; i < 3; i++) document.getElementById('filaSecundaria').lastElementChild.remove();
+    document.querySelectorAll('.fila-item').forEach(fila => { for (let i = 0; i < 3; i++) fila.deleteCell(fila.cells.length - 3); });
     contadorPlanillas--;
     actualizarTotalesPlanilla();
 }
@@ -176,9 +147,7 @@ function actualizarTotalesPlanilla() {
     let totalContrato = 0;
     document.querySelectorAll('.fila-item').forEach(fila => {
         let suma = 0;
-        fila.querySelectorAll('.planilla-total').forEach(td => {
-            suma += parseFloat(td.textContent) || 0;
-        });
+        fila.querySelectorAll('.planilla-total').forEach(td => suma += parseFloat(td.textContent) || 0);
         totalContrato += suma;
     });
     document.getElementById('totalContratoPlanilla').textContent = totalContrato.toFixed(2);
@@ -201,22 +170,23 @@ async function guardarPlanillas() {
     });
     if (!datos.length) { alert('No hay datos'); return; }
     try {
-        const r = await fetch(`${URL_SERVIDOR}/guardar-planillas`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
-        });
+        const r = await fetch(`${URL_SERVIDOR}/guardar-planillas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) });
         alert((await r.json()).success ? '✅ Planillas guardadas' : '❌ Error');
-    } catch (e) {
-        alert('❌ Error de conexión');
-    }
+    } catch (e) { alert('❌ Error de conexión'); }
 }
 
-function verImagen(src, desc) {
+function verImagen(imagenesJSON, desc) {
+    let imagenes = [];
+    try { imagenes = JSON.parse(decodeURIComponent(imagenesJSON || '[]')); } catch { try { imagenes = JSON.parse(imagenesJSON || '[]'); } catch { imagenes = [imagenesJSON]; } }
+    if (!Array.isArray(imagenes) || imagenes.length === 0) imagenes = [imagenesJSON];
+    let indice = 0;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:flex;justify-content:center;align-items:center;z-index:99999';
-    modal.innerHTML = `<div style="background:#111;padding:20px;border-radius:20px;max-width:700px;text-align:center"><button onclick="this.parentElement.parentElement.remove()" style="background:red;color:white;border:none;width:35px;height:35px;border-radius:50%;font-size:18px;cursor:pointer;float:right">×</button><img src="${src}" style="max-width:100%;max-height:500px;border-radius:15px;margin-top:10px"><p style="color:white;margin-top:15px;font-size:18px">${desc}</p></div>`;
+    modal.innerHTML = `<div style="background:#111;padding:25px;border-radius:20px;max-width:800px;width:90%;text-align:center;position:relative;border:2px solid #ffc933"><button id="cerrarEv" style="position:absolute;top:10px;right:10px;background:red;color:white;border:none;width:35px;height:35px;border-radius:50%;font-size:18px;cursor:pointer">×</button>${imagenes.length > 1 ? `<div style="display:flex;align-items:center;justify-content:center;gap:15px;margin:20px 0"><button onclick="cambiarImg(-1)" style="background:#ffc933;border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;font-weight:bold">❮</button><img id="imgEv" src="${imagenes[0]}" style="max-width:80%;max-height:450px;object-fit:contain;border-radius:15px"><button onclick="cambiarImg(1)" style="background:#ffc933;border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;font-weight:bold">❯</button></div><p style="color:#ffc933;font-size:14px">Imagen 1 de ${imagenes.length}</p>` : `<img src="${imagenes[0]}" style="max-width:80%;max-height:450px;object-fit:contain;border-radius:15px;margin:20px 0">`}<p style="color:white;font-size:16px;margin-top:10px">${desc || ''}</p></div>`;
     document.body.appendChild(modal);
+    window.cambiarImg = function(dir) { indice += dir; if (indice < 0) indice = imagenes.length - 1; if (indice >= imagenes.length) indice = 0; const imgEl = document.getElementById('imgEv'); if (imgEl) imgEl.src = imagenes[indice]; };
+    document.getElementById('cerrarEv').onclick = () => modal.remove();
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
 function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
