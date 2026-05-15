@@ -98,6 +98,9 @@ app.post('/login', (req, res) => {
 /* =========================
    GUARDAR ITEMS (VERSIÓN SIMPLE)
 ========================= */
+/* =========================
+   GUARDAR ITEMS (VERSIÓN FINAL - SIN DELETE)
+========================= */
 app.post('/guardar-item', async (req, res) => {
     const items = req.body;
 
@@ -120,7 +123,7 @@ app.post('/guardar-item', async (req, res) => {
 
     for (const item of items) {
         try {
-            await new Promise((resolve, reject) => {
+            const result = await new Promise((resolve, reject) => {
                 db.query(sql, [
                     item.modulo_id || 1,
                     item.descripcion || '',
@@ -136,6 +139,32 @@ app.post('/guardar-item', async (req, res) => {
                     else resolve(result);
                 });
             });
+
+            const itemId = result.insertId;
+            console.log('✅ Item insertado, ID:', itemId);
+
+            // Guardar OC
+            if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                for (const oc of item.ordenesCambio) {
+                    db.query(
+                        `INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
+                        [itemId, oc.numero, oc.cantidad, oc.precio, oc.total],
+                        (err) => { if (err) console.log('Error OC:', err); }
+                    );
+                }
+            }
+
+            // Guardar CM
+            if (item.contratosMod && item.contratosMod.length > 0) {
+                for (const cm of item.contratosMod) {
+                    db.query(
+                        `INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
+                        [itemId, cm.numero, cm.cantidad, cm.precio, cm.total],
+                        (err) => { if (err) console.log('Error CM:', err); }
+                    );
+                }
+            }
+
             guardados++;
         } catch (err) {
             console.error('Error guardando item:', err.message);
@@ -144,10 +173,7 @@ app.post('/guardar-item', async (req, res) => {
     }
 
     console.log(`✅ ${guardados} guardados, ❌ ${errores} errores`);
-    res.json({ 
-        success: true, 
-        mensaje: `${guardados} ítems guardados correctamente` 
-    });
+    res.json({ success: true, mensaje: `${guardados} ítems guardados` });
 });
 
 /* =========================
