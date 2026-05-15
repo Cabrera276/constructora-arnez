@@ -52,10 +52,9 @@ app.post('/login', (req, res) => {
 /* =========================
    GUARDAR ITEMS (CORREGIDO)
 ========================= */
+/* GUARDAR ITEMS - SIN BORRAR (INSERT SIMPLE) */
 app.post('/guardar-item', (req, res) => {
     const items = req.body;
-    
-    console.log('📦 Recibidos:', items.length, 'ítems');
     
     if (!Array.isArray(items) || items.length === 0) {
         return res.json({ success: false, mensaje: 'No hay datos' });
@@ -67,7 +66,7 @@ app.post('/guardar-item', (req, res) => {
     let pendientes = items.length;
 
     items.forEach(item => {
-        const valores = [
+        db.query(sql, [
             item.modulo_id || 1,
             item.descripcion || '',
             item.unidad || '',
@@ -77,34 +76,29 @@ app.post('/guardar-item', (req, res) => {
             item.porcentaje_incidencia || '0%',
             item.imagen || '',
             item.descripcion_imagen || ''
-        ];
-        
-        db.query(sql, valores, (err, result) => {
+        ], (err, result) => {
             if (err) {
-                console.error('❌ Error INSERT:', err.message);
+                console.error('❌ Error:', err.message);
             } else {
                 guardados++;
                 const itemId = result.insertId;
-                console.log('✅ Insertado ID:', itemId);
                 
-                // Guardar OC si tiene
-                if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                // Guardar OC
+                if (item.ordenesCambio) {
                     item.ordenesCambio.forEach(oc => {
                         db.query(
                             "INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total],
-                            (err) => { if (err) console.log('Error OC:', err.message); }
+                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total]
                         );
                     });
                 }
                 
-                // Guardar CM si tiene
-                if (item.contratosMod && item.contratosMod.length > 0) {
+                // Guardar CM
+                if (item.contratosMod) {
                     item.contratosMod.forEach(cm => {
                         db.query(
                             "INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total],
-                            (err) => { if (err) console.log('Error CM:', err.message); }
+                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total]
                         );
                     });
                 }
@@ -112,7 +106,6 @@ app.post('/guardar-item', (req, res) => {
             
             pendientes--;
             if (pendientes === 0) {
-                console.log(`✅ Total guardados: ${guardados}`);
                 res.json({ success: true, mensaje: `${guardados} ítems guardados` });
             }
         });
