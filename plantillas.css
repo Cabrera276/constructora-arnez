@@ -879,3 +879,28 @@ text-align:center;
         margin-top: 20px;
     }
 }
+/* SEPARAR CONTENIDO DEL NAVBAR */
+.reporte-container {
+    margin-top: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+/* NAVBAR SIEMPRE ARRIBA */
+.hero {
+    position: relative;
+    z-index: 10;
+}
+
+/* En móvil, más espacio */
+@media(max-width: 768px) {
+    .reporte-container {
+        margin-top: 50px;
+        padding-top: 20px;
+    }
+    
+    .acciones-planilla {
+        position: relative;
+        z-index: 5;
+    }
+}
