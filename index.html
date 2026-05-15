@@ -1,42 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Constructora y Consultora Arnez Camacho</title>
-
-<link rel="stylesheet" href="index.css">
-<link rel="stylesheet" href="responsive.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Constructora y Consultora Arnez Camacho</title>
+    
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-
 <body>
 
 <div class="contenedor-principal">
 
     <!-- HEADER -->
     <header class="header">
-
         <div class="logo">
-            <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="">
+            <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo Arnez Camacho">
         </div>
 
         <div class="titulo-header">
-
             <h1>
                 CONSTRUCTORA Y CONSULTORA 
                 <span>ARNEZ CAMACHO</span>
             </h1>
-
             <p>
                 MINISTERIO DE DESARROLLO PRODUCTIVO, RURAL Y AGUA <br>
                 UNIDAD DE COORDINACIÓN Y EJECUCIÓN DEL PROGRAMA MAS INVERSIÓN PARA EL RIEGO – MI RIEGO (UCEP – MI RIEGO) <br>
                 PROGRAMA NACIONAL DE RIEGO TECNIFICADO CON ENFOQUE
             </p>
-
         </div>
-
     </header>
 
     <!-- CONTENIDO -->
@@ -44,87 +37,89 @@
 
         <!-- TEXTO IZQUIERDA -->
         <div class="texto-supervision">
-
             <h2>
                 SUPERVISIÓN <br>
-
                 CONSTRUCCIÓN REPRESA Y <br>
-
-                <span>
-                    SISTEMA DE RIEGO PARIA
-                </span>
-
+                <span>SISTEMA DE RIEGO PARIA</span>
                 <br>
-
                 CHICO CHICO CALLPULLO <br>
-
                 TUJSUMA Y 
-
-                <span>
-                    WAJLLA QHOCHI
-                </span>
-
+                <span>WAJLLA QHOCHI</span>
                 <br>
-
                 (ARQUE)
             </h2>
-
         </div>
 
         <!-- LOGIN DERECHA -->
         <div class="login-box">
-
             <h2>INICIAR SESIÓN</h2>
-
-            <input 
-            type="text" 
-            id="usuario" 
-            placeholder="Usuario">
-
-            <input 
-            type="password" 
-            id="password" 
-            placeholder="Contraseña">
-
+            
+            <div class="input-group">
+                <i class="fa-solid fa-user"></i>
+                <input 
+                    type="text" 
+                    id="usuario" 
+                    placeholder="Usuario"
+                    autocomplete="username"
+                >
+            </div>
+            
+            <div class="input-group">
+                <i class="fa-solid fa-lock"></i>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="Contraseña"
+                    autocomplete="current-password"
+                >
+                <i class="fa-solid fa-eye toggle-password" onclick="togglePassword()"></i>
+            </div>
+            
             <button onclick="iniciarSesion()">
+                <i class="fa-solid fa-right-to-bracket"></i>
                 INGRESAR
             </button>
-
         </div>
 
     </div>
 
     <!-- FOOTER -->
     <footer class="footer">
-<div class="footer-logos">
+        <div class="footer-logos">
+            <div class="logo-item">
+                <img src="Imagenes/Escudo-de-Bolivia.png" alt="Escudo de Bolivia">
+                <p>ESTADO<br>PLURINACIONAL<br>DE BOLIVIA</p>
+            </div>
 
-    <div class="logo-item">
-        <img src="Imagenes/Escudo-de-Bolivia.png" alt="">
-        <p>ESTADO<br>PLURINACIONAL<br>DE BOLIVIA</p>
-    </div>
+            <div class="logo-item">
+                <img src="Imagenes/Escudo Arque.png" alt="Escudo Arque">
+                <p>G.A.M.<br>DE ARQUE</p>
+            </div>
 
-    <div class="logo-item">
-        <img src="Imagenes/Escudo Arque.png" alt="">
-        <p>G.A.M.<br>DE ARQUE</p>
-    </div>
+            <div class="logo-item">
+                <img src="Imagenes/Logo mi riego.png" alt="Logo Mi Riego">
+                <p>UCEP- MI RIEGO</p>
+            </div>
 
-    <div class="logo-item">
-        <img src="Imagenes/Logo mi riego.png" alt="">
-        <p>UCEP- MI RIEGO</p>
-    </div>
-
-    <div class="logo-item">
-        <img src="Imagenes/Logo bid.png" alt="">
-        <p>BANCO INTERAMERICANO<br>DE DESARROLLO</p>
-    </div>
-
-</div>
-
+            <div class="logo-item">
+                <img src="Imagenes/Logo bid.png" alt="Logo BID">
+                <p>BANCO INTERAMERICANO<br>DE DESARROLLO</p>
+            </div>
+        </div>
     </footer>
 
 </div>
 
-<script src="index.js"></script>
+<!-- POPUP DE ERROR -->
+<div id="error-popup" class="error-popup">
+    <div class="error-content">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <h3>Error de acceso</h3>
+        <p>Usuario o contraseña incorrectos</p>
+        <button onclick="cerrarError()">ACEPTAR</button>
+    </div>
+</div>
 
+<script src="index.js"></script>
 </body>
 </html>

@@ -1,108 +1,105 @@
-/* =========================
-   LOGIN MYSQL
-========================= */
+// ============================
+// INICIAR SESIÓN
+// ============================
+async function iniciarSesion() {
+    const usuario = document.getElementById("usuario").value.trim();
+    const password = document.getElementById("password").value;
 
-async function iniciarSesion(){
-
-    const usuario =
-    document.getElementById("usuario").value;
-
-    const password =
-    document.getElementById("password").value;
-
-    /* VALIDAR CAMPOS */
-
-    if(!usuario || !password){
-
+    // Validar campos
+    if (!usuario || !password) {
         alert("Completa todos los campos");
-
         return;
     }
 
-    try{
+    // Mostrar loading (opcional)
+    const btn = document.querySelector('.login-box button');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> INGRESANDO...';
+    btn.disabled = true;
 
+    try {
         const respuesta = await fetch(
-
-           "https://constructora-arnez.onrender.com/login",
-
+            "https://constructora-arnez.onrender.com/login",
             {
-                method:"POST",
-
-                headers:{
-                    "Content-Type":"application/json"
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
                 },
-
                 body: JSON.stringify({
                     usuario,
                     password
                 })
-
             }
-
         );
 
         const data = await respuesta.json();
 
-        /* LOGIN CORRECTO */
-
-        if(data.success){
-
-           
-
-            /* REDIRECCION */
-
-            window.location.href =
-            "inicio.html";
-
-        }else{
-
-            document.getElementById(
-                "error-popup"
-            ).style.display = "flex";
-
+        // Login correcto
+        if (data.success) {
+            // Guardar usuario en localStorage
+            localStorage.setItem("usuario", JSON.stringify(data.usuario));
+            
+            // Redireccionar
+            window.location.href = "inicio.html";
+        } else {
+            // Mostrar error
+            document.getElementById("error-popup").style.display = "flex";
+            
+            // Restaurar botón
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
         }
 
-    }catch(error){
-
-        console.log(error);
-
-        alert(
-            "Error conectando con el servidor"
-        );
-
+    } catch (error) {
+        console.log("Error:", error);
+        alert("Error conectando con el servidor");
+        
+        // Restaurar botón
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
     }
-
 }
 
-/* =========================
-   CERRAR ERROR
-========================= */
-
-function cerrarError(){
-
-    document.getElementById(
-        "error-popup"
-    ).style.display = "none";
-
+// ============================
+// CERRAR POPUP DE ERROR
+// ============================
+function cerrarError() {
+    document.getElementById("error-popup").style.display = "none";
 }
 
-/* =========================
-   MOSTRAR / OCULTAR PASSWORD
-========================= */
-
-function togglePassword(){
-
-    const input =
-    document.getElementById("password");
-
-    if(input.type === "password"){
-
+// ============================
+// MOSTRAR / OCULTAR CONTRASEÑA
+// ============================
+function togglePassword() {
+    const input = document.getElementById("password");
+    const icono = document.querySelector('.toggle-password');
+    
+    if (input.type === "password") {
         input.type = "text";
-
-    }else{
-
+        icono.classList.remove('fa-eye');
+        icono.classList.add('fa-eye-slash');
+    } else {
         input.type = "password";
-
+        icono.classList.remove('fa-eye-slash');
+        icono.classList.add('fa-eye');
     }
-
 }
+
+// ============================
+// ENTER PARA INICIAR SESIÓN
+// ============================
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        iniciarSesion();
+    }
+});
+
+// ============================
+// VERIFICAR SI YA HAY SESIÓN
+// ============================
+window.addEventListener('load', function() {
+    const usuario = localStorage.getItem("usuario");
+    if (usuario) {
+        window.location.href = "inicio.html";
+    }
+});
