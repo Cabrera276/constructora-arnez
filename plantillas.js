@@ -4,9 +4,6 @@ if (!usuario) window.location.replace("index.html");
 const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
 let contadorPlanillas = 0;
 
-// ============================
-// CARGAR DATOS
-// ============================
 window.addEventListener('load', () => cargarDatos());
 
 async function cargarDatos() {
@@ -25,7 +22,6 @@ async function cargarDatos() {
 
         const maxPlanilla = Math.max(...planillas.map(p => p.numero_planilla), 0);
         
-        // 1. PRIMERO crear las columnas de planilla
         for (let i = 1; i <= maxPlanilla; i++) {
             agregarPlanillaGeneral();
         }
@@ -35,9 +31,7 @@ async function cargarDatos() {
 
         let moduloAnterior = null;
 
-        // 2. LUEGO crear items
         for (const item of items) {
-            // Módulo
             if (moduloAnterior != item.modulo_id) {
                 moduloAnterior = item.modulo_id;
                 const fm = document.createElement('tr');
@@ -71,15 +65,26 @@ async function cargarDatos() {
                 <td>${item.imagen ? `<img src="${item.imagen}" class="mini-img" style="width:80px;border-radius:10px;cursor:pointer" onclick="verImagen('${item.imagen}','${item.descripcion_imagen || ''}')">` : 'Sin imagen'}</td>
             `;
 
-            // 3. Agregar columnas de planilla a ESTE item
             for (let p = 1; p <= maxPlanilla; p++) {
                 const td1 = document.createElement('td');
-                td1.innerHTML = '<input type="number" class="planilla-input" placeholder="0">';
+                td1.contentEditable = 'true';
+                td1.className = 'planilla-input';
+                td1.textContent = '0';
+                td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+
                 const td2 = document.createElement('td');
-                td2.innerHTML = '<input type="number" class="planilla-total" placeholder="0" oninput="actualizarTotalesPlanilla()">';
+                td2.contentEditable = 'true';
+                td2.className = 'planilla-total';
+                td2.textContent = '0';
+                td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+                td2.addEventListener('input', actualizarTotalesPlanilla);
+
                 const td3 = document.createElement('td');
-                td3.innerHTML = '<input type="text" class="avance-input" value="100%">';
-                
+                td3.contentEditable = 'true';
+                td3.className = 'avance-input';
+                td3.textContent = '100%';
+                td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+
                 fila.insertBefore(td1, fila.children[fila.children.length - 1]);
                 fila.insertBefore(td2, fila.children[fila.children.length - 1]);
                 fila.insertBefore(td3, fila.children[fila.children.length - 1]);
@@ -87,62 +92,57 @@ async function cargarDatos() {
 
             tabla.appendChild(fila);
 
-            // 4. AHORA llenar los valores guardados
             const plansItem = planillas.filter(p => p.item_id == item.id);
             plansItem.forEach(plan => {
                 const inicio = 14 + ((plan.numero_planilla - 1) * 3);
-                if (fila.cells[inicio]) {
-                    const inp1 = fila.cells[inicio].querySelector('input');
-                    if (inp1) inp1.value = plan.cantidad;
-                }
-                if (fila.cells[inicio + 1]) {
-                    const inp2 = fila.cells[inicio + 1].querySelector('input');
-                    if (inp2) inp2.value = plan.total;
-                }
-                if (fila.cells[inicio + 2]) {
-                    const inp3 = fila.cells[inicio + 2].querySelector('input');
-                    if (inp3) inp3.value = plan.avance;
-                }
+                if (fila.cells[inicio]) fila.cells[inicio].textContent = plan.cantidad || '0';
+                if (fila.cells[inicio + 1]) fila.cells[inicio + 1].textContent = plan.total || '0';
+                if (fila.cells[inicio + 2]) fila.cells[inicio + 2].textContent = plan.avance || '100%';
             });
         }
 
         actualizarTotalesPlanilla();
-
     } catch (error) {
-        console.error('Error cargando datos:', error);
+        console.error('Error:', error);
     }
 }
 
-// ============================
-// AÑADIR PLANILLA
-// ============================
 function agregarPlanillaGeneral() {
     contadorPlanillas++;
 
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
 
-    // Header
     const th = document.createElement('th');
     th.colSpan = 3;
     th.textContent = `PLANILLA Nº${contadorPlanillas}`;
     fp.insertBefore(th, fp.children[fp.children.length - 2]);
 
-    // Subheaders
-    ['CANTIDAD', 'TOTAL Bs', '% AVANCE'].forEach(t => {
+    ['CANTIDAD', 'TOTAL (Bs)', '% AVANCE'].forEach(t => {
         const th2 = document.createElement('th');
         th2.textContent = t;
         fs.insertBefore(th2, fs.children[fs.children.length - 1]);
     });
 
-    // Columnas en cada ítem
     document.querySelectorAll('.fila-item').forEach(fila => {
         const td1 = document.createElement('td');
-        td1.innerHTML = '<input type="number" class="planilla-input" placeholder="0">';
+        td1.contentEditable = 'true';
+        td1.className = 'planilla-input';
+        td1.textContent = '0';
+        td1.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+
         const td2 = document.createElement('td');
-        td2.innerHTML = '<input type="number" class="planilla-total" placeholder="0" oninput="actualizarTotalesPlanilla()">';
+        td2.contentEditable = 'true';
+        td2.className = 'planilla-total';
+        td2.textContent = '0';
+        td2.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
+        td2.addEventListener('input', actualizarTotalesPlanilla);
+
         const td3 = document.createElement('td');
-        td3.innerHTML = '<input type="text" class="avance-input" value="100%">';
+        td3.contentEditable = 'true';
+        td3.className = 'avance-input';
+        td3.textContent = '100%';
+        td3.style.cssText = 'text-align:center;font-weight:bold;min-width:80px';
 
         fila.insertBefore(td1, fila.children[fila.children.length - 2]);
         fila.insertBefore(td2, fila.children[fila.children.length - 2]);
@@ -150,110 +150,70 @@ function agregarPlanillaGeneral() {
     });
 }
 
-// ============================
-// ELIMINAR PLANILLA
-// ============================
 function eliminarPlanillaGeneral() {
     if (contadorPlanillas <= 0) return;
-
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
-
     fp.children[fp.children.length - 3].remove();
     for (let i = 0; i < 3; i++) fs.lastElementChild.remove();
-
     document.querySelectorAll('.fila-item').forEach(fila => {
         for (let i = 0; i < 3; i++) fila.deleteCell(fila.cells.length - 3);
     });
-
     contadorPlanillas--;
     actualizarTotalesPlanilla();
 }
 
-// ============================
-// ACTUALIZAR TOTALES
-// ============================
 function actualizarTotalesPlanilla() {
     let totalContrato = 0;
     document.querySelectorAll('.fila-item').forEach(fila => {
         let suma = 0;
-        fila.querySelectorAll('.planilla-total').forEach(input => {
-            suma += parseFloat(input.value) || 0;
+        fila.querySelectorAll('.planilla-total').forEach(td => {
+            suma += parseFloat(td.textContent) || 0;
         });
         totalContrato += suma;
     });
-    const totalEl = document.getElementById('totalContratoPlanilla');
-    if (totalEl) totalEl.textContent = totalContrato.toFixed(2);
+    document.getElementById('totalContratoPlanilla').textContent = totalContrato.toFixed(2);
 }
 
-// ============================
-// GUARDAR PLANILLAS
-// ============================
 async function guardarPlanillas() {
     const filas = document.querySelectorAll('.fila-item');
     const datos = [];
-
     filas.forEach(fila => {
-        const itemId = fila.dataset.itemId;
         for (let p = 1; p <= contadorPlanillas; p++) {
             const inicio = 14 + ((p - 1) * 3);
-            const cantidad = fila.cells[inicio]?.querySelector('input')?.value || 0;
-            const total = fila.cells[inicio + 1]?.querySelector('input')?.value || 0;
-            const avance = fila.cells[inicio + 2]?.querySelector('input')?.value || '0%';
-
             datos.push({
                 numero_planilla: p,
-                item_id: parseInt(itemId),
-                cantidad: parseFloat(cantidad) || 0,
-                total: parseFloat(total) || 0,
-                avance
+                item_id: parseInt(fila.dataset.itemId),
+                cantidad: parseFloat(fila.cells[inicio]?.textContent) || 0,
+                total: parseFloat(fila.cells[inicio + 1]?.textContent) || 0,
+                avance: fila.cells[inicio + 2]?.textContent || '0%'
             });
         }
     });
-
-    if (datos.length === 0) {
-        alert('No hay datos para guardar');
-        return;
-    }
-
+    if (!datos.length) { alert('No hay datos'); return; }
     try {
         const r = await fetch(`${URL_SERVIDOR}/guardar-planillas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        const data = await r.json();
-        alert(data.success ? '✅ Planillas guardadas' : '❌ Error al guardar');
+        alert((await r.json()).success ? '✅ Planillas guardadas' : '❌ Error');
     } catch (e) {
         alert('❌ Error de conexión');
     }
 }
 
-// ============================
-// VER IMAGEN
-// ============================
 function verImagen(src, desc) {
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:flex;justify-content:center;align-items:center;z-index:99999';
-    modal.innerHTML = `
-        <div style="background:#111;padding:20px;border-radius:20px;max-width:700px;text-align:center">
-            <button onclick="this.parentElement.parentElement.remove()" style="background:red;color:white;border:none;width:35px;height:35px;border-radius:50%;font-size:18px;cursor:pointer;float:right">×</button>
-            <img src="${src}" style="max-width:100%;max-height:500px;border-radius:15px;margin-top:10px">
-            <p style="color:white;margin-top:15px;font-size:18px">${desc}</p>
-        </div>`;
+    modal.innerHTML = `<div style="background:#111;padding:20px;border-radius:20px;max-width:700px;text-align:center"><button onclick="this.parentElement.parentElement.remove()" style="background:red;color:white;border:none;width:35px;height:35px;border-radius:50%;font-size:18px;cursor:pointer;float:right">×</button><img src="${src}" style="max-width:100%;max-height:500px;border-radius:15px;margin-top:10px"><p style="color:white;margin-top:15px;font-size:18px">${desc}</p></div>`;
     document.body.appendChild(modal);
 }
 
-// ============================
-// MODAL CONTACTOS
-// ============================
 function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
 function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
 window.addEventListener("click", function(e) { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
 
-// ============================
-// MENÚ HAMBURGUESA
-// ============================
 function toggleMenu() {
     const menu = document.querySelector('.menu'), boton = document.querySelector('.menu-hamburguesa');
     if (!menu || !boton) return;
