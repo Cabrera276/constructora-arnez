@@ -1,4 +1,3 @@
-
 const usuario = localStorage.getItem("usuario");
 
 if(!usuario){
@@ -12,6 +11,11 @@ if(!localStorage.getItem("usuario")){
     window.location.href = "index.html";
 
 }
+
+// ============================
+// MODAL DE CONTACTOS
+// ============================
+
 function abrirContactos(){
     document.getElementById("modalContactos").style.display = "flex";
 }
@@ -28,4 +32,44 @@ window.addEventListener("click", function(e){
         cerrarContactos();
     }
 
+});
+
+// ============================
+// MENÚ HAMBURGUESA
+// ============================
+
+function toggleMenu() {
+    const menu = document.querySelector('.menu');
+    const boton = document.querySelector('.menu-hamburguesa');
+    
+    // Alternar clases
+    menu.classList.toggle('activo');
+    boton.classList.toggle('activo');
+    
+    // Cambiar ícono entre ☰ y ✕
+    const icono = boton.querySelector('i');
+    if (menu.classList.contains('activo')) {
+        icono.classList.remove('fa-bars');
+        icono.classList.add('fa-times');
+    } else {
+        icono.classList.remove('fa-times');
+        icono.classList.add('fa-bars');
+    }
+}
+
+// Cerrar menú al hacer clic en un enlace
+document.querySelectorAll('.menu a').forEach(enlace => {
+    enlace.addEventListener('click', () => {
+        const menu = document.querySelector('.menu');
+        const boton = document.querySelector('.menu-hamburguesa');
+        
+        if (menu.classList.contains('activo')) {
+            menu.classList.remove('activo');
+            boton.classList.remove('activo');
+            
+            const icono = boton.querySelector('i');
+            icono.classList.remove('fa-times');
+            icono.classList.add('fa-bars');
+        }
+    });
 });
