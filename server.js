@@ -50,9 +50,8 @@ app.post('/login', (req, res) => {
 });
 
 /* =========================
-   GUARDAR ITEMS (CORREGIDO)
+   GUARDAR ITEMS (SIN BORRAR - INSERT SIMPLE)
 ========================= */
-/* GUARDAR ITEMS - SIN BORRAR (INSERT SIMPLE) */
 app.post('/guardar-item', (req, res) => {
     const items = req.body;
     
@@ -84,21 +83,23 @@ app.post('/guardar-item', (req, res) => {
                 const itemId = result.insertId;
                 
                 // Guardar OC
-                if (item.ordenesCambio) {
+                if (item.ordenesCambio && item.ordenesCambio.length > 0) {
                     item.ordenesCambio.forEach(oc => {
                         db.query(
                             "INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total]
+                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total],
+                            (err) => { if (err) console.log('Error OC:', err.message); }
                         );
                     });
                 }
                 
                 // Guardar CM
-                if (item.contratosMod) {
+                if (item.contratosMod && item.contratosMod.length > 0) {
                     item.contratosMod.forEach(cm => {
                         db.query(
                             "INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total]
+                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total],
+                            (err) => { if (err) console.log('Error CM:', err.message); }
                         );
                     });
                 }
@@ -106,6 +107,7 @@ app.post('/guardar-item', (req, res) => {
             
             pendientes--;
             if (pendientes === 0) {
+                console.log(`✅ ${guardados} ítems guardados`);
                 res.json({ success: true, mensaje: `${guardados} ítems guardados` });
             }
         });
@@ -117,10 +119,7 @@ app.post('/guardar-item', (req, res) => {
 ========================= */
 app.get('/items', (req, res) => {
     db.query("SELECT * FROM items ORDER BY modulo_id ASC, id ASC", (err, result) => {
-        if (err) {
-            console.log('Error /items:', err.message);
-            return res.json([]);
-        }
+        if (err) { console.log('Error /items:', err.message); return res.json([]); }
         res.json(result || []);
     });
 });
@@ -130,10 +129,7 @@ app.get('/items', (req, res) => {
 ========================= */
 app.get('/ordenes-cambio', (req, res) => {
     db.query("SELECT * FROM ordenes_cambio ORDER BY id ASC", (err, result) => {
-        if (err) {
-            console.log('Error /ordenes-cambio:', err.message);
-            return res.json([]);
-        }
+        if (err) { console.log('Error /ordenes-cambio:', err.message); return res.json([]); }
         res.json(result || []);
     });
 });
@@ -143,10 +139,7 @@ app.get('/ordenes-cambio', (req, res) => {
 ========================= */
 app.get('/contratos-mod', (req, res) => {
     db.query("SELECT * FROM contratos_mod ORDER BY id ASC", (err, result) => {
-        if (err) {
-            console.log('Error /contratos-mod:', err.message);
-            return res.json([]);
-        }
+        if (err) { console.log('Error /contratos-mod:', err.message); return res.json([]); }
         res.json(result || []);
     });
 });
@@ -160,10 +153,7 @@ app.put('/editar-item/:id', (req, res) => {
         "UPDATE items SET descripcion=?, unidad=?, cantidad=?, precio_unitario=?, total=? WHERE id=?",
         [descripcion, unidad, cantidad, precio_unitario, total, req.params.id],
         (err) => {
-            if (err) {
-                console.log('Error /editar-item:', err.message);
-                return res.json({ success: false });
-            }
+            if (err) { console.log('Error /editar-item:', err.message); return res.json({ success: false }); }
             res.json({ success: true });
         }
     );
@@ -177,10 +167,7 @@ app.delete('/eliminar-item/:id', (req, res) => {
     db.query('DELETE FROM ordenes_cambio WHERE item_id=?', [id], () => {
         db.query('DELETE FROM contratos_mod WHERE item_id=?', [id], () => {
             db.query('DELETE FROM items WHERE id=?', [id], (err) => {
-                if (err) {
-                    console.log('Error /eliminar-item:', err.message);
-                    return res.json({ success: false });
-                }
+                if (err) { console.log('Error /eliminar-item:', err.message); return res.json({ success: false }); }
                 res.json({ success: true });
             });
         });
@@ -208,10 +195,7 @@ app.post('/guardar-planillas', (req, res) => {
 ========================= */
 app.get('/planillas', (req, res) => {
     db.query('SELECT * FROM planillas', (err, result) => {
-        if (err) {
-            console.log('Error /planillas:', err.message);
-            return res.json([]);
-        }
+        if (err) { console.log('Error /planillas:', err.message); return res.json([]); }
         res.json(result || []);
     });
 });
