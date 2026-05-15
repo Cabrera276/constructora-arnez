@@ -95,69 +95,58 @@ app.post('/login', (req, res) => {
 /* =========================
    GUARDAR ITEMS
 ========================= */
+/* =========================
+   GUARDAR ITEMS (VERSIÓN SIMPLE)
+========================= */
 app.post('/guardar-item', async (req, res) => {
     const items = req.body;
 
-    if (!Array.isArray(items)) {
-        return res.status(400).json({
-            success: false,
-            mensaje: 'Formato incorrecto'
-        });
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.json({ success: false, mensaje: 'No hay datos para guardar' });
     }
 
-    db.query("DELETE FROM ordenes_cambio", () => {
-        db.query("DELETE FROM contratos_mod", () => {
-            db.query("DELETE FROM items", () => {
-                const sql = `
-                    INSERT INTO items (
-                        modulo_id, descripcion, unidad, cantidad,
-                        precio_unitario, total, porcentaje_incidencia,
-                        imagen, descripcion_imagen
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `;
+    console.log('📦 Recibidos', items.length, 'ítems para guardar');
 
-                let pendientes = items.length;
+    const sql = `
+        INSERT INTO items (
+            modulo_id, descripcion, unidad, cantidad,
+            precio_unitario, total, porcentaje_incidencia,
+            imagen, descripcion_imagen
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-                if (pendientes === 0) {
-                    return res.json({ success: true });
-                }
+    let guardados = 0;
+    let errores = 0;
 
-                items.forEach(item => {
-                    db.query(sql, [
-                        item.modulo_id, item.descripcion, item.unidad,
-                        item.cantidad, item.precio_unitario, item.total,
-                        item.porcentaje_incidencia, item.imagen, item.descripcion_imagen
-                    ], (err, result) => {
-                        if (err) { console.log(err); return; }
-
-                        const itemId = result.insertId;
-
-                        if (item.ordenesCambio) {
-                            item.ordenesCambio.forEach(oc => {
-                                db.query(
-                                    `INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
-                                    [itemId, oc.numero, oc.cantidad, oc.precio, oc.total]
-                                );
-                            });
-                        }
-
-                        if (item.contratosMod) {
-                            item.contratosMod.forEach(cm => {
-                                db.query(
-                                    `INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)`,
-                                    [itemId, cm.numero, cm.cantidad, cm.precio, cm.total]
-                                );
-                            });
-                        }
-
-                        pendientes--;
-                        if (pendientes === 0) {
-                            res.json({ success: true, mensaje: 'Items guardados' });
-                        }
-                    });
+    for (const item of items) {
+        try {
+            await new Promise((resolve, reject) => {
+                db.query(sql, [
+                    item.modulo_id || 1,
+                    item.descripcion || '',
+                    item.unidad || '',
+                    item.cantidad || 0,
+                    item.precio_unitario || 0,
+                    item.total || 0,
+                    item.porcentaje_incidencia || '0%',
+                    item.imagen || '',
+                    item.descripcion_imagen || ''
+                ], (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
                 });
             });
-        });
+            guardados++;
+        } catch (err) {
+            console.error('Error guardando item:', err.message);
+            errores++;
+        }
+    }
+
+    console.log(`✅ ${guardados} guardados, ❌ ${errores} errores`);
+    res.json({ 
+        success: true, 
+        mensaje: `${guardados} ítems guardados correctamente` 
     });
 });
 
