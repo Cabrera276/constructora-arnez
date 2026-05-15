@@ -664,3 +664,13 @@ text-align:center;
 }
 
 }
+.menu-hamburguesa { display: none; background: none; border: none; color: #ffc400; font-size: 30px; cursor: pointer; z-index: 1000; }
+.delete-btn { background: #ff3b3b; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.delete-btn:hover { background: #cc0000; }
+.fecha-inicio, .fecha-fin { width: 130px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; text-align: center; font-weight: bold; }
+
+@media(max-width: 768px) {
+    .menu-hamburguesa { display: block; position: absolute; right: 20px; top: 20px; }
+    .menu { display: none; width: 100%; flex-direction: column; background: rgba(0,0,0,.9); padding: 20px; border-radius: 10px; }
+    .menu.activo { display: flex; }
+}

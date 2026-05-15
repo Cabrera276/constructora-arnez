@@ -2,142 +2,82 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plazos</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ampliaciones de Plazo - Constructora Arnez</title>
     <link rel="stylesheet" href="plazos.css">
     <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
-    <header class="hero">
+<header class="hero">
+    <div class="overlay"></div>
+    <nav class="navbar">
+        <div class="logo">
+            <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo">
+        </div>
 
-        <!-- OVERLAY -->
-        <div class="overlay"></div>
+        <button class="menu-hamburguesa" onclick="toggleMenu()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
 
-        <!-- NAVBAR -->
-        <nav class="navbar">
+        <ul class="menu">
+            <li><a href="inicio.html">INICIO</a></li>
+            <li><a href="datos.html">DATOS DEL<br>PROYECTO</a></li>
+            <li><a href="items.html">ITEMS</a></li>
+            <li><a href="plantillas.html">PLANILLAS</a></li>
+            <li><a href="plazos.html" class="active">AMPLIACIONES<br>DE PLAZO</a></li>
+        </ul>
 
-            <div class="logo">
-                <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo">
-            </div>
+        <button onclick="abrirContactos()" class="contact-btn">📞 CONTACTOS</button>
+    </nav>
+</header>
 
-            <ul class="menu">
-
-                <li><a href="inicio.html">INICIO</a></li>
-
-                <li><a href="datos.html">
-                    DATOS DEL <br>PROYECTO
-                </a></li>
-
-                <li><a href="items.html">
-                    ITEMS
-                </a></li>
-
-                <li><a href="plantillas.html">
-                    PLANILLAS
-                </a></li>
-
-                <li><a href="plazos.html" >
-                    AMPLIACIONES <br>DE PLAZO
-                </a></li>
-
-            </ul>
-
-            <button  onclick="abrirContactos()"class="contact-btn">
-                📞 CONTACTOS
-            </button>
-
-        </nav>
-
-    </header>
-<!-- BOTON -->
 <div class="botones-plazos">
-
-<button class="btn-ampliacion" id="btnAgregarPlazo">
-⏳ Añadir ampliación de plazo
-</button>
-
-<button class="btn-guardar-plazos">
-💾 Guardar 
-</button>
-
+    <button class="btn-ampliacion" id="btnAgregarPlazo">
+        <i class="fa fa-clock"></i> Añadir Ampliación
+    </button>
+    <button class="btn-guardar-plazos" id="btnGuardarPlazos">
+        <i class="fa fa-save"></i> Guardar
+    </button>
 </div>
 
 <div class="tabla-container">
-
     <table class="tabla-plazos">
-
         <thead>
-
             <tr>
-
-                <th>DESCRIPCION</th>
-
-                <th>INICIO</th>
-
-                <th>FIN</th>
-
-                <th>PLAZO</th>
-
-                <th>PLAZO ACUMULADO</th>
-
+                <th>Nº</th>
+                <th>DESCRIPCIÓN</th>
+                <th>FECHA INICIO</th>
+                <th>FECHA FIN</th>
+                <th>DÍAS</th>
+                <th>ACUMULADO</th>
+                <th>ACCIONES</th>
             </tr>
-
         </thead>
-
-        <tbody id="tablaPlazos">
-
-        </tbody>
-
+        <tbody id="tablaPlazos"></tbody>
+        <tfoot>
+            <tr style="background:#ffd84d;font-weight:bold">
+                <td colspan="5" style="text-align:right;padding-right:20px">PLAZO TOTAL:</td>
+                <td id="totalAcumulado" style="font-size:20px">0</td>
+                <td></td>
+            </tr>
+        </tfoot>
     </table>
-
 </div>
 
-    </table>
-
-</div>
-</div>
 <div id="modalContactos" class="modal-contactos">
-
     <div class="panel-contactos">
-
         <button class="cerrar-contactos" onclick="cerrarContactos()">✕</button>
-
-        <h2>
-            <i class="fa-solid fa-address-book"></i>
-            Contactos
-        </h2>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-mobile-screen"></i>
-            <strong>Cel:</strong> 72782366
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-phone"></i>
-            <strong>Tel:</strong> 4284022
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-phone-volume"></i>
-            <strong>Oficina:</strong> 4490299
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-envelope"></i>
-            <strong>Correo:</strong> ingecivil36@.com
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-location-dot"></i>
-            <strong>Ubicación:</strong>
-            Pacata Baja Calle Vizcarra N138
-        </div>
-
+        <h2><i class="fa-solid fa-address-book"></i> Contactos</h2>
+        <div class="contacto-item"><i class="fa-solid fa-mobile-screen"></i><strong>Cel:</strong> 72782366</div>
+        <div class="contacto-item"><i class="fa-solid fa-phone"></i><strong>Tel:</strong> 4284022</div>
+        <div class="contacto-item"><i class="fa-solid fa-phone-volume"></i><strong>Oficina:</strong> 4490299</div>
+        <div class="contacto-item"><i class="fa-solid fa-envelope"></i><strong>Correo:</strong> ingecivil36@.com</div>
+        <div class="contacto-item"><i class="fa-solid fa-location-dot"></i><strong>Ubicación:</strong> Pacata Baja Calle Vizcarra N138</div>
     </div>
-
 </div>
+
 <script src="plazos.js"></script>
 </body>
 </html>

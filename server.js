@@ -205,3 +205,36 @@ app.get('/planillas', (req, res) => {
 ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
+/* =========================
+   GUARDAR AMPLIACIONES
+========================= */
+app.post('/guardar-ampliaciones', (req, res) => {
+    const datos = req.body;
+    if (!Array.isArray(datos)) return res.json({ success: false });
+    
+    // Limpiar tabla
+    db.query("DELETE FROM ampliaciones", () => {
+        const sql = "INSERT INTO ampliaciones (descripcion, inicio, fin, plazo, acumulado) VALUES (?, ?, ?, ?, ?)";
+        let pendientes = datos.length;
+        
+        datos.forEach(d => {
+            db.query(sql, [d.descripcion, d.inicio, d.fin, d.plazo, d.acumulado], (err) => {
+                if (err) console.log('Error:', err);
+                pendientes--;
+                if (pendientes === 0) res.json({ success: true });
+            });
+        });
+        
+        if (datos.length === 0) res.json({ success: true });
+    });
+});
+
+/* =========================
+   OBTENER AMPLIACIONES
+========================= */
+app.get('/ampliaciones', (req, res) => {
+    db.query("SELECT * FROM ampliaciones ORDER BY id ASC", (err, result) => {
+        if (err) return res.json([]);
+        res.json(result || []);
+    });
+});
