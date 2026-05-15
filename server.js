@@ -14,7 +14,7 @@ const db = mysql.createConnection({
     host: 'roundhouse.proxy.rlwy.net',
     user: 'root',
     password: 'agLkZoAxCzRvHkmLFpKBSMDpSTgAmNoH',
-    database: 'railway',
+    database: 'constructora_arnez',
     port: 49780,
     ssl: { rejectUnauthorized: false }
 });
