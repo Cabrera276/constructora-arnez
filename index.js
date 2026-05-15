@@ -94,12 +94,3 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ============================
-// VERIFICAR SI YA HAY SESIÓN
-// ============================
-window.addEventListener('load', function() {
-    const usuario = localStorage.getItem("usuario");
-    if (usuario) {
-        window.location.href = "inicio.html";
-    }
-});
