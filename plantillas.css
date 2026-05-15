@@ -904,3 +904,23 @@ text-align:center;
         z-index: 5;
     }
 }
+/* En móvil, ocultar botón CONTACTOS del navbar */
+@media(max-width: 768px) {
+    .contact-btn {
+        display: none;
+    }
+    
+    /* Agregar CONTACTOS al menú */
+    .menu::after {
+        content: "📞 CONTACTOS";
+        display: block;
+        color: #ffc400;
+        font-weight: bold;
+        font-size: 15px;
+        cursor: pointer;
+        padding: 10px;
+        text-align: center;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin-top: 5px;
+    }
+}

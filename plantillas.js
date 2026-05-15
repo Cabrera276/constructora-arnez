@@ -201,3 +201,16 @@ function toggleMenu() {
     if (menu.classList.contains('activo')) { icono.classList.remove('fa-bars'); icono.classList.add('fa-times'); }
     else { icono.classList.remove('fa-times'); icono.classList.add('fa-bars'); }
 }
+// Hacer clicable el CONTACTOS del menú
+document.addEventListener('click', function(e) {
+    if (e.target.textContent === '📞 CONTACTOS') {
+        abrirContactos();
+        // Cerrar menú
+        const menu = document.querySelector('.menu');
+        const boton = document.querySelector('.menu-hamburguesa');
+        if (menu && menu.classList.contains('activo')) {
+            menu.classList.remove('activo');
+            boton.classList.remove('activo');
+        }
+    }
+});
