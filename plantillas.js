@@ -73,15 +73,22 @@ async function cargarDatos() {
             tabla.appendChild(fila);
 
             // Llenar planillas guardadas
-            const plansItem = planillas.filter(p => p.item_id == item.id);
-            plansItem.forEach(plan => {
-                const inicio = 14 + ((plan.numero_planilla - 1) * 3);
-                if (fila.cells[inicio]) {
-                    fila.cells[inicio].querySelector('input').value = plan.cantidad;
-                    fila.cells[inicio + 1].querySelector('input').value = plan.total;
-                    fila.cells[inicio + 2].querySelector('input').value = plan.avance;
-                }
-            });
+const plansItem = planillas.filter(p => p.item_id == item.id);
+plansItem.forEach(plan => {
+    const inicio = 14 + ((plan.numero_planilla - 1) * 3);
+    // Esperar a que las columnas existan
+    setTimeout(() => {
+        if (fila.cells[inicio] && fila.cells[inicio].querySelector('input')) {
+            fila.cells[inicio].querySelector('input').value = plan.cantidad;
+        }
+        if (fila.cells[inicio + 1] && fila.cells[inicio + 1].querySelector('input')) {
+            fila.cells[inicio + 1].querySelector('input').value = plan.total;
+        }
+        if (fila.cells[inicio + 2] && fila.cells[inicio + 2].querySelector('input')) {
+            fila.cells[inicio + 2].querySelector('input').value = plan.avance;
+        }
+    }, 300);
+});
         });
 
         actualizarTotalesPlanilla();
