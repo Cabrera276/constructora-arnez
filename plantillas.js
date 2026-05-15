@@ -23,8 +23,9 @@ async function cargarDatos() {
         const cms = await cmRes.json();
         const planillas = await planRes.json();
 
-        // Restaurar planillas existentes
         const maxPlanilla = Math.max(...planillas.map(p => p.numero_planilla), 0);
+        
+        // 1. PRIMERO crear las columnas de planilla
         for (let i = 1; i <= maxPlanilla; i++) {
             agregarPlanillaGeneral();
         }
@@ -34,7 +35,8 @@ async function cargarDatos() {
 
         let moduloAnterior = null;
 
-        items.forEach(item => {
+        // 2. LUEGO crear items
+        for (const item of items) {
             // Módulo
             if (moduloAnterior != item.modulo_id) {
                 moduloAnterior = item.modulo_id;
@@ -45,7 +47,6 @@ async function cargarDatos() {
                 tabla.appendChild(fm);
             }
 
-            // OC y CM del ítem
             const oc = ocs.find(o => o.item_id == item.id) || {};
             const cm = cms.find(c => c.item_id == item.id) || {};
 
@@ -70,26 +71,40 @@ async function cargarDatos() {
                 <td>${item.imagen ? `<img src="${item.imagen}" class="mini-img" style="width:80px;border-radius:10px;cursor:pointer" onclick="verImagen('${item.imagen}','${item.descripcion_imagen || ''}')">` : 'Sin imagen'}</td>
             `;
 
+            // 3. Agregar columnas de planilla a ESTE item
+            for (let p = 1; p <= maxPlanilla; p++) {
+                const td1 = document.createElement('td');
+                td1.innerHTML = '<input type="number" class="planilla-input" placeholder="0">';
+                const td2 = document.createElement('td');
+                td2.innerHTML = '<input type="number" class="planilla-total" placeholder="0" oninput="actualizarTotalesPlanilla()">';
+                const td3 = document.createElement('td');
+                td3.innerHTML = '<input type="text" class="avance-input" value="100%">';
+                
+                fila.insertBefore(td1, fila.children[fila.children.length - 1]);
+                fila.insertBefore(td2, fila.children[fila.children.length - 1]);
+                fila.insertBefore(td3, fila.children[fila.children.length - 1]);
+            }
+
             tabla.appendChild(fila);
 
-            // Llenar planillas guardadas
-const plansItem = planillas.filter(p => p.item_id == item.id);
-plansItem.forEach(plan => {
-    const inicio = 14 + ((plan.numero_planilla - 1) * 3);
-    // Esperar a que las columnas existan
-    setTimeout(() => {
-        if (fila.cells[inicio] && fila.cells[inicio].querySelector('input')) {
-            fila.cells[inicio].querySelector('input').value = plan.cantidad;
+            // 4. AHORA llenar los valores guardados
+            const plansItem = planillas.filter(p => p.item_id == item.id);
+            plansItem.forEach(plan => {
+                const inicio = 14 + ((plan.numero_planilla - 1) * 3);
+                if (fila.cells[inicio]) {
+                    const inp1 = fila.cells[inicio].querySelector('input');
+                    if (inp1) inp1.value = plan.cantidad;
+                }
+                if (fila.cells[inicio + 1]) {
+                    const inp2 = fila.cells[inicio + 1].querySelector('input');
+                    if (inp2) inp2.value = plan.total;
+                }
+                if (fila.cells[inicio + 2]) {
+                    const inp3 = fila.cells[inicio + 2].querySelector('input');
+                    if (inp3) inp3.value = plan.avance;
+                }
+            });
         }
-        if (fila.cells[inicio + 1] && fila.cells[inicio + 1].querySelector('input')) {
-            fila.cells[inicio + 1].querySelector('input').value = plan.total;
-        }
-        if (fila.cells[inicio + 2] && fila.cells[inicio + 2].querySelector('input')) {
-            fila.cells[inicio + 2].querySelector('input').value = plan.avance;
-        }
-    }, 300);
-});
-        });
 
         actualizarTotalesPlanilla();
 
