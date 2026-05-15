@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 });
 
 /* =========================
-   LOGIN - CON DEBUG
+   LOGIN
 ========================= */
 app.post('/login', (req, res) => {
     console.log('📩 Login recibido:', req.body);
@@ -161,29 +161,48 @@ app.post('/guardar-item', async (req, res) => {
     });
 });
 
-/* OBTENER ITEMS, OC, CM */
+/* =========================
+   OBTENER ITEMS
+========================= */
 app.get('/items', (req, res) => {
     db.query("SELECT * FROM items ORDER BY modulo_id ASC, id ASC", (err, result) => {
-        if (err) return res.status(500).json(err);
-        res.json(result);
+        if (err) {
+            console.log('Error en /items:', err);
+            return res.json([]); // ✅ CORREGIDO: devuelve array vacío
+        }
+        res.json(result || []);
     });
 });
 
+/* =========================
+   OBTENER ORDENES CAMBIO
+========================= */
 app.get('/ordenes-cambio', (req, res) => {
     db.query("SELECT * FROM ordenes_cambio ORDER BY id ASC", (err, result) => {
-        if (err) return res.status(500).json(err);
-        res.json(result);
+        if (err) {
+            console.log('Error en /ordenes-cambio:', err);
+            return res.json([]); // ✅ CORREGIDO: devuelve array vacío
+        }
+        res.json(result || []);
     });
 });
 
+/* =========================
+   OBTENER CONTRATOS MOD
+========================= */
 app.get('/contratos-mod', (req, res) => {
     db.query("SELECT * FROM contratos_mod ORDER BY id ASC", (err, result) => {
-        if (err) return res.status(500).json(err);
-        res.json(result);
+        if (err) {
+            console.log('Error en /contratos-mod:', err);
+            return res.json([]); // ✅ CORREGIDO: devuelve array vacío
+        }
+        res.json(result || []);
     });
 });
 
-/* EDITAR ITEM */
+/* =========================
+   EDITAR ITEM
+========================= */
 app.put('/editar-item/:id', (req, res) => {
     const id = req.params.id;
     const { descripcion, unidad, cantidad, precio_unitario, total } = req.body;
@@ -191,26 +210,36 @@ app.put('/editar-item/:id', (req, res) => {
         `UPDATE items SET descripcion=?, unidad=?, cantidad=?, precio_unitario=?, total=? WHERE id=?`,
         [descripcion, unidad, cantidad, precio_unitario, total, id],
         (err) => {
-            if (err) return res.status(500).json(err);
+            if (err) {
+                console.log('Error en /editar-item:', err);
+                return res.json({ success: false, error: err.message }); // ✅ CORREGIDO
+            }
             res.json({ success: true });
         }
     );
 });
 
-/* ELIMINAR ITEM */
+/* =========================
+   ELIMINAR ITEM
+========================= */
 app.delete('/eliminar-item/:id', (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM ordenes_cambio WHERE item_id=?', [id], () => {
         db.query('DELETE FROM contratos_mod WHERE item_id=?', [id], () => {
             db.query('DELETE FROM items WHERE id=?', [id], (err) => {
-                if (err) return res.status(500).json(err);
+                if (err) {
+                    console.log('Error en /eliminar-item:', err);
+                    return res.json({ success: false, error: err.message }); // ✅ CORREGIDO
+                }
                 res.json({ success: true });
             });
         });
     });
 });
 
-/* PLANILLAS */
+/* =========================
+   GUARDAR PLANILLAS
+========================= */
 app.post('/guardar-planillas', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
@@ -219,14 +248,22 @@ app.post('/guardar-planillas', (req, res) => {
     res.json({ success: true });
 });
 
+/* =========================
+   OBTENER PLANILLAS
+========================= */
 app.get('/planillas', (req, res) => {
     db.query('SELECT * FROM planillas', (err, result) => {
-        if (err) return res.json([]);
-        res.json(result);
+        if (err) {
+            console.log('Error en /planillas:', err);
+            return res.json([]); // ✅ CORREGIDO: devuelve array vacío
+        }
+        res.json(result || []);
     });
 });
 
-/* INICIAR SERVIDOR */
+/* =========================
+   INICIAR SERVIDOR
+========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
