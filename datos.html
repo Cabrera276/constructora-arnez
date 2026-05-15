@@ -2,42 +2,45 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datos del proyecto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Datos del Proyecto - Constructora Arnez</title>
     <link rel="stylesheet" href="datos.css">
     <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
     <header class="hero">
+        <div class="overlay"></div>
 
-    <div class="overlay"></div>
+        <nav class="navbar">
+            <div class="logo">
+                <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo Arnez Camacho">
+            </div>
 
-    <nav class="navbar">
+            <!-- BOTÓN HAMBURGUESA -->
+            <button class="menu-hamburguesa" onclick="toggleMenu()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
 
-        <div class="logo">
-            <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo">
-        </div>
+            <ul class="menu">
+                <li><a href="inicio.html">INICIO</a></li>
+                <li><a href="datos.html" class="active">DATOS DEL<br>PROYECTO</a></li>
+                <li><a href="items.html">ITEMS</a></li>
+                <li><a href="plantillas.html">PLANILLAS</a></li>
+                <li><a href="plazos.html">AMPLIACIONES<br>DE PLAZO</a></li>
+            </ul>
 
-        <ul class="menu">
-            <li><a href="inicio.html">INICIO</a></li>
-            <li><a href="datos.html">DATOS DEL <br>PROYECTO</a></li>
-            <li><a href="items.html">ITEMS</a></li>
-            <li><a href="plantillas.html">PLANILLAS</a></li>
-            <li><a href="plazos.html">AMPLIACIONES <br>DE PLAZO</a></li>
-        </ul>
-
-        <button  onclick="abrirContactos()" class="contact-btn">📞 CONTACTOS</button>
-
-    </nav>
-
-</header>
+            <button onclick="abrirContactos()" class="contact-btn">
+                <i class="fa-solid fa-phone"></i> CONTACTOS
+            </button>
+        </nav>
+    </header>
 
     <main class="content">
-
+        <!-- CARD 1: CONTRATISTA -->
         <section class="card">
-            <h2>REFERIDO AL CONTRATISTA</h2>
-
+            <h2><i class="fa-solid fa-file-contract"></i> REFERIDO AL CONTRATISTA</h2>
             <div class="info-grid">
                 <span>Empresa Constructora:</span><strong>PEEMEX</strong>
                 <span>Representante Legal:</span><strong>Sr. Enver Peralta Orellana</strong>
@@ -51,11 +54,11 @@
             </div>
         </section>
 
+        <!-- CARD 2: SUPERVISIÓN -->
         <section class="card">
-            <h2>REFERIDO A LA SUPERVISION</h2>
-
+            <h2><i class="fa-solid fa-clipboard-check"></i> REFERIDO A LA SUPERVISIÓN</h2>
             <div class="info-grid">
-                <span>Empresa Consultora:</span><strong>Constructora y Consultora “Arnez Camacho”</strong>
+                <span>Empresa Consultora:</span><strong>Constructora y Consultora "Arnez Camacho"</strong>
                 <span>Representante Legal:</span><strong>Ing. Sabino Arnez Camacho</strong>
                 <span>N.I.T. Empresa:</span><strong>5150248011</strong>
                 <span>Contrato Nº:</span><strong>28/2026</strong>
@@ -66,49 +69,39 @@
                 <span>Fecha de Conclusión:</span><strong>30/08/2027</strong>
             </div>
         </section>
-
     </main>
-<div id="modalContactos" class="modal-contactos">
 
-    <div class="panel-contactos">
-
-        <button class="cerrar-contactos" onclick="cerrarContactos()">✕</button>
-
-        <h2>
-            <i class="fa-solid fa-address-book"></i>
-            Contactos
-        </h2>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-mobile-screen"></i>
-            <strong>Cel:</strong> 72782366
+    <!-- MODAL DE CONTACTOS -->
+    <div id="modalContactos" class="modal-contactos">
+        <div class="panel-contactos">
+            <button class="cerrar-contactos" onclick="cerrarContactos()">✕</button>
+            <h2><i class="fa-solid fa-address-book"></i> Contactos</h2>
+            <div class="contacto-item">
+                <i class="fa-solid fa-mobile-screen"></i>
+                <strong>Cel:</strong> 72782366
+            </div>
+            <div class="contacto-item">
+                <i class="fa-solid fa-phone"></i>
+                <strong>Tel:</strong> 4284022
+            </div>
+            <div class="contacto-item">
+                <i class="fa-solid fa-phone-volume"></i>
+                <strong>Oficina:</strong> 4490299
+            </div>
+            <div class="contacto-item">
+                <i class="fa-solid fa-envelope"></i>
+                <strong>Correo:</strong> ingecivil36@.com
+            </div>
+            <div class="contacto-item">
+                <i class="fa-solid fa-location-dot"></i>
+                <strong>Ubicación:</strong>
+                Pacata Baja Calle Vizcarra N138
+            </div>
         </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-phone"></i>
-            <strong>Tel:</strong> 4284022
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-phone-volume"></i>
-            <strong>Oficina:</strong> 4490299
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-envelope"></i>
-            <strong>Correo:</strong> ingecivil36@.com
-        </div>
-
-        <div class="contacto-item">
-            <i class="fa-solid fa-location-dot"></i>
-            <strong>Ubicación:</strong>
-            Pacata Baja Calle Vizcarra N138
-        </div>
-
     </div>
 
-</div>
     <footer></footer>
-<script src="datos.js"></script>
+
+    <script src="datos.js"></script>
 </body>
 </html>
