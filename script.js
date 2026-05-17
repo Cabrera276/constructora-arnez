@@ -101,8 +101,8 @@ function toggleModulo(moduloId, el) {
 // ============================
 function calcularTotalFila(fila) {
     const celdas = fila.querySelectorAll('td');
-    // Posiciones: 0:MÓDULO, 1:DESCRIPCIÓN, 2:UNIDAD, 3:CANTIDAD, 4:P.U., 5:TOTAL
-    if (celdas.length < 6) return;
+    // Posiciones: 0:MÓDULO, 1:DESCRIPCIÓN, 2:UNIDAD, 3:CANTIDAD, 4:P.U., 5:TOTAL, 6:%INCIDENCIA, 7:ACCIONES
+    if (celdas.length < 8) return;
     
     const cantidad = parseFloat(celdas[3]?.innerText) || 0;
     const precioUnitario = parseFloat(celdas[4]?.innerText) || 0;
@@ -130,7 +130,7 @@ function actualizarContadores() {
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
-    const totalColumnas = 7 + (ordenCambio * 3) + (contratoMod * 3);
+    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     const fm = document.createElement('tr');
     fm.classList.add('grupo-modulo');
     fm.dataset.modulo = moduloActual;
@@ -140,7 +140,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.modulo = moduloActual;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 1}"></td>`;
+    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -149,33 +149,35 @@ document.getElementById('btnModulo').addEventListener('click', () => {
 });
 
 // ============================
-// AÑADIR ÍTEM (MÓDULO MANUAL - SIN ASOCIACIÓN AUTOMÁTICA)
+// AÑADIR ÍTEM (MANUAL - TODOS LOS CAMPOS EDITABLES)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td></td>`;
     
     const fila = document.createElement('tr');
-    // El módulo es editable manualmente, no viene de ningún grupo
-    fila.innerHTML = `<td contenteditable="true" placeholder="Módulo"><td>
-        <td contenteditable="true" placeholder="Descripción"></td>
-        <td contenteditable="true" placeholder="Unidad"></td>
-        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
-        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="P.U."></td>
+    // Cada celda tiene contenteditable="true" para poder escribir
+    fila.innerHTML = `
+        <td contenteditable="true" style="cursor:text;"></td>
+        <td contenteditable="true" style="cursor:text;"></td>
+        <td contenteditable="true" style="cursor:text;"></td>
+        <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))"></td>
+        <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))"></td>
         <td></td>
         ${colOC}
         ${colCM}
-        <td contenteditable="true">0</td>
-        <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>`;
+        <td contenteditable="true" style="cursor:text;">0</td>
+        <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
+    `;
     
     tabla.appendChild(fila);
     
     actualizarTotales();
     actualizarContadores();
-    mostrarToast('✅ Ítem agregado - Completa el módulo y los datos', 'success');
+    mostrarToast('✅ Ítem agregado - Haz clic en los campos para escribir', 'success');
 });
 
 // ============================
@@ -184,7 +186,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 function calcularTotalOC(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let ocIndex = 6; // Después de las 6 columnas fijas (MÓDULO, DESCRIPCIÓN, UNIDAD, CANTIDAD, P.U., TOTAL)
+    let ocIndex = 7; // Después de las 7 columnas fijas (MÓDULO, DESCRIPCIÓN, UNIDAD, CANTIDAD, P.U., TOTAL, %INCIDENCIA)
     
     for (let i = 0; i < ordenCambio; i++) {
         const cantidad = parseFloat(celdas[ocIndex]?.innerText) || 0;
@@ -202,7 +204,7 @@ function calcularTotalOC(elemento) {
 function calcularTotalCM(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let cmIndex = 6 + (ordenCambio * 3);
+    let cmIndex = 7 + (ordenCambio * 3);
     
     for (let i = 0; i < contratoMod; i++) {
         const cantidad = parseFloat(celdas[cmIndex]?.innerText) || 0;
@@ -232,12 +234,14 @@ function agregarGrupo(titulo, tipo) {
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
+    // Insertar antes de % INCIDENCIA y ACCIONES
     fp.insertBefore(g, fp.children[fp.children.length - 2]);
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { const th = document.createElement('th'); th.innerText = t; fs.appendChild(th); });
     
     document.querySelectorAll('#tablaItems tr').forEach(fila => {
         if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
             const celdas = fila.cells;
+            // Insertar antes de la celda de % INCIDENCIA
             const pos = celdas.length - 2;
             const td1 = document.createElement('td');
             td1.contentEditable = true;
@@ -252,7 +256,7 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
-    const totalColumnas = 7 + (ordenCambio * 3) + (contratoMod * 3);
+    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
         if (td.getAttribute('colspan')) {
             td.setAttribute('colspan', totalColumnas);
@@ -415,7 +419,7 @@ async function guardarDatos() {
         if (!descripcion) continue;
         
         let ocs = [];
-        let ocIndex = 6;
+        let ocIndex = 7;
         for (let i = 0; i < ordenCambio; i++) {
             ocs.push({
                 numero: i + 1,
@@ -427,7 +431,7 @@ async function guardarDatos() {
         }
         
         let cms = [];
-        let cmIndex = 6 + (ordenCambio * 3);
+        let cmIndex = 7 + (ordenCambio * 3);
         for (let i = 0; i < contratoMod; i++) {
             cms.push({
                 numero: i + 1,
@@ -510,7 +514,7 @@ function eliminarOC() {
         
         ordenCambio--;
         
-        const totalColumnas = 7 + (ordenCambio * 3) + (contratoMod * 3);
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
         document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
             if (td.getAttribute('colspan')) {
                 td.setAttribute('colspan', totalColumnas);
@@ -545,7 +549,7 @@ function eliminarCM() {
         
         contratoMod--;
         
-        const totalColumnas = 7 + (ordenCambio * 3) + (contratoMod * 3);
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
         document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
             if (td.getAttribute('colspan')) {
                 td.setAttribute('colspan', totalColumnas);
@@ -596,7 +600,7 @@ async function cargarItems() {
             
             if (!modulosExistentes.has(item.modulo_id)) {
                 modulosExistentes.add(item.modulo_id);
-                const totalColumnas = 7 + (ordenCambio * 3) + (contratoMod * 3);
+                const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
                 const fm = document.createElement('tr');
                 fm.classList.add('grupo-modulo');
                 fm.dataset.modulo = item.modulo_id;
@@ -626,16 +630,18 @@ async function cargarItems() {
             
             const fila = document.createElement('tr');
             fila.dataset.id = item.id;
-            fila.innerHTML = `<td contenteditable="true">${item.modulo_id || ''}</td>
-                <td contenteditable="true">${item.descripcion || ''}</td>
-                <td contenteditable="true">${item.unidad || ''}</td>
-                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
-                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.precio_unitario || 0}</td>
+            fila.innerHTML = `
+                <td contenteditable="true" style="cursor:text;">${item.modulo_id || ''}</td>
+                <td contenteditable="true" style="cursor:text;">${item.descripcion || ''}</td>
+                <td contenteditable="true" style="cursor:text;">${item.unidad || ''}</td>
+                <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
+                <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.precio_unitario || 0}</td>
                 <td>${item.total || 0}</td>
                 ${colOC}
                 ${colCM}
-                <td contenteditable="true">${item.porcentaje_incidencia || 0}</td>
-                <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>`;
+                <td contenteditable="true" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
+                <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
+            `;
             tabla.appendChild(fila);
         }
         
@@ -643,7 +649,7 @@ async function cargarItems() {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.modulo = moduloId;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 1}"></td>`;
+            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
             tabla.appendChild(ft);
         }
         
@@ -714,5 +720,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Módulo manual en cada ítem');
+    console.log('🚀 Sistema cargado - Todos los campos editables');
 });
