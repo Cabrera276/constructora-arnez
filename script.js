@@ -125,63 +125,6 @@ function actualizarContadores() {
 }
 
 // ============================
-// REORGANIZAR ÍTEMS EN SUS GRUPOS (por texto del módulo)
-// ============================
-function reorganizarItems() {
-    const tabla = document.getElementById('tablaItems');
-    const grupos = document.querySelectorAll('.grupo-modulo');
-    
-    // Colección de items por grupo
-    const itemsPorGrupo = {};
-    grupos.forEach(grupo => {
-        const grupoId = grupo.dataset.grupo;
-        itemsPorGrupo[grupoId] = [];
-    });
-    
-    // Clasificar items por el texto de su primera celda (MÓDULO)
-    const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
-    items.forEach(item => {
-        const moduloTexto = item.querySelector('td:first-child')?.innerText;
-        let grupoEncontrado = null;
-        
-        // Buscar qué grupo tiene el mismo nombre
-        for (let grupo of grupos) {
-            const nombreGrupo = grupo.querySelector('.modulo-nombre')?.innerText;
-            if (nombreGrupo === moduloTexto) {
-                grupoEncontrado = grupo.dataset.grupo;
-                break;
-            }
-        }
-        
-        if (grupoEncontrado) {
-            item.dataset.grupo = grupoEncontrado;
-            itemsPorGrupo[grupoEncontrado].push(item);
-        }
-    });
-    
-    // Reordenar la tabla: grupo, sus items, total, siguiente grupo
-    grupos.forEach(grupo => {
-        const grupoId = grupo.dataset.grupo;
-        const totalModulo = document.querySelector(`.total-modulo[data-grupo="${grupoId}"]`);
-        const itemsDelGrupo = itemsPorGrupo[grupoId] || [];
-        
-        // Mover items después del grupo
-        let currentPosition = grupo.nextSibling;
-        itemsDelGrupo.forEach(item => {
-            if (item.parentNode !== tabla || item.previousSibling !== currentPosition) {
-                tabla.insertBefore(item, totalModulo);
-            }
-            currentPosition = item;
-        });
-        
-        // Mover total después de los items
-        if (totalModulo && currentPosition !== totalModulo) {
-            tabla.insertBefore(totalModulo, currentPosition.nextSibling);
-        }
-    });
-}
-
-// ============================
 // AÑADIR MÓDULO
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
@@ -209,18 +152,13 @@ document.getElementById('btnModulo').addEventListener('click', () => {
 });
 
 // ============================
-// EDITAR MÓDULO (cambiar nombre)
+// EDITAR MÓDULO
 // ============================
 function editarModulo(btn) { 
     const span = btn.closest('.modulo-row').querySelector('.modulo-nombre'); 
     if (span) { 
         span.contentEditable = true; 
         span.focus(); 
-        // Al perder el foco, reorganizar items
-        span.addEventListener('blur', () => {
-            reorganizarItems();
-            actualizarTotales();
-        }, { once: true });
     } 
 }
 
@@ -243,7 +181,7 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (MÓDULO EDITABLE MANUALMENTE)
+// AÑADIR ÍTEM (MÓDULO EDITABLE - PERO SIN CREAR NUEVOS MÓDULOS)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -256,10 +194,10 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><tr><td oninput="calcularTotalCM(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
     
     const fila = document.createElement('tr');
-    // La primera celda (MÓDULO) es EDITABLE - puedes escribir lo que quieras
+    // La primera celda (MÓDULO) es EDITABLE
     fila.innerHTML = `
         <td contenteditable="true" style="cursor:text;" placeholder="Ej: MÓDULO 01"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
@@ -274,29 +212,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
     `;
     
     tabla.appendChild(fila);
-    
-    // Al escribir en la celda MÓDULO, asignar al grupo correspondiente
-    const inputModulo = fila.querySelector('td:first-child');
-    inputModulo.addEventListener('blur', () => {
-        const moduloTexto = inputModulo.innerText;
-        let grupoEncontrado = null;
-        
-        // Buscar grupo con el mismo nombre
-        for (let grupo of grupos) {
-            const nombreGrupo = grupo.querySelector('.modulo-nombre')?.innerText;
-            if (nombreGrupo === moduloTexto) {
-                grupoEncontrado = grupo.dataset.grupo;
-                break;
-            }
-        }
-        
-        if (grupoEncontrado) {
-            fila.dataset.grupo = grupoEncontrado;
-            reorganizarItems();
-            actualizarTotales();
-        }
-    });
-    
     actualizarTotales();
     actualizarContadores();
     mostrarToast('✅ Ítem agregado - Escribe el módulo y los datos', 'success');
@@ -495,13 +410,16 @@ async function eliminarFila(btn) {
 }
 
 // ============================
-// GUARDAR DATOS
+// GUARDAR DATOS (CORREGIDO - SIN DUPLICADOS)
 // ============================
 document.getElementById("btnGuardar").addEventListener("click", guardarDatos);
 
 async function guardarDatos() {
     const filas = document.querySelectorAll("#tablaItems tr:not(.grupo-modulo):not(.total-modulo)");
-    const datos = [];
+    
+    // Separar items nuevos y existentes
+    const nuevosItems = [];
+    const itemsAActualizar = [];
     
     for (const fila of filas) {
         const celdas = fila.children;
@@ -536,7 +454,7 @@ async function guardarDatos() {
             cmIndex += 3;
         }
         
-        datos.push({
+        const itemData = {
             modulo_id: moduloTexto,
             descripcion: descripcion,
             unidad: celdas[2]?.innerText.trim() || '',
@@ -546,12 +464,15 @@ async function guardarDatos() {
             ordenesCambio: ocs,
             contratosMod: cms,
             porcentaje_incidencia: parseFloat(celdas[celdas.length - 2]?.innerText) || 0
-        });
-    }
-    
-    if (!datos.length) { 
-        mostrarToast('⚠️ No hay datos', 'warning'); 
-        return; 
+        };
+        
+        // Verificar si el item tiene ID (existe en BD)
+        if (fila.dataset.id) {
+            itemData.id = fila.dataset.id;
+            itemsAActualizar.push(itemData);
+        } else {
+            nuevosItems.push(itemData);
+        }
     }
     
     const btn = document.getElementById('btnGuardar');
@@ -559,22 +480,70 @@ async function guardarDatos() {
     btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
     btn.disabled = true;
     
+    let successCount = 0;
+    let errorCount = 0;
+    
     try {
-        const response = await fetch(`${URL_SERVIDOR}/guardar-item`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
-        });
-        const data = await response.json();
-        
-        if (data.success) { 
-            mostrarToast(`✅ ${datos.length} ítems guardados`, 'success'); 
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            mostrarToast('❌ Error', 'error');
+        // Guardar nuevos items
+        if (nuevosItems.length > 0) {
+            const response = await fetch(`${URL_SERVIDOR}/guardar-item`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevosItems)
+            });
+            const data = await response.json();
+            if (data.success) {
+                successCount += nuevosItems.length;
+                // Actualizar los IDs en las filas
+                if (data.ids && data.ids.length === nuevosItems.length) {
+                    let idIndex = 0;
+                    for (const fila of filas) {
+                        if (!fila.dataset.id && fila.children[1]?.textContent.trim()) {
+                            fila.dataset.id = data.ids[idIndex];
+                            idIndex++;
+                        }
+                    }
+                }
+            } else {
+                errorCount += nuevosItems.length;
+            }
         }
+        
+        // Actualizar items existentes
+        for (const item of itemsAActualizar) {
+            try {
+                const response = await fetch(`${URL_SERVIDOR}/editar-item/${item.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch(e) {
+                errorCount++;
+            }
+        }
+        
+        if (successCount > 0) {
+            mostrarToast(`✅ ${successCount} ítems guardados correctamente`, 'success');
+            if (nuevosItems.length > 0) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        }
+        if (errorCount > 0) {
+            mostrarToast(`⚠️ ${errorCount} ítems con error`, 'warning');
+        }
+        if (successCount === 0 && errorCount === 0) {
+            mostrarToast('⚠️ No hay datos para guardar', 'warning');
+        }
+        
     } catch(e) { 
-        mostrarToast('❌ Error de conexión', 'error');
+        mostrarToast('❌ Error de conexión con el servidor', 'error');
+        console.error(e);
     } finally { 
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
@@ -727,7 +696,7 @@ async function cargarItems() {
                     if (i < cmItem.length) {
                         colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
                     } else {
-                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"><td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
                     }
                 }
                 
@@ -765,7 +734,7 @@ async function cargarItems() {
         
     } catch(e) { 
         console.error('Error:', e);
-        mostrarToast('❌ Error al cargar', 'error');
+        mostrarToast('❌ Error al cargar datos', 'error');
     }
 }
 
@@ -825,5 +794,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - MÓDULO manual y editable');
+    console.log('🚀 Sistema cargado - Sin duplicados al guardar');
 });
