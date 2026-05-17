@@ -82,7 +82,7 @@ function filtrarItems() {
 }
 
 // ============================
-// CALCULAR TOTAL DE UNA FILA
+// FUNCIONES AUXILIARES
 // ============================
 function calcularTotalFila(fila) {
     const cantidad = parseFloat(fila.querySelector('.cantidad')?.value) || 0;
@@ -93,14 +93,27 @@ function calcularTotalFila(fila) {
     return total;
 }
 
-// ============================
-// ACTUALIZAR TODOS LOS TOTALES
-// ============================
+function actualizarTotalOC(fila, index) {
+    const cantidad = parseFloat(fila.querySelector(`.oc-cant-${index}`)?.value) || 0;
+    const precio = parseFloat(fila.querySelector(`.oc-pu-${index}`)?.value) || 0;
+    const total = cantidad * precio;
+    const totalCell = fila.querySelector(`.oc-total-${index}`);
+    if (totalCell) totalCell.innerText = total.toFixed(2);
+    actualizarTodosLosTotales();
+}
+
+function actualizarTotalCM(fila, index) {
+    const cantidad = parseFloat(fila.querySelector(`.cm-cant-${index}`)?.value) || 0;
+    const precio = parseFloat(fila.querySelector(`.cm-pu-${index}`)?.value) || 0;
+    const total = cantidad * precio;
+    const totalCell = fila.querySelector(`.cm-total-${index}`);
+    if (totalCell) totalCell.innerText = total.toFixed(2);
+    actualizarTodosLosTotales();
+}
+
 function actualizarTodosLosTotales() {
     let totalGeneral = 0;
-    const items = document.querySelectorAll('.item-fila');
-    
-    items.forEach(item => {
+    document.querySelectorAll('.item-fila').forEach(item => {
         const total = calcularTotalFila(item);
         totalGeneral += total;
     });
@@ -115,8 +128,7 @@ function actualizarTodosLosTotales() {
         const moduloId = modulo.dataset.moduloId;
         let totalModulo = 0;
         document.querySelectorAll(`.item-fila[data-modulo-padre="${moduloId}"]`).forEach(item => {
-            const total = parseFloat(item.querySelector('.total-fila')?.innerText) || 0;
-            totalModulo += total;
+            totalModulo += parseFloat(item.querySelector('.total-fila')?.innerText) || 0;
         });
         const totalRow = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
         if (totalRow) {
@@ -126,9 +138,6 @@ function actualizarTodosLosTotales() {
     });
 }
 
-// ============================
-// ACTUALIZAR CONTADORES
-// ============================
 function actualizarContadores() {
     document.querySelectorAll('.grupo-modulo').forEach(modulo => {
         const moduloId = modulo.dataset.moduloId;
@@ -138,78 +147,18 @@ function actualizarContadores() {
     });
 }
 
-// ============================
-// CREAR ESTRUCTURA OC/CM
-// ============================
-function crearEstructuraOCyCM() {
-    let colOC = '';
-    for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px"></td>
-                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px"></td>
-                  <td class="oc-total-${i}">0.00</td>`;
-    }
-    let colCM = '';
-    for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px"></td>
-                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px"></td>
-                  <td class="cm-total-${i}">0.00</td>`;
-    }
-    return { colOC, colCM };
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 // ============================
-// AGREGAR EVENTOS A OC/CM
-// ============================
-function agregarEventosOCyCM(fila) {
-    for (let i = 0; i < ordenCambio; i++) {
-        const cantInput = fila.querySelector(`.oc-cant-${i}`);
-        const puInput = fila.querySelector(`.oc-pu-${i}`);
-        const totalSpan = fila.querySelector(`.oc-total-${i}`);
-        
-        const update = () => {
-            const cant = parseFloat(cantInput?.value) || 0;
-            const pu = parseFloat(puInput?.value) || 0;
-            const total = cant * pu;
-            if (totalSpan) totalSpan.innerText = total.toFixed(2);
-            actualizarTodosLosTotales();
-        };
-        
-        if (cantInput) {
-            cantInput.removeEventListener('input', update);
-            cantInput.addEventListener('input', update);
-        }
-        if (puInput) {
-            puInput.removeEventListener('input', update);
-            puInput.addEventListener('input', update);
-        }
-    }
-    
-    for (let i = 0; i < contratoMod; i++) {
-        const cantInput = fila.querySelector(`.cm-cant-${i}`);
-        const puInput = fila.querySelector(`.cm-pu-${i}`);
-        const totalSpan = fila.querySelector(`.cm-total-${i}`);
-        
-        const update = () => {
-            const cant = parseFloat(cantInput?.value) || 0;
-            const pu = parseFloat(puInput?.value) || 0;
-            const total = cant * pu;
-            if (totalSpan) totalSpan.innerText = total.toFixed(2);
-            actualizarTodosLosTotales();
-        };
-        
-        if (cantInput) {
-            cantInput.removeEventListener('input', update);
-            cantInput.addEventListener('input', update);
-        }
-        if (puInput) {
-            puInput.removeEventListener('input', update);
-            puInput.addEventListener('input', update);
-        }
-    }
-}
-
-// ============================
-// FUNCIONES GLOBALES
+// FUNCIONES GLOBALES (onclick)
 // ============================
 window.toggleModulo = function(el, moduloId) {
     const flecha = el.querySelector('i');
@@ -325,6 +274,84 @@ window.eliminarFila = async function(btn) {
     });
 };
 
+window.eliminarOC = function() {
+    if (ordenCambio <= 0) {
+        mostrarToast('⚠️ No hay OC', 'warning');
+        return;
+    }
+    
+    abrirModal('Eliminar OC', `¿Eliminar OC Nº${ordenCambio}?`, () => {
+        const filaPrincipal = document.getElementById('filaPrincipal');
+        const filaSecundaria = document.getElementById('filaSecundaria');
+        
+        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
+        for (let i = 0; i < 3; i++) {
+            filaSecundaria.lastElementChild.remove();
+        }
+        
+        document.querySelectorAll('.item-fila').forEach(fila => {
+            const accionesCell = fila.querySelector('.acciones-cell');
+            if (accionesCell) {
+                for (let i = 0; i < 3; i++) {
+                    const prev = accionesCell.previousSibling;
+                    if (prev) prev.remove();
+                }
+            }
+        });
+        
+        ordenCambio--;
+        
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
+            }
+        });
+        
+        actualizarTodosLosTotales();
+        mostrarToast('🗑 OC eliminada', 'info');
+    });
+};
+
+window.eliminarCM = function() {
+    if (contratoMod <= 0) {
+        mostrarToast('⚠️ No hay CM', 'warning');
+        return;
+    }
+    
+    abrirModal('Eliminar CM', `¿Eliminar CM Nº${contratoMod}?`, () => {
+        const filaPrincipal = document.getElementById('filaPrincipal');
+        const filaSecundaria = document.getElementById('filaSecundaria');
+        
+        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
+        for (let i = 0; i < 3; i++) {
+            filaSecundaria.lastElementChild.remove();
+        }
+        
+        document.querySelectorAll('.item-fila').forEach(fila => {
+            const accionesCell = fila.querySelector('.acciones-cell');
+            if (accionesCell) {
+                for (let i = 0; i < 3; i++) {
+                    const prev = accionesCell.previousSibling;
+                    if (prev) prev.remove();
+                }
+            }
+        });
+        
+        contratoMod--;
+        
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
+            }
+        });
+        
+        actualizarTodosLosTotales();
+        mostrarToast('🗑 CM eliminado', 'info');
+    });
+};
+
 // ============================
 // BOTONES PRINCIPALES
 // ============================
@@ -385,21 +412,34 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloId = moduloActivo.dataset.moduloId;
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
-    const { colOC, colCM } = crearEstructuraOCyCM();
+    // Construir OC y CM
+    let colOC = '';
+    for (let i = 0; i < ordenCambio; i++) {
+        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                  <td class="oc-total-${i}">0.00</td>`;
+    }
+    let colCM = '';
+    for (let i = 0; i < contratoMod; i++) {
+        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                  <td class="cm-total-${i}">0.00</td>`;
+    }
     
     const fila = document.createElement('tr');
     fila.className = 'item-fila';
     fila.dataset.moduloPadre = moduloId;
+    // IMPORTANTE: PRECIO ES UN INPUT
     fila.innerHTML = `
-        <td><input type="text" class="numero-item" value="" placeholder="N°" style="width:60px"></td>
-        <td><input type="text" class="descripcion" value="" placeholder="Descripción" style="width:200px"></td>
-        <td><input type="text" class="unidad" value="" placeholder="Unidad" style="width:80px"></td>
-        <td><input type="number" class="cantidad" value="0" step="any" style="width:80px"></td>
-        <td><input type="number" class="precio" value="0" step="any" style="width:80px"></td>
+        <td><input type="text" class="numero-item" value="" placeholder="N°" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+        <td><input type="text" class="descripcion" value="" placeholder="Descripción" style="width:200px; padding:6px; border-radius:6px; border:1px solid #ccc;"></td>
+        <td><input type="text" class="unidad" value="" placeholder="Unidad" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+        <td><input type="number" class="cantidad" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+        <td><input type="number" class="precio" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
         <td class="total-fila">0.00</td>
         ${colOC}
         ${colCM}
-        <td><input type="number" class="porcentaje" value="0" step="any" style="width:60px"></td>
+        <td><input type="number" class="porcentaje" value="0" step="any" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
         <td class="acciones-cell">
             <div class="table-actions">
                 <button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button>
@@ -408,12 +448,27 @@ document.getElementById('btnItem').addEventListener('click', () => {
         </td>
     `;
     
+    // Eventos
     const cantidadInput = fila.querySelector('.cantidad');
     const precioInput = fila.querySelector('.precio');
     cantidadInput.addEventListener('input', () => calcularTotalFila(fila));
     precioInput.addEventListener('input', () => calcularTotalFila(fila));
     
-    agregarEventosOCyCM(fila);
+    // Eventos OC
+    for (let i = 0; i < ordenCambio; i++) {
+        const cantOC = fila.querySelector(`.oc-cant-${i}`);
+        const puOC = fila.querySelector(`.oc-pu-${i}`);
+        if (cantOC) cantOC.addEventListener('input', () => actualizarTotalOC(fila, i));
+        if (puOC) puOC.addEventListener('input', () => actualizarTotalOC(fila, i));
+    }
+    
+    // Eventos CM
+    for (let i = 0; i < contratoMod; i++) {
+        const cantCM = fila.querySelector(`.cm-cant-${i}`);
+        const puCM = fila.querySelector(`.cm-pu-${i}`);
+        if (cantCM) cantCM.addEventListener('input', () => actualizarTotalCM(fila, i));
+        if (puCM) puCM.addEventListener('input', () => actualizarTotalCM(fila, i));
+    }
     
     const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
     if (totalModulo) {
@@ -464,6 +519,10 @@ function agregarColumna(titulo, tipo) {
         inputCant.value = '0';
         inputCant.step = 'any';
         inputCant.style.width = '80px';
+        inputCant.style.padding = '6px';
+        inputCant.style.borderRadius = '6px';
+        inputCant.style.border = '1px solid #ccc';
+        inputCant.style.textAlign = 'center';
         tdCant.appendChild(inputCant);
         
         const tdPu = document.createElement('td');
@@ -473,6 +532,10 @@ function agregarColumna(titulo, tipo) {
         inputPu.value = '0';
         inputPu.step = 'any';
         inputPu.style.width = '80px';
+        inputPu.style.padding = '6px';
+        inputPu.style.borderRadius = '6px';
+        inputPu.style.border = '1px solid #ccc';
+        inputPu.style.textAlign = 'center';
         tdPu.appendChild(inputPu);
         
         const tdTotal = document.createElement('td');
@@ -571,6 +634,8 @@ async function guardarDatos() {
         
         if (items.length === 0) {
             mostrarToast('⚠️ No hay datos para guardar', 'warning');
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
             return;
         }
         
@@ -597,90 +662,6 @@ async function guardarDatos() {
         btn.disabled = false;
     }
 }
-
-// ============================
-// ELIMINAR OC
-// ============================
-window.eliminarOC = function() {
-    if (ordenCambio <= 0) {
-        mostrarToast('⚠️ No hay OC', 'warning');
-        return;
-    }
-    
-    abrirModal('Eliminar OC', `¿Eliminar OC Nº${ordenCambio}?`, () => {
-        const filaPrincipal = document.getElementById('filaPrincipal');
-        const filaSecundaria = document.getElementById('filaSecundaria');
-        
-        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
-        for (let i = 0; i < 3; i++) {
-            filaSecundaria.lastElementChild.remove();
-        }
-        
-        document.querySelectorAll('.item-fila').forEach(fila => {
-            const accionesCell = fila.querySelector('.acciones-cell');
-            if (accionesCell) {
-                for (let i = 0; i < 3; i++) {
-                    const prev = accionesCell.previousSibling;
-                    if (prev) prev.remove();
-                }
-            }
-        });
-        
-        ordenCambio--;
-        
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
-            }
-        });
-        
-        actualizarTodosLosTotales();
-        mostrarToast('🗑 OC eliminada', 'info');
-    });
-};
-
-// ============================
-// ELIMINAR CM
-// ============================
-window.eliminarCM = function() {
-    if (contratoMod <= 0) {
-        mostrarToast('⚠️ No hay CM', 'warning');
-        return;
-    }
-    
-    abrirModal('Eliminar CM', `¿Eliminar CM Nº${contratoMod}?`, () => {
-        const filaPrincipal = document.getElementById('filaPrincipal');
-        const filaSecundaria = document.getElementById('filaSecundaria');
-        
-        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
-        for (let i = 0; i < 3; i++) {
-            filaSecundaria.lastElementChild.remove();
-        }
-        
-        document.querySelectorAll('.item-fila').forEach(fila => {
-            const accionesCell = fila.querySelector('.acciones-cell');
-            if (accionesCell) {
-                for (let i = 0; i < 3; i++) {
-                    const prev = accionesCell.previousSibling;
-                    if (prev) prev.remove();
-                }
-            }
-        });
-        
-        contratoMod--;
-        
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
-            }
-        });
-        
-        actualizarTodosLosTotales();
-        mostrarToast('🗑 CM eliminado', 'info');
-    });
-};
 
 // ============================
 // CARGAR ÍTEMS DESDE BD
@@ -742,16 +723,16 @@ async function cargarItems() {
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     const oc = ocdb.find(o => o.item_id === item.id && o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px"></td>
-                              <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px"></td>
+                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                              <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
                               <td class="oc-total-${i}">${oc.total}</td>`;
                 }
                 
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px"></td>
-                              <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px"></td>
+                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                              <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
                               <td class="cm-total-${i}">${cm.total}</td>`;
                 }
                 
@@ -759,16 +740,17 @@ async function cargarItems() {
                 fila.className = 'item-fila';
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
+                // IMPORTANTE: PRECIO ES UN INPUT
                 fila.innerHTML = `
-                    <td><input type="text" class="numero-item" value="${escapeHtml(item.item_numero || '')}" placeholder="N°" style="width:60px"></td>
-                    <td><input type="text" class="descripcion" value="${escapeHtml(item.descripcion || '')}" placeholder="Descripción" style="width:200px"></td>
-                    <td><input type="text" class="unidad" value="${escapeHtml(item.unidad || '')}" placeholder="Unidad" style="width:80px"></td>
-                    <td><input type="number" class="cantidad" value="${item.cantidad || 0}" step="any" style="width:80px"></td>
-                    <td><input type="number" class="precio" value="${item.precio_unitario || 0}" step="any" style="width:80px"></td>
+                    <td><input type="text" class="numero-item" value="${escapeHtml(item.item_numero || '')}" placeholder="N°" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                    <td><input type="text" class="descripcion" value="${escapeHtml(item.descripcion || '')}" placeholder="Descripción" style="width:200px; padding:6px; border-radius:6px; border:1px solid #ccc;"></td>
+                    <td><input type="text" class="unidad" value="${escapeHtml(item.unidad || '')}" placeholder="Unidad" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                    <td><input type="number" class="cantidad" value="${item.cantidad || 0}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                    <td><input type="number" class="precio" value="${item.precio_unitario || 0}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
                     <td class="total-fila">${item.total || 0}</td>
                     ${colOC}
                     ${colCM}
-                    <td><input type="number" class="porcentaje" value="${item.porcentaje_incidencia || 0}" step="any" style="width:60px"></td>
+                    <td><input type="number" class="porcentaje" value="${item.porcentaje_incidencia || 0}" step="any" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
                     <td class="acciones-cell">
                         <div class="table-actions">
                             <button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button>
@@ -782,7 +764,20 @@ async function cargarItems() {
                 cantidadInput.addEventListener('input', () => calcularTotalFila(fila));
                 precioInput.addEventListener('input', () => calcularTotalFila(fila));
                 
-                agregarEventosOCyCM(fila);
+                for (let i = 0; i < ordenCambio; i++) {
+                    const cantOC = fila.querySelector(`.oc-cant-${i}`);
+                    const puOC = fila.querySelector(`.oc-pu-${i}`);
+                    if (cantOC) cantOC.addEventListener('input', () => actualizarTotalOC(fila, i));
+                    if (puOC) puOC.addEventListener('input', () => actualizarTotalOC(fila, i));
+                }
+                
+                for (let i = 0; i < contratoMod; i++) {
+                    const cantCM = fila.querySelector(`.cm-cant-${i}`);
+                    const puCM = fila.querySelector(`.cm-pu-${i}`);
+                    if (cantCM) cantCM.addEventListener('input', () => actualizarTotalCM(fila, i));
+                    if (puCM) puCM.addEventListener('input', () => actualizarTotalCM(fila, i));
+                }
+                
                 tabla.appendChild(fila);
             });
             
@@ -805,16 +800,6 @@ async function cargarItems() {
         console.error('Error cargando items:', e);
         mostrarToast('❌ Error al cargar datos', 'error');
     }
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
 }
 
 // ============================
@@ -873,5 +858,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - P.U. con inputs editables');
+    console.log('🚀 Sistema cargado - P.U. con input type number');
 });
