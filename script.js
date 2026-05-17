@@ -111,7 +111,6 @@ function actualizarTodosLosTotales() {
         if (totalCell) totalCell.innerHTML = `<strong>${totalGeneral.toFixed(2)}</strong>`;
     }
     
-    // Actualizar totales de módulo
     document.querySelectorAll('.grupo-modulo').forEach(modulo => {
         const moduloId = modulo.dataset.moduloId;
         let totalModulo = 0;
@@ -121,14 +120,14 @@ function actualizarTodosLosTotales() {
         });
         const totalRow = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
         if (totalRow) {
-            const totalCell = totalRow.querySelector('td:nth-child(2)');
+            const totalCell = totalRow.querySelector('.total-modulo-valor');
             if (totalCell) totalCell.innerText = totalModulo.toFixed(2);
         }
     });
 }
 
 // ============================
-// ACTUALIZAR CONTADORES DE MÓDULO
+// ACTUALIZAR CONTADORES
 // ============================
 function actualizarContadores() {
     document.querySelectorAll('.grupo-modulo').forEach(modulo => {
@@ -137,6 +136,25 @@ function actualizarContadores() {
         const badge = modulo.querySelector('.badge-items');
         if (badge) badge.textContent = `${items.length} ítems`;
     });
+}
+
+// ============================
+// CREAR ESTRUCTURA OC/CM
+// ============================
+function crearEstructuraOCyCM() {
+    let colOC = '';
+    for (let i = 0; i < ordenCambio; i++) {
+        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px"></td>
+                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px"></td>
+                  <td class="oc-total-${i}">0.00</td>`;
+    }
+    let colCM = '';
+    for (let i = 0; i < contratoMod; i++) {
+        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px"></td>
+                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px"></td>
+                  <td class="cm-total-${i}">0.00</td>`;
+    }
+    return { colOC, colCM };
 }
 
 // ============================
@@ -191,26 +209,7 @@ function agregarEventosOCyCM(fila) {
 }
 
 // ============================
-// CREAR ESTRUCTURA OC/CM
-// ============================
-function crearEstructuraOCyCM() {
-    let colOC = '';
-    for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px"></td>
-                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px"></td>
-                  <td class="oc-total-${i}">0.00</td>`;
-    }
-    let colCM = '';
-    for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px"></td>
-                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px"></td>
-                  <td class="cm-total-${i}">0.00</td>`;
-    }
-    return { colOC, colCM };
-}
-
-// ============================
-// FUNCIONES GLOBALES PARA ONCLICK
+// FUNCIONES GLOBALES
 // ============================
 window.toggleModulo = function(el, moduloId) {
     const flecha = el.querySelector('i');
@@ -874,5 +873,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado');
+    console.log('🚀 Sistema cargado - P.U. con inputs editables');
 });
