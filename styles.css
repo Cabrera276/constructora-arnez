@@ -167,7 +167,7 @@ body {
 }
 
 /* ============================================
-   BARRA DE SCROLL ESTILIZADA (MEJORA #1)
+   BARRA DE SCROLL ESTILIZADA
    ============================================ */
 .table-container::-webkit-scrollbar {
     height: 10px;
@@ -199,7 +199,7 @@ table {
 }
 
 /* ============================================
-   CABECERAS FIJAS (MEJORA #2)
+   CABECERAS FIJAS
    ============================================ */
 thead th {
     position: sticky;
@@ -213,7 +213,7 @@ thead th {
     box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
 }
 
-/* Columna MÓDULO fija */
+/* Columna N° fija */
 table th:first-child,
 table td:first-child {
     position: sticky;
@@ -244,10 +244,11 @@ td {
     transition: .2s;
     text-align: center;
     vertical-align: middle;
+    pointer-events: auto !important;
 }
 
 /* ============================================
-   FILAS ZEBRA (MEJORA #3)
+   FILAS ZEBRA
    ============================================ */
 tbody tr:nth-child(even) {
     background: #f5f5f5;
@@ -284,7 +285,7 @@ tbody tr:hover {
 }
 
 /* ============================================
-   FLECHA COLAPSAR MÓDULO (MEJORA #4)
+   FLECHA COLAPSAR MÓDULO
    ============================================ */
 .toggle-modulo {
     cursor: pointer;
@@ -303,7 +304,7 @@ tbody tr:hover {
 }
 
 /* ============================================
-   BADGE CONTADOR DE ÍTEMS (MEJORA #6)
+   BADGE CONTADOR DE ÍTEMS
    ============================================ */
 .badge-items {
     background: #ffc933;
@@ -317,7 +318,7 @@ tbody tr:hover {
 }
 
 /* ============================================
-   CAMPOS EDITABLES (MEJORA #5)
+   CAMPOS EDITABLES
    ============================================ */
 td[contenteditable="true"] {
     background: rgba(255, 201, 51, 0.05);
@@ -339,7 +340,7 @@ td[contenteditable="true"]:focus {
 }
 
 /* ============================================
-   BOTONES DE ACCIÓN (TOOLTIPS - MEJORA #8)
+   BOTONES DE ACCIÓN
    ============================================ */
 .table-actions {
     display: flex;
@@ -375,59 +376,6 @@ td[contenteditable="true"]:focus {
 .delete-btn:hover {
     background: #ff0000;
     transform: translateY(-2px);
-}
-
-/* ============================================
-   EVIDENCIA (IMÁGENES)
-   ============================================ */
-.evidencia-box {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-}
-
-.btn-subir {
-    background: #2d8cff;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    transition: 0.3s;
-}
-
-.btn-subir:hover {
-    background: #006eff;
-}
-
-.descripcion-img {
-    width: 110px;
-    height: 38px;
-    resize: none;
-    padding: 6px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    font-family: Arial;
-    font-size: 12px;
-}
-
-.btn-ver {
-    background: #ffc933;
-    color: black;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    transition: 0.3s;
-}
-
-.btn-ver:hover {
-    background: #ffe27a;
 }
 
 /* ============================================
@@ -487,7 +435,7 @@ td[contenteditable="true"]:focus {
 }
 
 /* ============================================
-   TOAST DE NOTIFICACIÓN (MEJORA #9)
+   TOAST DE NOTIFICACIÓN
    ============================================ */
 .toast-notification {
     position: fixed;
@@ -637,7 +585,7 @@ td[contenteditable="true"]:focus {
 }
 
 /* ============================================
-   MODO OSCURO (MEJORA #10)
+   MODO OSCURO
    ============================================ */
 .modo-oscuro-toggle {
     position: fixed;
@@ -694,6 +642,40 @@ table.modo-oscuro td:nth-child(2) {
     background: #1a1a1a;
 }
 
+/* Modo oscuro no debe afectar inputs */
+table.modo-oscuro input {
+    background: white !important;
+    color: black !important;
+}
+
+/* ============================================
+   SOLUCIÓN DEFINITIVA PARA INPUTS OC Y CM
+   ============================================ */
+table input,
+table input[type="number"],
+input[class*="oc-cant"],
+input[class*="oc-pu"],
+input[class*="cm-cant"],
+input[class*="cm-pu"] {
+    pointer-events: auto !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ccc !important;
+    padding: 6px !important;
+    border-radius: 6px !important;
+    width: 80px !important;
+    text-align: center !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+/* Forzar que ningún input esté deshabilitado */
+input:disabled {
+    background: white !important;
+    opacity: 1 !important;
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */
@@ -732,7 +714,6 @@ table.modo-oscuro td:nth-child(2) {
         width: 110px;
     }
     
-    /* Menú hamburguesa */
     .menu-hamburguesa {
         display: block;
         position: absolute;
