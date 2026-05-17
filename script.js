@@ -212,7 +212,14 @@ document.getElementById('btnItem').addEventListener('click', () => {
         <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
     
-    tabla.appendChild(fila);
+    // Insertar el nuevo ítem antes del total-modulo correspondiente
+    const moduloTexto = fila.querySelector('td:first-child')?.innerText;
+    const totalModulo = document.querySelector(`.total-modulo[data-modulo="${moduloTexto}"]`);
+    if (totalModulo) {
+        tabla.insertBefore(fila, totalModulo);
+    } else {
+        tabla.appendChild(fila);
+    }
     
     actualizarTotales();
     actualizarContadores();
@@ -324,8 +331,7 @@ function actualizarTotales() {
     });
     
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
-        const moduloId = totalMod.dataset.modulo;
-        const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo="${moduloId}"] .modulo-nombre`)?.innerText || '';
+        const moduloNombre = totalMod.dataset.modulo;
         let totalModulo = totalesModulo[moduloNombre] || 0;
         
         const celdas = totalMod.querySelectorAll('td');
@@ -596,6 +602,7 @@ async function cargarItems() {
         
         const modulosUnicos = [...new Set(items.filter(i => i.modulo_id && i.modulo_id !== "").map(i => i.modulo_id))];
         
+        // Crear grupos de módulo
         modulosUnicos.forEach(moduloId => {
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             const fm = document.createElement('tr');
@@ -605,6 +612,7 @@ async function cargarItems() {
             tabla.appendChild(fm);
         });
         
+        // Crear ítems
         items.forEach(item => {
             const ocItem = ocdb.filter(o => o.item_id == item.id);
             let colOC = '';
@@ -643,12 +651,33 @@ async function cargarItems() {
             tabla.appendChild(fila);
         });
         
+        // Agregar filas de total después de los ítems de cada módulo
         modulosUnicos.forEach(moduloId => {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.modulo = moduloId;
             ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
-            tabla.appendChild(ft);
+            
+            // Buscar el último ítem de este módulo
+            const itemsModulo = document.querySelectorAll(`#tablaItems tr:not(.grupo-modulo):not(.total-modulo)`);
+            let ultimoItemModulo = null;
+            itemsModulo.forEach(item => {
+                const moduloItem = item.querySelector('td:first-child')?.innerText;
+                if (moduloItem === moduloId) {
+                    ultimoItemModulo = item;
+                }
+            });
+            
+            if (ultimoItemModulo) {
+                ultimoItemModulo.insertAdjacentElement('afterend', ft);
+            } else {
+                const grupoModulo = document.querySelector(`.grupo-modulo[data-modulo="${moduloId}"]`);
+                if (grupoModulo) {
+                    grupoModulo.insertAdjacentElement('afterend', ft);
+                } else {
+                    tabla.appendChild(ft);
+                }
+            }
         });
         
         actualizarTotales();
