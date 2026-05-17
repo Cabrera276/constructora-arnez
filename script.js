@@ -77,48 +77,47 @@ function filtrarItems() {
     if (!input) return;
     const busqueda = input.value.toLowerCase();
     document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
-        const moduloText = fila.querySelector('td:first-child')?.textContent.toLowerCase() || '';
-        const descText = fila.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-        fila.style.display = (moduloText.includes(busqueda) || descText.includes(busqueda)) ? '' : 'none';
+        const descText = fila.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+        fila.style.display = descText.includes(busqueda) ? '' : 'none';
     });
 }
 
 // ============================
 // COLAPSAR MÓDULO
 // ============================
-function toggleModulo(grupoId, el) {
+function toggleModulo(moduloId, el) {
     const flecha = el.querySelector('i');
     if (!flecha) return;
     const ocultar = !flecha.classList.contains('colapsado');
-    document.querySelectorAll(`tr[data-grupo="${grupoId}"]`).forEach(item => item.style.display = ocultar ? 'none' : '');
-    const total = document.querySelector(`.total-modulo[data-grupo="${grupoId}"]`);
+    document.querySelectorAll(`tr[data-modulo-padre="${moduloId}"]`).forEach(item => item.style.display = ocultar ? 'none' : '');
+    const total = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
     if (total) total.style.display = ocultar ? 'none' : '';
     ocultar ? flecha.classList.add('colapsado') : flecha.classList.remove('colapsado');
 }
 
 // ============================
-// CALCULAR TOTAL (Multiplicación automática)
+// CALCULAR TOTAL
 // ============================
 function calcularTotalFila(fila) {
     const celdas = fila.querySelectorAll('td');
-    if (celdas.length < 7) return;
+    if (celdas.length < 8) return;
     
-    const cantidad = parseFloat(celdas[3]?.innerText) || 0;
-    const precioUnitario = parseFloat(celdas[4]?.innerText) || 0;
+    const cantidad = parseFloat(celdas[4]?.innerText) || 0;
+    const precioUnitario = parseFloat(celdas[5]?.innerText) || 0;
     const total = cantidad * precioUnitario;
     
-    celdas[5].innerText = total.toFixed(2);
+    celdas[6].innerText = total.toFixed(2);
     
     actualizarTotales();
 }
 
 // ============================
-// ACTUALIZAR CONTADORES DE MÓDULO
+// ACTUALIZAR CONTADORES
 // ============================
 function actualizarContadores() {
     document.querySelectorAll('.grupo-modulo').forEach(modulo => {
-        const grupoId = modulo.dataset.grupo;
-        const items = document.querySelectorAll(`tr[data-grupo="${grupoId}"]`);
+        const moduloId = modulo.dataset.moduloId;
+        const items = document.querySelectorAll(`tr[data-modulo-padre="${moduloId}"]`);
         const badge = modulo.querySelector('.badge-items');
         if (badge) badge.textContent = `${items.length} ítems`;
     });
@@ -130,20 +129,17 @@ function actualizarContadores() {
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
-    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-    const grupoId = moduloActual;
-    const nombrePorDefecto = `MÓDULO ${String(moduloActual).padStart(2, '0')}`;
-    
+    const totalColumnas = 9 + (ordenCambio * 3) + (contratoMod * 3);
     const fm = document.createElement('tr');
     fm.classList.add('grupo-modulo');
-    fm.dataset.grupo = grupoId;
-    fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${grupoId}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${nombrePorDefecto}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
+    fm.dataset.moduloId = moduloActual;
+    fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloActual}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">MÓDULO ${String(moduloActual).padStart(2, '0')}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
     tabla.appendChild(fm);
     
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
-    ft.dataset.grupo = grupoId;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+    ft.dataset.moduloPadre = moduloActual;
+    ft.innerHTML = `<td colspan="6"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -168,11 +164,11 @@ function editarModulo(btn) {
 function eliminarModulo(btn) {
     abrirModal('Eliminar módulo', '¿Eliminar módulo y todos sus ítems?', () => {
         const filaModulo = btn.closest('tr');
-        const grupoId = filaModulo.dataset.grupo;
+        const moduloId = filaModulo.dataset.moduloId;
         
-        document.querySelectorAll(`tr[data-grupo="${grupoId}"]`).forEach(fila => fila.remove());
+        document.querySelectorAll(`tr[data-modulo-padre="${moduloId}"]`).forEach(fila => fila.remove());
         filaModulo.remove();
-        document.querySelector(`.total-modulo[data-grupo="${grupoId}"]`)?.remove();
+        document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`)?.remove();
         
         actualizarTotales(); 
         actualizarContadores(); 
@@ -181,25 +177,41 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (MÓDULO EDITABLE - PERO SIN CREAR NUEVOS MÓDULOS)
+// AÑADIR ÍTEM - N° editable, MÓDULO automático
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
-    const grupos = document.querySelectorAll('.grupo-modulo');
+    const modulos = document.querySelectorAll('.grupo-modulo');
     
-    if (grupos.length === 0) {
+    if (modulos.length === 0) {
         mostrarToast('⚠️ Primero crea un módulo', 'warning');
         return;
     }
     
+    // Módulo activo (el expandido o el primero)
+    let moduloActivo = null;
+    for (let modulo of modulos) {
+        const toggleSpan = modulo.querySelector('.toggle-modulo');
+        const flecha = toggleSpan?.querySelector('i');
+        if (flecha && !flecha.classList.contains('colapsado')) {
+            moduloActivo = modulo;
+            break;
+        }
+    }
+    if (!moduloActivo) moduloActivo = modulos[0];
+    
+    const moduloId = moduloActivo.dataset.moduloId;
+    const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
+    
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></table>`;
     for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
     
     const fila = document.createElement('tr');
-    // La primera celda (MÓDULO) es EDITABLE
+    fila.dataset.moduloPadre = moduloId;
     fila.innerHTML = `
-        <td contenteditable="true" style="cursor:text;" placeholder="Ej: MÓDULO 01"></td>
+        <td contenteditable="true" style="cursor:text;" placeholder="Ej: 1"></td>
+        <td style="background:#f0f0f0;">${moduloNombre}</td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Unidad"></td>
         <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
@@ -211,10 +223,16 @@ document.getElementById('btnItem').addEventListener('click', () => {
         <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
     
-    tabla.appendChild(fila);
+    const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
+    if (totalModulo) {
+        tabla.insertBefore(fila, totalModulo);
+    } else {
+        tabla.appendChild(fila);
+    }
+    
     actualizarTotales();
     actualizarContadores();
-    mostrarToast('✅ Ítem agregado - Escribe el módulo y los datos', 'success');
+    mostrarToast(`✅ Ítem agregado al ${moduloNombre}`, 'success');
 });
 
 // ============================
@@ -223,7 +241,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 function calcularTotalOC(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let ocIndex = 7;
+    let ocIndex = 8;
     
     for (let i = 0; i < ordenCambio; i++) {
         const cantidad = parseFloat(celdas[ocIndex]?.innerText) || 0;
@@ -241,7 +259,7 @@ function calcularTotalOC(elemento) {
 function calcularTotalCM(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let cmIndex = 7 + (ordenCambio * 3);
+    let cmIndex = 8 + (ordenCambio * 3);
     
     for (let i = 0; i < contratoMod; i++) {
         const cantidad = parseFloat(celdas[cmIndex]?.innerText) || 0;
@@ -291,7 +309,7 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
-    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+    const totalColumnas = 9 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
         if (td.getAttribute('colspan')) {
             td.setAttribute('colspan', totalColumnas);
@@ -305,39 +323,25 @@ function agregarGrupo(titulo, tipo) {
 // ACTUALIZAR TOTALES
 // ============================
 function actualizarTotales() {
-    const grupos = document.querySelectorAll('.grupo-modulo');
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
     let totalGeneral = 0;
-    let totalesPorGrupo = {};
+    let totalesPorModulo = {};
     
     items.forEach(item => {
         const celdas = item.querySelectorAll('td');
-        if (celdas.length < 6) return;
+        if (celdas.length < 7) return;
         
-        const moduloTexto = celdas[0]?.innerText;
-        const totalItem = parseFloat(celdas[5]?.innerText) || 0;
+        const moduloPadre = item.dataset.moduloPadre;
+        const totalItem = parseFloat(celdas[6]?.innerText) || 0;
         
-        // Buscar a qué grupo pertenece este texto
-        let grupoId = null;
-        for (let grupo of grupos) {
-            const nombreGrupo = grupo.querySelector('.modulo-nombre')?.innerText;
-            if (nombreGrupo === moduloTexto) {
-                grupoId = grupo.dataset.grupo;
-                break;
-            }
-        }
-        
-        if (grupoId) {
-            if (!totalesPorGrupo[grupoId]) totalesPorGrupo[grupoId] = 0;
-            totalesPorGrupo[grupoId] += totalItem;
-            totalGeneral += totalItem;
-        }
+        if (!totalesPorModulo[moduloPadre]) totalesPorModulo[moduloPadre] = 0;
+        totalesPorModulo[moduloPadre] += totalItem;
+        totalGeneral += totalItem;
     });
     
-    // Actualizar totales en la tabla
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
-        const grupoId = totalMod.dataset.grupo;
-        const totalModulo = totalesPorGrupo[grupoId] || 0;
+        const moduloPadre = totalMod.dataset.moduloPadre;
+        const totalModulo = totalesPorModulo[moduloPadre] || 0;
         const celdas = totalMod.querySelectorAll('td');
         if (celdas.length > 1) {
             celdas[1].innerText = totalModulo.toFixed(2);
@@ -368,17 +372,21 @@ async function editarFila(btn) {
         return;
     }
     
+    const moduloPadre = fila.dataset.moduloPadre;
+    const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
+    
     try {
         const response = await fetch(`${URL_SERVIDOR}/editar-item/${id}`, { 
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ 
-                modulo_id: celdas[0].innerText,
-                descripcion: celdas[1].innerText, 
-                unidad: celdas[2].innerText, 
-                cantidad: parseFloat(celdas[3].innerText) || 0, 
-                precio_unitario: parseFloat(celdas[4].innerText) || 0, 
-                total: parseFloat(celdas[5].innerText) || 0 
+                modulo_id: moduloNombre,
+                item_numero: celdas[0].innerText,
+                descripcion: celdas[2].innerText, 
+                unidad: celdas[3].innerText, 
+                cantidad: parseFloat(celdas[4].innerText) || 0, 
+                precio_unitario: parseFloat(celdas[5].innerText) || 0, 
+                total: parseFloat(celdas[6].innerText) || 0 
             }) 
         });
         const data = await response.json();
@@ -410,28 +418,28 @@ async function eliminarFila(btn) {
 }
 
 // ============================
-// GUARDAR DATOS (CORREGIDO - SIN DUPLICADOS)
+// GUARDAR DATOS (SIN DUPLICADOS)
 // ============================
 document.getElementById("btnGuardar").addEventListener("click", guardarDatos);
 
 async function guardarDatos() {
     const filas = document.querySelectorAll("#tablaItems tr:not(.grupo-modulo):not(.total-modulo)");
-    
-    // Separar items nuevos y existentes
     const nuevosItems = [];
     const itemsAActualizar = [];
     
     for (const fila of filas) {
         const celdas = fila.children;
-        if (celdas.length < 6) continue;
+        if (celdas.length < 7) continue;
         
-        const moduloTexto = celdas[0]?.textContent.trim();
-        const descripcion = celdas[1]?.textContent.trim();
+        const moduloPadre = fila.dataset.moduloPadre;
+        const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
+        const itemNumero = celdas[0]?.textContent.trim();
+        const descripcion = celdas[2]?.textContent.trim();
         
         if (!descripcion) continue;
         
         let ocs = [];
-        let ocIndex = 7;
+        let ocIndex = 8;
         for (let i = 0; i < ordenCambio; i++) {
             ocs.push({
                 numero: i + 1,
@@ -443,7 +451,7 @@ async function guardarDatos() {
         }
         
         let cms = [];
-        let cmIndex = 7 + (ordenCambio * 3);
+        let cmIndex = 8 + (ordenCambio * 3);
         for (let i = 0; i < contratoMod; i++) {
             cms.push({
                 numero: i + 1,
@@ -455,18 +463,18 @@ async function guardarDatos() {
         }
         
         const itemData = {
-            modulo_id: moduloTexto,
+            modulo_id: moduloNombre,
+            item_numero: itemNumero,
             descripcion: descripcion,
-            unidad: celdas[2]?.innerText.trim() || '',
-            cantidad: parseFloat(celdas[3]?.innerText) || 0,
-            precio_unitario: parseFloat(celdas[4]?.innerText) || 0,
-            total: parseFloat(celdas[5]?.innerText) || 0,
+            unidad: celdas[3]?.innerText.trim() || '',
+            cantidad: parseFloat(celdas[4]?.innerText) || 0,
+            precio_unitario: parseFloat(celdas[5]?.innerText) || 0,
+            total: parseFloat(celdas[6]?.innerText) || 0,
             ordenesCambio: ocs,
             contratosMod: cms,
             porcentaje_incidencia: parseFloat(celdas[celdas.length - 2]?.innerText) || 0
         };
         
-        // Verificar si el item tiene ID (existe en BD)
         if (fila.dataset.id) {
             itemData.id = fila.dataset.id;
             itemsAActualizar.push(itemData);
@@ -484,7 +492,6 @@ async function guardarDatos() {
     let errorCount = 0;
     
     try {
-        // Guardar nuevos items
         if (nuevosItems.length > 0) {
             const response = await fetch(`${URL_SERVIDOR}/guardar-item`, {
                 method: 'POST',
@@ -494,11 +501,10 @@ async function guardarDatos() {
             const data = await response.json();
             if (data.success) {
                 successCount += nuevosItems.length;
-                // Actualizar los IDs en las filas
-                if (data.ids && data.ids.length === nuevosItems.length) {
+                if (data.ids) {
                     let idIndex = 0;
                     for (const fila of filas) {
-                        if (!fila.dataset.id && fila.children[1]?.textContent.trim()) {
+                        if (!fila.dataset.id && fila.children[2]?.textContent.trim()) {
                             fila.dataset.id = data.ids[idIndex];
                             idIndex++;
                         }
@@ -509,7 +515,6 @@ async function guardarDatos() {
             }
         }
         
-        // Actualizar items existentes
         for (const item of itemsAActualizar) {
             try {
                 const response = await fetch(`${URL_SERVIDOR}/editar-item/${item.id}`, {
@@ -518,32 +523,19 @@ async function guardarDatos() {
                     body: JSON.stringify(item)
                 });
                 const data = await response.json();
-                if (data.success) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                }
+                if (data.success) successCount++;
+                else errorCount++;
             } catch(e) {
                 errorCount++;
             }
         }
         
-        if (successCount > 0) {
-            mostrarToast(`✅ ${successCount} ítems guardados correctamente`, 'success');
-            if (nuevosItems.length > 0) {
-                setTimeout(() => location.reload(), 1500);
-            }
-        }
-        if (errorCount > 0) {
-            mostrarToast(`⚠️ ${errorCount} ítems con error`, 'warning');
-        }
-        if (successCount === 0 && errorCount === 0) {
-            mostrarToast('⚠️ No hay datos para guardar', 'warning');
-        }
+        if (successCount > 0) mostrarToast(`✅ ${successCount} ítems guardados`, 'success');
+        if (errorCount > 0) mostrarToast(`⚠️ ${errorCount} ítems con error`, 'warning');
+        if (successCount === 0 && errorCount === 0) mostrarToast('⚠️ No hay datos', 'warning');
         
     } catch(e) { 
-        mostrarToast('❌ Error de conexión con el servidor', 'error');
-        console.error(e);
+        mostrarToast('❌ Error de conexión', 'error');
     } finally { 
         btn.innerHTML = textoOriginal;
         btn.disabled = false;
@@ -576,7 +568,7 @@ function eliminarOC() {
         
         ordenCambio--;
         
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        const totalColumnas = 9 + (ordenCambio * 3) + (contratoMod * 3);
         document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
             if (td.getAttribute('colspan')) {
                 td.setAttribute('colspan', totalColumnas);
@@ -611,7 +603,7 @@ function eliminarCM() {
         
         contratoMod--;
         
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        const totalColumnas = 9 + (ordenCambio * 3) + (contratoMod * 3);
         document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
             if (td.getAttribute('colspan')) {
                 td.setAttribute('colspan', totalColumnas);
@@ -658,7 +650,6 @@ async function cargarItems() {
         const tabla = document.getElementById('tablaItems');
         tabla.innerHTML = '';
         
-        // Agrupar items por modulo_id
         const itemsPorModulo = {};
         items.forEach(item => {
             if (!itemsPorModulo[item.modulo_id]) {
@@ -667,18 +658,16 @@ async function cargarItems() {
             itemsPorModulo[item.modulo_id].push(item);
         });
         
-        let grupoCounter = 1;
+        let moduloCounter = 1;
         
         for (const [moduloNombre, itemsDelModulo] of Object.entries(itemsPorModulo)) {
-            // Crear grupo-módulo
-            const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+            const totalColumnas = 9 + (ordenCambio * 3) + (contratoMod * 3);
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
-            fm.dataset.grupo = grupoCounter;
-            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${grupoCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
+            fm.dataset.moduloId = moduloCounter;
+            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
             tabla.appendChild(fm);
             
-            // Crear items
             itemsDelModulo.forEach(item => {
                 const ocItem = ocdb.filter(o => o.item_id == item.id);
                 let colOC = '';
@@ -702,9 +691,10 @@ async function cargarItems() {
                 
                 const fila = document.createElement('tr');
                 fila.dataset.id = item.id;
-                fila.dataset.grupo = grupoCounter;
+                fila.dataset.moduloPadre = moduloCounter;
                 fila.innerHTML = `
-                    <td contenteditable="true" style="cursor:text;">${moduloNombre}</td>
+                    <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
+                    <td style="background:#f0f0f0;">${moduloNombre}</td>
                     <td contenteditable="true" style="cursor:text;">${item.descripcion || ''}</td>
                     <td contenteditable="true" style="cursor:text;">${item.unidad || ''}</td>
                     <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
@@ -718,19 +708,18 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // Crear total del módulo
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
-            ft.dataset.grupo = grupoCounter;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+            ft.dataset.moduloPadre = moduloCounter;
+            ft.innerHTML = `<td colspan="6"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
             tabla.appendChild(ft);
             
-            grupoCounter++;
+            moduloCounter++;
         }
         
         actualizarTotales();
         actualizarContadores();
-        moduloActual = grupoCounter;
+        moduloActual = moduloCounter;
         
     } catch(e) { 
         console.error('Error:', e);
@@ -794,5 +783,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Sin duplicados al guardar');
+    console.log('🚀 Sistema cargado - N° editable, MÓDULO automático, sin duplicados');
 });
