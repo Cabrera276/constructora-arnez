@@ -96,13 +96,13 @@ function toggleModulo(moduloId, el) {
 }
 
 // ============================
-// CALCULAR TOTAL DE UNA FILA (Cantidad * PU)
+// FUNCIÓN PARA ACTUALIZAR TOTAL DE UNA FILA
 // ============================
-function recalcularTotalFila(fila) {
+function actualizarTotalFila(fila) {
     const celdas = fila.querySelectorAll('td');
     if (celdas.length < 6) return;
     
-    // Obtener cantidad (índice 3) y PU (índice 4)
+    // Obtener cantidad (índice 3) y precio unitario (índice 4)
     const cantidad = parseFloat(celdas[3]?.innerText) || 0;
     const precioUnitario = parseFloat(celdas[4]?.innerText) || 0;
     const total = cantidad * precioUnitario;
@@ -110,7 +110,35 @@ function recalcularTotalFila(fila) {
     // Actualizar total (índice 5)
     celdas[5].innerText = total.toFixed(2);
     
+    // Actualizar totales generales
     actualizarTotales();
+}
+
+// ============================
+// AGREGAR EVENTOS A UNA FILA
+// ============================
+function agregarEventosFila(fila) {
+    const celdas = fila.querySelectorAll('td');
+    if (celdas.length < 6) return;
+    
+    const cantidadCell = celdas[3];
+    const puCell = celdas[4];
+    
+    const handler = () => actualizarTotalFila(fila);
+    
+    if (cantidadCell) {
+        cantidadCell.removeEventListener('input', handler);
+        cantidadCell.removeEventListener('blur', handler);
+        cantidadCell.addEventListener('input', handler);
+        cantidadCell.addEventListener('blur', handler);
+    }
+    
+    if (puCell) {
+        puCell.removeEventListener('input', handler);
+        puCell.removeEventListener('blur', handler);
+        puCell.addEventListener('input', handler);
+        puCell.addEventListener('blur', handler);
+    }
 }
 
 // ============================
@@ -205,40 +233,26 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" class="editable-oc" data-oc-index="${i}"></td><td contenteditable="true" class="editable-oc" data-oc-index="${i}"></td><td class="total-oc"><tr>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" class="editable-cm" data-cm-index="${i}"></td><td contenteditable="true" class="editable-cm" data-cm-index="${i}"></td><td class="total-cm"></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" class="oc-cant" data-oc="${i}"></td><td contenteditable="true" class="oc-pu" data-oc="${i}"><td><td class="oc-total">0</td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" class="cm-cant" data-cm="${i}"><td><td contenteditable="true" class="cm-pu" data-cm="${i}"><td><td class="cm-total">0</td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
     fila.innerHTML = `
         <td style="background:#f0f0f0;">${moduloNombre}</td>
-        <td contenteditable="true" class="editable-desc" style="cursor:text;" placeholder="Descripción"></td>
-        <td contenteditable="true" class="editable-unidad" style="cursor:text;" placeholder="Unidad"></td>
-        <td contenteditable="true" class="editable-cantidad" style="cursor:text;" placeholder="Cantidad"></td>
-        <td contenteditable="true" class="editable-pu" style="cursor:text;" placeholder="P.U."></td>
-        <td>0.00</td>
+        <td contenteditable="true" class="descripcion" style="cursor:text;"></td>
+        <td contenteditable="true" class="unidad" style="cursor:text;"></td>
+        <td contenteditable="true" class="cantidad" style="cursor:text;">0</td>
+        <td contenteditable="true" class="precio" style="cursor:text;">0</td>
+        <td class="total-fila">0.00</td>
         ${colOC}
         ${colCM}
-        <td contenteditable="true" class="editable-porcentaje" style="cursor:text;">0</td>
+        <td contenteditable="true" class="porcentaje" style="cursor:text;">0</td>
         <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
     
-    // Agregar eventos para calcular total automáticamente
-    const cantidadCell = fila.querySelector('.editable-cantidad');
-    const puCell = fila.querySelector('.editable-pu');
-    
-    const updateTotal = () => {
-        const cantidad = parseFloat(cantidadCell.innerText) || 0;
-        const pu = parseFloat(puCell.innerText) || 0;
-        const total = cantidad * pu;
-        fila.children[5].innerText = total.toFixed(2);
-        actualizarTotales();
-    };
-    
-    cantidadCell.addEventListener('input', updateTotal);
-    cantidadCell.addEventListener('keyup', updateTotal);
-    puCell.addEventListener('input', updateTotal);
-    puCell.addEventListener('keyup', updateTotal);
+    // Agregar eventos para cálculo automático
+    agregarEventosFila(fila);
     
     const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
     if (totalModulo) {
@@ -337,9 +351,15 @@ function agregarGrupo(titulo, tipo) {
 }
 
 // ============================
-// ACTUALIZAR TOTALES
+// ACTUALIZAR TOTALES GENERALES
 // ============================
 function actualizarTotales() {
+    // Primero asegurar que todas las filas tengan sus totales correctos
+    document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
+        actualizarTotalFila(fila);
+    });
+    
+    // Calcular totales por módulo
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
     let totalGeneral = 0;
     let totalesPorModulo = {};
@@ -356,6 +376,7 @@ function actualizarTotales() {
         totalGeneral += totalItem;
     });
     
+    // Actualizar totales en la tabla
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const moduloPadre = totalMod.dataset.moduloPadre;
         const totalModulo = totalesPorModulo[moduloPadre] || 0;
@@ -377,7 +398,7 @@ function actualizarTotales() {
 }
 
 // ============================
-// EDITAR ÍTEM (Guardar cambios en BD)
+// EDITAR ÍTEM
 // ============================
 async function editarFila(btn) {
     const fila = btn.closest('tr');
@@ -445,6 +466,9 @@ async function guardarDatos() {
     btn.disabled = true;
     
     try {
+        // Primero actualizar todos los totales
+        actualizarTotales();
+        
         const filas = document.querySelectorAll("#tablaItems tr:not(.grupo-modulo):not(.total-modulo)");
         const datos = [];
         
@@ -647,9 +671,9 @@ async function cargarItems() {
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     if (i < ocItem.length) {
-                        colOC += `<td contenteditable="true" class="editable-oc-cant">${ocItem[i].cantidad || 0}</td><td contenteditable="true" class="editable-oc-pu">${ocItem[i].precio || 0}</td><td class="total-oc-display">${ocItem[i].total || 0}</td>`;
+                        colOC += `<td contenteditable="true" class="oc-cant">${ocItem[i].cantidad || 0}</td><td contenteditable="true" class="oc-pu">${ocItem[i].precio || 0}</td><td class="oc-total">${ocItem[i].total || 0}</td>`;
                     } else {
-                        colOC += `<td contenteditable="true" class="editable-oc-cant"></td><td contenteditable="true" class="editable-oc-pu"></td><td class="total-oc-display">0</td>`;
+                        colOC += `<td contenteditable="true" class="oc-cant">0</td><td contenteditable="true" class="oc-pu">0</td><td class="oc-total">0</td>`;
                     }
                 }
                 
@@ -657,9 +681,9 @@ async function cargarItems() {
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     if (i < cmItem.length) {
-                        colCM += `<td contenteditable="true" class="editable-cm-cant">${cmItem[i].cantidad || 0}</td><td contenteditable="true" class="editable-cm-pu">${cmItem[i].precio || 0}</td><td class="total-cm-display">${cmItem[i].total || 0}</td>`;
+                        colCM += `<td contenteditable="true" class="cm-cant">${cmItem[i].cantidad || 0}</td><td contenteditable="true" class="cm-pu">${cmItem[i].precio || 0}</td><td class="cm-total">${cmItem[i].total || 0}</td>`;
                     } else {
-                        colCM += `<td contenteditable="true" class="editable-cm-cant"></td><td contenteditable="true" class="editable-cm-pu"></td><td class="total-cm-display">0</td>`;
+                        colCM += `<td contenteditable="true" class="cm-cant">0</td><td contenteditable="true" class="cm-pu">0</td><td class="cm-total">0</td>`;
                     }
                 }
                 
@@ -668,34 +692,19 @@ async function cargarItems() {
                 fila.dataset.moduloPadre = moduloCounter;
                 fila.innerHTML = `
                     <td style="background:#f0f0f0;">${moduloNombre}</td>
-                    <td contenteditable="true" class="editable-desc" style="cursor:text;">${item.descripcion || ''}</td>
-                    <td contenteditable="true" class="editable-unidad" style="cursor:text;">${item.unidad || ''}</td>
-                    <td contenteditable="true" class="editable-cantidad" style="cursor:text;">${item.cantidad || 0}</td>
-                    <td contenteditable="true" class="editable-pu" style="cursor:text;">${item.precio_unitario || 0}</td>
-                    <td class="total-display">${item.total || 0}</td>
+                    <td contenteditable="true" class="descripcion" style="cursor:text;">${item.descripcion || ''}</td>
+                    <td contenteditable="true" class="unidad" style="cursor:text;">${item.unidad || ''}</td>
+                    <td contenteditable="true" class="cantidad" style="cursor:text;">${item.cantidad || 0}</td>
+                    <td contenteditable="true" class="precio" style="cursor:text;">${item.precio_unitario || 0}</td>
+                    <td class="total-fila">${item.total || 0}</td>
                     ${colOC}
                     ${colCM}
-                    <td contenteditable="true" class="editable-porcentaje" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
+                    <td contenteditable="true" class="porcentaje" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
                     <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
                 `;
                 
                 // Agregar eventos para cálculo automático
-                const cantidadCell = fila.querySelector('.editable-cantidad');
-                const puCell = fila.querySelector('.editable-pu');
-                const totalCell = fila.querySelector('.total-display');
-                
-                const updateTotal = () => {
-                    const cantidad = parseFloat(cantidadCell.innerText) || 0;
-                    const pu = parseFloat(puCell.innerText) || 0;
-                    const total = cantidad * pu;
-                    totalCell.innerText = total.toFixed(2);
-                    actualizarTotales();
-                };
-                
-                cantidadCell.addEventListener('input', updateTotal);
-                cantidadCell.addEventListener('keyup', updateTotal);
-                puCell.addEventListener('input', updateTotal);
-                puCell.addEventListener('keyup', updateTotal);
+                agregarEventosFila(fila);
                 
                 tabla.appendChild(fila);
             });
@@ -775,5 +784,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado');
+    console.log('🚀 Sistema cargado - P.U. editable y multiplicación automática');
 });
