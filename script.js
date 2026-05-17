@@ -127,6 +127,8 @@ function agregarEventosFila(fila) {
         cantidadCell.removeEventListener('blur', handler);
         cantidadCell.addEventListener('input', handler);
         cantidadCell.addEventListener('blur', handler);
+        cantidadCell.setAttribute('contenteditable', 'true');
+        cantidadCell.style.cursor = 'text';
     }
     
     if (puCell) {
@@ -134,57 +136,71 @@ function agregarEventosFila(fila) {
         puCell.removeEventListener('blur', handler);
         puCell.addEventListener('input', handler);
         puCell.addEventListener('blur', handler);
+        puCell.setAttribute('contenteditable', 'true');
+        puCell.style.cursor = 'text';
     }
 }
 
 // ============================
-// AGREGAR EVENTOS A OC/CM
+// AGREGAR EVENTOS A OC (ORDEN DE CAMBIO)
+// ============================
+function agregarEventosOC(fila, ocIndex) {
+    const ocCells = fila.querySelectorAll(`.oc-cant-${ocIndex}, .oc-pu-${ocIndex}`);
+    
+    ocCells.forEach(cell => {
+        const handler = () => {
+            const cantidad = parseFloat(fila.querySelector(`.oc-cant-${ocIndex}`)?.innerText) || 0;
+            const precio = parseFloat(fila.querySelector(`.oc-pu-${ocIndex}`)?.innerText) || 0;
+            const total = cantidad * precio;
+            const totalCell = fila.querySelector(`.oc-total-${ocIndex}`);
+            if (totalCell) totalCell.innerText = total.toFixed(2);
+            actualizarTotales();
+        };
+        
+        cell.removeEventListener('input', handler);
+        cell.removeEventListener('blur', handler);
+        cell.addEventListener('input', handler);
+        cell.addEventListener('blur', handler);
+        cell.setAttribute('contenteditable', 'true');
+        cell.style.cursor = 'text';
+    });
+}
+
+// ============================
+// AGREGAR EVENTOS A CM (CONTRATO MODIFICATORIO)
+// ============================
+function agregarEventosCM(fila, cmIndex) {
+    const cmCells = fila.querySelectorAll(`.cm-cant-${cmIndex}, .cm-pu-${cmIndex}`);
+    
+    cmCells.forEach(cell => {
+        const handler = () => {
+            const cantidad = parseFloat(fila.querySelector(`.cm-cant-${cmIndex}`)?.innerText) || 0;
+            const precio = parseFloat(fila.querySelector(`.cm-pu-${cmIndex}`)?.innerText) || 0;
+            const total = cantidad * precio;
+            const totalCell = fila.querySelector(`.cm-total-${cmIndex}`);
+            if (totalCell) totalCell.innerText = total.toFixed(2);
+            actualizarTotales();
+        };
+        
+        cell.removeEventListener('input', handler);
+        cell.removeEventListener('blur', handler);
+        cell.addEventListener('input', handler);
+        cell.addEventListener('blur', handler);
+        cell.setAttribute('contenteditable', 'true');
+        cell.style.cursor = 'text';
+    });
+}
+
+// ============================
+// AGREGAR TODOS LOS EVENTOS OC Y CM A UNA FILA
 // ============================
 function agregarEventosOCyCM(fila) {
-    // Eventos para OC
-    const ocCants = fila.querySelectorAll('.oc-cant');
-    const ocPus = fila.querySelectorAll('.oc-pu');
-    
-    ocCants.forEach(cell => {
-        cell.removeEventListener('input', () => calcularTotalOCFila(fila));
-        cell.removeEventListener('blur', () => calcularTotalOCFila(fila));
-        cell.addEventListener('input', () => calcularTotalOCFila(fila));
-        cell.addEventListener('blur', () => calcularTotalOCFila(fila));
-        // Asegurar que sea editable
-        cell.setAttribute('contenteditable', 'true');
-        cell.style.cursor = 'text';
-    });
-    
-    ocPus.forEach(cell => {
-        cell.removeEventListener('input', () => calcularTotalOCFila(fila));
-        cell.removeEventListener('blur', () => calcularTotalOCFila(fila));
-        cell.addEventListener('input', () => calcularTotalOCFila(fila));
-        cell.addEventListener('blur', () => calcularTotalOCFila(fila));
-        cell.setAttribute('contenteditable', 'true');
-        cell.style.cursor = 'text';
-    });
-    
-    // Eventos para CM
-    const cmCants = fila.querySelectorAll('.cm-cant');
-    const cmPus = fila.querySelectorAll('.cm-pu');
-    
-    cmCants.forEach(cell => {
-        cell.removeEventListener('input', () => calcularTotalCMFila(fila));
-        cell.removeEventListener('blur', () => calcularTotalCMFila(fila));
-        cell.addEventListener('input', () => calcularTotalCMFila(fila));
-        cell.addEventListener('blur', () => calcularTotalCMFila(fila));
-        cell.setAttribute('contenteditable', 'true');
-        cell.style.cursor = 'text';
-    });
-    
-    cmPus.forEach(cell => {
-        cell.removeEventListener('input', () => calcularTotalCMFila(fila));
-        cell.removeEventListener('blur', () => calcularTotalCMFila(fila));
-        cell.addEventListener('input', () => calcularTotalCMFila(fila));
-        cell.addEventListener('blur', () => calcularTotalCMFila(fila));
-        cell.setAttribute('contenteditable', 'true');
-        cell.style.cursor = 'text';
-    });
+    for (let i = 0; i < ordenCambio; i++) {
+        agregarEventosOC(fila, i);
+    }
+    for (let i = 0; i < contratoMod; i++) {
+        agregarEventosCM(fila, i);
+    }
 }
 
 // ============================
@@ -278,18 +294,22 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloId = moduloActivo.dataset.moduloId;
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
-    // Construir columnas OC y CM con contenteditable explícito
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td class="oc-cant" contenteditable="true" style="cursor:text;">0</td>
-                  <td class="oc-pu" contenteditable="true" style="cursor:text;">0</td>
-                  <td class="oc-total">0.00</td>`;
+        colOC += `
+            <td class="oc-cant-${i}" contenteditable="true" style="cursor:text;">0</td>
+            <td class="oc-pu-${i}" contenteditable="true" style="cursor:text;">0</td>
+            <td class="oc-total-${i}">0.00</td>
+        `;
     }
+    
     let colCM = '';
     for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td class="cm-cant" contenteditable="true" style="cursor:text;">0</td>
-                  <td class="cm-pu" contenteditable="true" style="cursor:text;">0</td>
-                  <td class="cm-total">0.00</td>`;
+        colCM += `
+            <td class="cm-cant-${i}" contenteditable="true" style="cursor:text;">0</td>
+            <td class="cm-pu-${i}" contenteditable="true" style="cursor:text;">0</td>
+            <td class="cm-total-${i}">0.00</td>
+        `;
     }
     
     const fila = document.createElement('tr');
@@ -324,54 +344,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
 });
 
 // ============================
-// CALCULAR TOTAL OC PARA UNA FILA
-// ============================
-function calcularTotalOCFila(fila) {
-    const ocCants = fila.querySelectorAll('.oc-cant');
-    const ocPus = fila.querySelectorAll('.oc-pu');
-    const ocTotals = fila.querySelectorAll('.oc-total');
-    
-    for (let i = 0; i < ordenCambio; i++) {
-        const cantidad = parseFloat(ocCants[i]?.innerText) || 0;
-        const precio = parseFloat(ocPus[i]?.innerText) || 0;
-        const total = cantidad * precio;
-        if (ocTotals[i]) ocTotals[i].innerText = total.toFixed(2);
-    }
-    actualizarTotales();
-}
-
-// ============================
-// CALCULAR TOTAL CM PARA UNA FILA
-// ============================
-function calcularTotalCMFila(fila) {
-    const cmCants = fila.querySelectorAll('.cm-cant');
-    const cmPus = fila.querySelectorAll('.cm-pu');
-    const cmTotals = fila.querySelectorAll('.cm-total');
-    
-    for (let i = 0; i < contratoMod; i++) {
-        const cantidad = parseFloat(cmCants[i]?.innerText) || 0;
-        const precio = parseFloat(cmPus[i]?.innerText) || 0;
-        const total = cantidad * precio;
-        if (cmTotals[i]) cmTotals[i].innerText = total.toFixed(2);
-    }
-    actualizarTotales();
-}
-
-// ============================
-// CALCULAR TOTAL OC (global)
-// ============================
-function calcularTotalOC(elemento) {
-    calcularTotalOCFila(elemento.closest('tr'));
-}
-
-// ============================
-// CALCULAR TOTAL CM (global)
-// ============================
-function calcularTotalCM(elemento) {
-    calcularTotalCMFila(elemento.closest('tr'));
-}
-
-// ============================
 // AÑADIR OC / CM
 // ============================
 document.getElementById('btnOC').addEventListener('click', () => { 
@@ -392,48 +364,37 @@ function agregarGrupo(titulo, tipo) {
     fp.insertBefore(g, fp.children[fp.children.length - 2]);
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { const th = document.createElement('th'); th.innerText = t; fs.appendChild(th); });
     
-    // Agregar columnas a todas las filas de items
+    const nuevoIndice = tipo === 'OC' ? ordenCambio - 1 : contratoMod - 1;
+    
     document.querySelectorAll('#tablaItems tr').forEach(fila => {
         if (!fila.classList.contains('grupo-modulo') && !fila.classList.contains('total-modulo')) {
             const accionesCell = fila.querySelector('.acciones-cell');
             
             const td1 = document.createElement('td');
             td1.contentEditable = true;
-            td1.className = tipo === 'OC' ? 'oc-cant' : 'cm-cant';
+            td1.className = tipo === 'OC' ? `oc-cant-${nuevoIndice}` : `cm-cant-${nuevoIndice}`;
             td1.innerText = '0';
             td1.style.cursor = 'text';
             
             const td2 = document.createElement('td');
             td2.contentEditable = true;
-            td2.className = tipo === 'OC' ? 'oc-pu' : 'cm-pu';
+            td2.className = tipo === 'OC' ? `oc-pu-${nuevoIndice}` : `cm-pu-${nuevoIndice}`;
             td2.innerText = '0';
             td2.style.cursor = 'text';
             
             const td3 = document.createElement('td');
-            td3.className = tipo === 'OC' ? 'oc-total' : 'cm-total';
+            td3.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
             td3.innerText = '0.00';
             
             fila.insertBefore(td3, accionesCell);
             fila.insertBefore(td2, accionesCell);
             fila.insertBefore(td1, accionesCell);
             
-            // Agregar eventos a las nuevas celdas
-            td1.addEventListener('input', () => {
-                if (tipo === 'OC') calcularTotalOC(td1);
-                else calcularTotalCM(td1);
-            });
-            td1.addEventListener('blur', () => {
-                if (tipo === 'OC') calcularTotalOC(td1);
-                else calcularTotalCM(td1);
-            });
-            td2.addEventListener('input', () => {
-                if (tipo === 'OC') calcularTotalOC(td2);
-                else calcularTotalCM(td2);
-            });
-            td2.addEventListener('blur', () => {
-                if (tipo === 'OC') calcularTotalOC(td2);
-                else calcularTotalCM(td2);
-            });
+            if (tipo === 'OC') {
+                agregarEventosOC(fila, nuevoIndice);
+            } else {
+                agregarEventosCM(fila, nuevoIndice);
+            }
         }
     });
     
@@ -453,8 +414,6 @@ function agregarGrupo(titulo, tipo) {
 function actualizarTotales() {
     document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
         actualizarTotalFila(fila);
-        calcularTotalOCFila(fila);
-        calcularTotalCMFila(fila);
     });
     
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
@@ -579,30 +538,20 @@ async function guardarDatos() {
             
             if (!descripcion || !moduloNombre) continue;
             
-            const ocCants = fila.querySelectorAll('.oc-cant');
-            const ocPus = fila.querySelectorAll('.oc-pu');
-            const ocTotals = fila.querySelectorAll('.oc-total');
             let ocs = [];
             for (let i = 0; i < ordenCambio; i++) {
-                ocs.push({
-                    numero: i + 1,
-                    cantidad: parseFloat(ocCants[i]?.innerText) || 0,
-                    precio: parseFloat(ocPus[i]?.innerText) || 0,
-                    total: parseFloat(ocTotals[i]?.innerText) || 0
-                });
+                const cantidad = parseFloat(fila.querySelector(`.oc-cant-${i}`)?.innerText) || 0;
+                const precio = parseFloat(fila.querySelector(`.oc-pu-${i}`)?.innerText) || 0;
+                const total = parseFloat(fila.querySelector(`.oc-total-${i}`)?.innerText) || 0;
+                ocs.push({ numero: i + 1, cantidad, precio, total });
             }
             
-            const cmCants = fila.querySelectorAll('.cm-cant');
-            const cmPus = fila.querySelectorAll('.cm-pu');
-            const cmTotals = fila.querySelectorAll('.cm-total');
             let cms = [];
             for (let i = 0; i < contratoMod; i++) {
-                cms.push({
-                    numero: i + 1,
-                    cantidad: parseFloat(cmCants[i]?.innerText) || 0,
-                    precio: parseFloat(cmPus[i]?.innerText) || 0,
-                    total: parseFloat(cmTotals[i]?.innerText) || 0
-                });
+                const cantidad = parseFloat(fila.querySelector(`.cm-cant-${i}`)?.innerText) || 0;
+                const precio = parseFloat(fila.querySelector(`.cm-pu-${i}`)?.innerText) || 0;
+                const total = parseFloat(fila.querySelector(`.cm-total-${i}`)?.innerText) || 0;
+                cms.push({ numero: i + 1, cantidad, precio, total });
             }
             
             datos.push({
@@ -671,7 +620,7 @@ function eliminarOC() {
                 if (accionesCell) {
                     for (let i = 0; i < 3; i++) {
                         const prevCell = accionesCell.previousSibling;
-                        if (prevCell && (prevCell.classList.contains('oc-cant') || prevCell.classList.contains('oc-pu') || prevCell.classList.contains('oc-total'))) {
+                        if (prevCell) {
                             prevCell.remove();
                         }
                     }
@@ -714,7 +663,7 @@ function eliminarCM() {
                 if (accionesCell) {
                     for (let i = 0; i < 3; i++) {
                         const prevCell = accionesCell.previousSibling;
-                        if (prevCell && (prevCell.classList.contains('cm-cant') || prevCell.classList.contains('cm-pu') || prevCell.classList.contains('cm-total'))) {
+                        if (prevCell) {
                             prevCell.remove();
                         }
                     }
@@ -782,29 +731,23 @@ async function cargarItems() {
                 const ocItem = ocdb.filter(o => o.item_id == item.id);
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
-                    if (i < ocItem.length) {
-                        colOC += `<td class="oc-cant" contenteditable="true" style="cursor:text;">${ocItem[i].cantidad || 0}</td>
-                                  <td class="oc-pu" contenteditable="true" style="cursor:text;">${ocItem[i].precio || 0}</td>
-                                  <td class="oc-total">${ocItem[i].total || 0}</td>`;
-                    } else {
-                        colOC += `<td class="oc-cant" contenteditable="true" style="cursor:text;">0</td>
-                                  <td class="oc-pu" contenteditable="true" style="cursor:text;">0</td>
-                                  <td class="oc-total">0.00</td>`;
-                    }
+                    const oc = ocItem.find(o => o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
+                    colOC += `
+                        <td class="oc-cant-${i}" contenteditable="true" style="cursor:text;">${oc.cantidad || 0}</td>
+                        <td class="oc-pu-${i}" contenteditable="true" style="cursor:text;">${oc.precio || 0}</td>
+                        <td class="oc-total-${i}">${oc.total || 0}</td>
+                    `;
                 }
                 
                 const cmItem = cmdb.filter(o => o.item_id == item.id);
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
-                    if (i < cmItem.length) {
-                        colCM += `<td class="cm-cant" contenteditable="true" style="cursor:text;">${cmItem[i].cantidad || 0}</td>
-                                  <td class="cm-pu" contenteditable="true" style="cursor:text;">${cmItem[i].precio || 0}</td>
-                                  <td class="cm-total">${cmItem[i].total || 0}</td>`;
-                    } else {
-                        colCM += `<td class="cm-cant" contenteditable="true" style="cursor:text;">0</td>
-                                  <td class="cm-pu" contenteditable="true" style="cursor:text;">0</td>
-                                  <td class="cm-total">0.00</td>`;
-                    }
+                    const cm = cmItem.find(o => o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
+                    colCM += `
+                        <td class="cm-cant-${i}" contenteditable="true" style="cursor:text;">${cm.cantidad || 0}</td>
+                        <td class="cm-pu-${i}" contenteditable="true" style="cursor:text;">${cm.precio || 0}</td>
+                        <td class="cm-total-${i}">${cm.total || 0}</td>
+                    `;
                 }
                 
                 const fila = document.createElement('tr');
@@ -904,5 +847,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - OC y CM editables');
+    console.log('🚀 Sistema cargado - OC y CM editables con eventos individuales');
 });
