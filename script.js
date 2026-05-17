@@ -131,32 +131,44 @@ function actualizarContadores() {
 // REORDENAR TOTALES (MOVERLOS DEBAJO DE LOS ITEMS)
 // ============================
 function reordenarTotales() {
+    const tabla = document.getElementById('tablaItems');
     const modulos = document.querySelectorAll('.grupo-modulo');
     
     modulos.forEach(modulo => {
         const moduloNombre = modulo.querySelector('.modulo-nombre')?.innerText;
-        let totalModulo = null;
         
-        // Buscar el total-modulo que corresponde
-        document.querySelectorAll('.total-modulo').forEach(total => {
-            if (total.dataset.modulo === moduloNombre) {
+        // Buscar el total-modulo que pertenece a este módulo
+        let totalModulo = null;
+        const todosLosTotales = document.querySelectorAll('.total-modulo');
+        for (let total of todosLosTotales) {
+            if (total.dataset.modulo == modulo.dataset.modulo) {
                 totalModulo = total;
+                break;
             }
-        });
+        }
         
         if (totalModulo) {
-            // Encontrar el último item de este módulo
+            // Buscar el último ítem con el mismo nombre de módulo
             let ultimoItem = null;
-            document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(item => {
-                const itemModulo = item.querySelector('td:first-child')?.innerText;
-                if (itemModulo === moduloNombre) {
+            const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
+            items.forEach(item => {
+                const primerTd = item.querySelector('td:first-child')?.innerText;
+                if (primerTd === moduloNombre) {
                     ultimoItem = item;
                 }
             });
             
-            // Mover el total después del último item
-            if (ultimoItem && ultimoItem.nextSibling !== totalModulo) {
-                totalModulo.parentNode.insertBefore(totalModulo, ultimoItem.nextSibling);
+            // Mover el total a la posición correcta
+            if (ultimoItem) {
+                // Si hay items, poner el total después del último item
+                if (ultimoItem.nextSibling !== totalModulo) {
+                    tabla.insertBefore(totalModulo, ultimoItem.nextSibling);
+                }
+            } else {
+                // Si no hay items, poner el total después del módulo
+                if (modulo.nextSibling !== totalModulo) {
+                    tabla.insertBefore(totalModulo, modulo.nextSibling);
+                }
             }
         }
     });
@@ -224,14 +236,14 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (INSERTA ANTES DEL TOTAL MÓDULO)
+// AÑADIR ÍTEM
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td><td oninput="calcularTotalCM(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
     
     const fila = document.createElement('tr');
     fila.innerHTML = `
@@ -248,10 +260,9 @@ document.getElementById('btnItem').addEventListener('click', () => {
     `;
     
     tabla.appendChild(fila);
-    
+    reordenarTotales();
     actualizarTotales();
     actualizarContadores();
-    reordenarTotales();  // IMPORTANTE: reordenar después de agregar
     mostrarToast('✅ Ítem agregado', 'success');
 });
 
@@ -336,6 +347,7 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
+    reordenarTotales();
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
 
@@ -343,9 +355,6 @@ function agregarGrupo(titulo, tipo) {
 // ACTUALIZAR TOTALES
 // ============================
 function actualizarTotales() {
-    // Reordenar primero
-    reordenarTotales();
-    
     // Calcular totales
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
     let totalGeneral = 0;
@@ -365,7 +374,8 @@ function actualizarTotales() {
     
     // Actualizar los totales en la tabla
     document.querySelectorAll('.total-modulo').forEach(total => {
-        const moduloNombre = total.dataset.modulo;
+        const moduloId = total.dataset.modulo;
+        const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo="${moduloId}"] .modulo-nombre`)?.innerText;
         const totalModulo = totalesPorModulo[moduloNombre] || 0;
         const celdas = total.querySelectorAll('td');
         if (celdas.length > 1) {
@@ -382,6 +392,7 @@ function actualizarTotales() {
     }
     
     actualizarContadores();
+    reordenarTotales();
 }
 
 // ============================
@@ -434,7 +445,6 @@ async function eliminarFila(btn) {
         fila.remove(); 
         actualizarTotales(); 
         actualizarContadores(); 
-        reordenarTotales();
         mostrarToast('🗑 Eliminado', 'info');
     });
 }
@@ -637,13 +647,15 @@ async function cargarItems() {
         const modulosUnicos = [...new Set(items.filter(i => i.modulo_id && i.modulo_id !== "").map(i => i.modulo_id))];
         
         // Crear grupos de módulo
+        let tempModuloActual = 1;
         modulosUnicos.forEach(moduloId => {
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
-            fm.dataset.modulo = moduloId;
-            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloId}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloId}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></tr>`;
+            fm.dataset.modulo = tempModuloActual;
+            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${tempModuloActual}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloId}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
             tabla.appendChild(fm);
+            tempModuloActual++;
         });
         
         // Crear ítems
@@ -686,25 +698,21 @@ async function cargarItems() {
         });
         
         // Agregar totales
+        let totalIndex = 1;
         modulosUnicos.forEach(moduloId => {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
-            ft.dataset.modulo = moduloId;
+            ft.dataset.modulo = totalIndex;
             ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
             tabla.appendChild(ft);
+            totalIndex++;
         });
         
         actualizarTotales();
         actualizarContadores();
         reordenarTotales();
         
-        let maxModuloNum = 0;
-        modulosUnicos.forEach(mod => {
-            const num = parseInt(mod);
-            if (!isNaN(num) && num > maxModuloNum) maxModuloNum = num;
-        });
-        moduloActual = maxModuloNum + 1;
-        if (moduloActual < 1) moduloActual = 1;
+        moduloActual = totalIndex;
         
     } catch(e) { 
         console.error('Error:', e);
@@ -768,5 +776,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Total módulo DEBAJO de los items');
+    console.log('🚀 Sistema cargado');
 });
