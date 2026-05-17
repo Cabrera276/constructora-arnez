@@ -15,7 +15,6 @@ let ordenCambio = 0;
 let contratoMod = 0;
 let accionConfirmada = null;
 let modoOscuro = false;
-let contadorItems = 1;
 
 const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
 
@@ -79,7 +78,7 @@ function filtrarItems() {
     const busqueda = input.value.toLowerCase();
     document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
         const moduloText = fila.querySelector('td:first-child')?.textContent.toLowerCase() || '';
-        const descText = fila.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+        const descText = fila.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
         fila.style.display = (moduloText.includes(busqueda) || descText.includes(busqueda)) ? '' : 'none';
     });
 }
@@ -102,13 +101,14 @@ function toggleModulo(moduloId, el) {
 // ============================
 function calcularTotalFila(fila) {
     const celdas = fila.querySelectorAll('td');
-    if (celdas.length < 6) return;
+    // Posiciones: 0:MÓDULO, 1:N° ÍTEM, 2:DESCRIPCIÓN, 3:UNIDAD, 4:CANTIDAD, 5:P.U., 6:TOTAL
+    if (celdas.length < 7) return;
     
-    const cantidad = parseFloat(celdas[3]?.innerText) || 0;
-    const precioUnitario = parseFloat(celdas[4]?.innerText) || 0;
+    const cantidad = parseFloat(celdas[4]?.innerText) || 0;
+    const precioUnitario = parseFloat(celdas[5]?.innerText) || 0;
     const total = cantidad * precioUnitario;
     
-    celdas[5].innerText = total.toFixed(2);
+    celdas[6].innerText = total.toFixed(2);
     
     actualizarTotales();
 }
@@ -171,7 +171,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><tr></td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.modulo = moduloId;
@@ -202,7 +202,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 function calcularTotalOC(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let ocIndex = 6;
+    let ocIndex = 7; // Ahora empieza en índice 7 (porque hay 7 columnas fijas)
     
     for (let i = 0; i < ordenCambio; i++) {
         const cantidad = parseFloat(celdas[ocIndex]?.innerText) || 0;
@@ -220,7 +220,7 @@ function calcularTotalOC(elemento) {
 function calcularTotalCM(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let cmIndex = 6 + (ordenCambio * 3);
+    let cmIndex = 7 + (ordenCambio * 3);
     
     for (let i = 0; i < contratoMod; i++) {
         const cantidad = parseFloat(celdas[cmIndex]?.innerText) || 0;
@@ -293,10 +293,10 @@ function actualizarTotales() {
     
     filas.forEach(fila => {
         const celdas = fila.querySelectorAll('td');
-        if (celdas.length < 6) return;
+        if (celdas.length < 7) return;
         
         const moduloId = fila.dataset.modulo;
-        const totalItem = parseFloat(celdas[5]?.innerText) || 0;
+        const totalItem = parseFloat(celdas[6]?.innerText) || 0; // TOTAL ahora en índice 6
         
         if (!totalesModulo[moduloId]) totalesModulo[moduloId] = 0;
         totalesModulo[moduloId] += totalItem;
@@ -341,11 +341,12 @@ async function editarFila(btn) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ 
-                descripcion: celdas[1].innerText, 
-                unidad: celdas[2].innerText, 
-                cantidad: parseFloat(celdas[3].innerText) || 0, 
-                precio_unitario: parseFloat(celdas[4].innerText) || 0, 
-                total: parseFloat(celdas[5].innerText) || 0 
+                numero_item: celdas[1].innerText,
+                descripcion: celdas[2].innerText,
+                unidad: celdas[3].innerText,
+                cantidad: parseFloat(celdas[4].innerText) || 0, 
+                precio_unitario: parseFloat(celdas[5].innerText) || 0, 
+                total: parseFloat(celdas[6].innerText) || 0 
             }) 
         });
         const data = await response.json();
@@ -410,15 +411,16 @@ async function guardarDatos() {
     
     for (const fila of filas) {
         const celdas = fila.children;
-        if (celdas.length < 6) continue;
+        if (celdas.length < 7) continue;
         
         const moduloTexto = celdas[0]?.textContent.trim();
-        const descripcion = celdas[1]?.textContent.trim();
+        const numeroItem = celdas[1]?.textContent.trim();
+        const descripcion = celdas[2]?.textContent.trim();
         
         if (!descripcion) continue;
         
         let ocs = [];
-        let ocIndex = 6;
+        let ocIndex = 7;
         for (let i = 0; i < ordenCambio; i++) {
             ocs.push({
                 numero: i + 1,
@@ -430,7 +432,7 @@ async function guardarDatos() {
         }
         
         let cms = [];
-        let cmIndex = 6 + (ordenCambio * 3);
+        let cmIndex = 7 + (ordenCambio * 3);
         for (let i = 0; i < contratoMod; i++) {
             cms.push({
                 numero: i + 1,
@@ -443,11 +445,12 @@ async function guardarDatos() {
         
         datos.push({
             modulo_id: moduloTexto,
+            numero_item: numeroItem,
             descripcion: descripcion,
-            unidad: celdas[2]?.innerText.trim() || '',
-            cantidad: parseFloat(celdas[3]?.innerText) || 0,
-            precio_unitario: parseFloat(celdas[4]?.innerText) || 0,
-            total: parseFloat(celdas[5]?.innerText) || 0,
+            unidad: celdas[3]?.innerText.trim() || '',
+            cantidad: parseFloat(celdas[4]?.innerText) || 0,
+            precio_unitario: parseFloat(celdas[5]?.innerText) || 0,
+            total: parseFloat(celdas[6]?.innerText) || 0,
             ordenesCambio: ocs,
             contratosMod: cms,
             porcentaje_incidencia: parseFloat(celdas[celdas.length - 2]?.innerText) || 0
@@ -603,7 +606,7 @@ async function cargarItems() {
                 const fm = document.createElement('tr');
                 fm.classList.add('grupo-modulo');
                 fm.dataset.modulo = item.modulo_id;
-                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
+                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></tr>`;
                 tabla.appendChild(fm);
             }
             
@@ -611,9 +614,9 @@ async function cargarItems() {
             let colOC = '';
             for (let i = 0; i < ordenCambio; i++) {
                 if (i < ocItem.length) {
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td>${ocItem[i].total || 0}</td>`;
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
                 } else {
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td></td>`;
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
                 }
             }
             
@@ -621,20 +624,21 @@ async function cargarItems() {
             let colCM = '';
             for (let i = 0; i < contratoMod; i++) {
                 if (i < cmItem.length) {
-                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td>${cmItem[i].total || 0}</td>`;
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
                 } else {
-                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td></td>`;
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
                 }
             }
             
             const fila = document.createElement('tr');
             fila.dataset.modulo = item.modulo_id;
             fila.dataset.id = item.id;
-            fila.innerHTML = `<td>${item.modulo_id}</td>
-                <td contenteditable="true">${item.descripcion || ''}</td>
-                <td contenteditable="true">${item.unidad || ''}</td>
-                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
-                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.precio_unitario || 0}</td>
+            fila.innerHTML = `<tr>${item.modulo_id}</td>
+                <td contenteditable="true" placeholder="N° Ítem">${item.numero_item || ''}</td>
+                <td contenteditable="true" placeholder="Descripción">${item.descripcion || ''}</td>
+                <td contenteditable="true" placeholder="Unidad">${item.unidad || ''}</td>
+                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad">${item.cantidad || 0}</td>
+                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="P.U.">${item.precio_unitario || 0}</td>
                 <td>${item.total || 0}</td>
                 ${colOC}
                 ${colCM}
@@ -656,7 +660,6 @@ async function cargarItems() {
         
         moduloActual = maxModuloId + 1;
         if (moduloActual < 1) moduloActual = 1;
-        contadorItems = items.length + 1;
     } catch(e) { 
         console.error('Error cargando items:', e);
         mostrarToast('❌ Error al cargar datos', 'error');
@@ -719,5 +722,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado');
+    console.log('🚀 Sistema cargado - Número de ítem manual');
 });
