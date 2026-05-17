@@ -49,7 +49,7 @@
 <!-- BUSCADOR -->
 <div class="search-container">
     <i class="fa fa-search"></i>
-    <input type="text" id="buscarItem" placeholder="Buscar ítem por descripción o módulo..." oninput="filtrarItems()">
+    <input type="text" id="buscarItem" placeholder="Buscar ítem por descripción..." oninput="filtrarItems()">
 </div>
 
 <!-- TABLA -->
@@ -58,6 +58,7 @@
         <thead>
             <tr id="filaPrincipal">
                 <th rowspan="2">MÓDULO</th>
+                <th rowspan="2">N°</th>
                 <th rowspan="2">DESCRIPCIÓN</th>
                 <th rowspan="2">UNID.</th>
                 <th colspan="3">CONTRATO ORIGINAL</th>
@@ -73,7 +74,7 @@
         <tbody id="tablaItems"></tbody>
         <tfoot>
             <tr>
-                <td colspan="5"><strong>TOTAL CONTRATO</strong></td>
+                <td colspan="7"><strong>TOTAL CONTRATO</strong></td>
                 <td>0</td>
                 <td colspan="2"></td>
             </tr>
