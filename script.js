@@ -125,55 +125,31 @@ function actualizarContadores() {
 }
 
 // ============================
-// AÑADIR MÓDULO (MANUAL)
+// AÑADIR MÓDULO (SIN ALERT - EDITABLE DIRECTAMENTE)
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
-    let numModulo = prompt("Ingrese el número del módulo:", moduloActual);
-    if (numModulo === null) return;
-    numModulo = numModulo.trim();
-    if (numModulo === "") {
-        mostrarToast('⚠️ Número de módulo inválido', 'warning');
-        return;
-    }
-    
-    const modulosExistentes = document.querySelectorAll('.grupo-modulo');
-    let existe = false;
-    modulosExistentes.forEach(mod => {
-        const spanModulo = mod.querySelector('span[contenteditable]');
-        if (spanModulo && spanModulo.innerText === numModulo) {
-            existe = true;
-        }
-    });
-    
-    if (existe) {
-        mostrarToast('⚠️ Ya existe un módulo con ese número', 'warning');
-        return;
-    }
-    
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     const fm = document.createElement('tr');
     fm.classList.add('grupo-modulo');
-    fm.dataset.modulo = numModulo;
-    fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${numModulo}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true">${numModulo}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></td>`;
+    fm.dataset.modulo = moduloActual;
+    fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloActual}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">MÓDULO ${String(moduloActual).padStart(2, '0')}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
     tabla.appendChild(fm);
     
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
-    ft.dataset.modulo = numModulo;
+    ft.dataset.modulo = moduloActual;
     ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
-    moduloActual = parseInt(numModulo) + 1;
-    if (isNaN(moduloActual)) moduloActual = 1;
-    
+    moduloActual++;
     actualizarContadores();
-    mostrarToast('✅ Módulo creado', 'success');
+    mostrarToast('✅ Módulo creado - Haz clic en el nombre para editarlo', 'success');
 });
 
 // ============================
-// AÑADIR ÍTEM
+// AÑADIR ÍTEM (CON CAMPOS VACÍOS PARA LLENAR MANUALMENTE)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -185,7 +161,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
         moduloId = modulos[0].dataset.modulo;
     } else {
         let mensaje = 'Selecciona el módulo:\n\n';
-        modulos.forEach((m, i) => { mensaje += `  ${i+1}. ${m.querySelector('span[contenteditable]')?.innerText || 'MÓDULO '+m.dataset.modulo}\n`; });
+        modulos.forEach((m, i) => { mensaje += `  ${i+1}. ${m.querySelector('.modulo-nombre')?.innerText || 'MÓDULO '+m.dataset.modulo}\n`; });
         const sel = prompt(mensaje + '\nEscribe el número:');
         if (!sel) return;
         const idx = parseInt(sel) - 1;
@@ -194,16 +170,16 @@ document.getElementById('btnItem').addEventListener('click', () => {
     }
     
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td></td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.modulo = moduloId;
-    fila.innerHTML = `<td>${moduloId}<td>
-        <td contenteditable="true">${contadorItems}</td>
-        <td contenteditable="true"></td>
-        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))"></td>
-        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))"></td>
+    fila.innerHTML = `<td>${moduloId}</td>
+        <td contenteditable="true" placeholder="Descripción"></td>
+        <td contenteditable="true" placeholder="Unidad"></td>
+        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
+        <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="P.U."></td>
         <td></td>
         ${colOC}
         ${colCM}
@@ -217,7 +193,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     actualizarTotales();
     actualizarContadores();
-    mostrarToast('✅ Ítem agregado', 'success');
+    mostrarToast('✅ Ítem agregado - Completa los datos en los campos', 'success');
 });
 
 // ============================
@@ -257,7 +233,7 @@ function calcularTotalCM(elemento) {
 }
 
 // ============================
-// AÑADIR OC / CM
+// AÑADIR OC / CM (CON AJUSTE DE COLSPAN PARA ACCIONES)
 // ============================
 document.getElementById('btnOC').addEventListener('click', () => { 
     ordenCambio++; 
@@ -274,12 +250,14 @@ function agregarGrupo(titulo, tipo) {
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
+    // Insertar antes de % INCIDENCIA y ACCIONES
     fp.insertBefore(g, fp.children[fp.children.length - 2]);
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { const th = document.createElement('th'); th.innerText = t; fs.appendChild(th); });
     
     document.querySelectorAll('#tablaItems tr').forEach(fila => {
         if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
             const celdas = fila.cells;
+            // Insertar antes de la celda de % INCIDENCIA (penúltima)
             const pos = celdas.length - 2;
             const td1 = document.createElement('td');
             td1.contentEditable = true;
@@ -294,6 +272,7 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
+    // Actualizar el colspan de las filas de módulo y total-modulo
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
         if (td.getAttribute('colspan')) {
@@ -398,7 +377,7 @@ async function eliminarFila(btn) {
 // EDITAR / ELIMINAR MÓDULO
 // ============================
 function editarModulo(btn) { 
-    const span = btn.closest('.modulo-row').querySelector('span[contenteditable]'); 
+    const span = btn.closest('.modulo-row').querySelector('.modulo-nombre'); 
     if (span) { 
         span.contentEditable = true; 
         span.focus(); 
@@ -524,7 +503,7 @@ function eliminarOC() {
         }
         
         document.querySelectorAll('#tablaItems tr').forEach(fila => {
-            if (!fila.classList.contains('grupo-modulo')) {
+            if (!fila.classList.contains('grupo-modulo') && !fila.classList.contains('total-modulo')) {
                 const pos = fila.cells.length - 3;
                 for (let i = 0; i < 3; i++) {
                     if (fila.cells[pos]) fila.deleteCell(pos);
@@ -559,7 +538,7 @@ function eliminarCM() {
         }
         
         document.querySelectorAll('#tablaItems tr').forEach(fila => {
-            if (!fila.classList.contains('grupo-modulo')) {
+            if (!fila.classList.contains('grupo-modulo') && !fila.classList.contains('total-modulo')) {
                 const pos = fila.cells.length - 3;
                 for (let i = 0; i < 3; i++) {
                     if (fila.cells[pos]) fila.deleteCell(pos);
@@ -612,15 +591,19 @@ async function cargarItems() {
         tabla.innerHTML = '';
         
         let modulosExistentes = new Set();
+        let maxModuloId = 0;
         
         for (const item of items) {
+            const moduloNum = parseInt(item.modulo_id) || 0;
+            if (moduloNum > maxModuloId) maxModuloId = moduloNum;
+            
             if (!modulosExistentes.has(item.modulo_id)) {
                 modulosExistentes.add(item.modulo_id);
                 const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
                 const fm = document.createElement('tr');
                 fm.classList.add('grupo-modulo');
                 fm.dataset.modulo = item.modulo_id;
-                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></td>`;
+                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
                 tabla.appendChild(fm);
             }
             
@@ -628,9 +611,9 @@ async function cargarItems() {
             let colOC = '';
             for (let i = 0; i < ordenCambio; i++) {
                 if (i < ocItem.length) {
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td>${ocItem[i].total || 0}</td>`;
                 } else {
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td></td>`;
                 }
             }
             
@@ -638,16 +621,16 @@ async function cargarItems() {
             let colCM = '';
             for (let i = 0; i < contratoMod; i++) {
                 if (i < cmItem.length) {
-                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td>${cmItem[i].total || 0}</td>`;
                 } else {
-                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td></td>`;
                 }
             }
             
             const fila = document.createElement('tr');
             fila.dataset.modulo = item.modulo_id;
             fila.dataset.id = item.id;
-            fila.innerHTML = `<tr>${item.modulo_id}</td>
+            fila.innerHTML = `<td>${item.modulo_id}</td>
                 <td contenteditable="true">${item.descripcion || ''}</td>
                 <td contenteditable="true">${item.unidad || ''}</td>
                 <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
@@ -671,11 +654,9 @@ async function cargarItems() {
         actualizarTotales();
         actualizarContadores();
         
-        if (items.length > 0) {
-            const maxModulo = Math.max(...items.map(i => parseInt(i.modulo_id) || 0));
-            moduloActual = maxModulo + 1;
-            contadorItems = items.length + 1;
-        }
+        moduloActual = maxModuloId + 1;
+        if (moduloActual < 1) moduloActual = 1;
+        contadorItems = items.length + 1;
     } catch(e) { 
         console.error('Error cargando items:', e);
         mostrarToast('❌ Error al cargar datos', 'error');
@@ -738,5 +719,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Sin evidencias');
+    console.log('🚀 Sistema cargado');
 });
