@@ -96,16 +96,18 @@ function toggleModulo(moduloId, el) {
 }
 
 // ============================
-// CALCULAR TOTAL
+// CALCULAR TOTAL DE UNA FILA (Cantidad * PU)
 // ============================
-function calcularTotalFila(fila) {
+function recalcularTotalFila(fila) {
     const celdas = fila.querySelectorAll('td');
-    if (celdas.length < 7) return;
+    if (celdas.length < 6) return;
     
+    // Obtener cantidad (índice 3) y PU (índice 4)
     const cantidad = parseFloat(celdas[3]?.innerText) || 0;
     const precioUnitario = parseFloat(celdas[4]?.innerText) || 0;
     const total = cantidad * precioUnitario;
     
+    // Actualizar total (índice 5)
     celdas[5].innerText = total.toFixed(2);
     
     actualizarTotales();
@@ -203,23 +205,40 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" class="editable-oc" data-oc-index="${i}"></td><td contenteditable="true" class="editable-oc" data-oc-index="${i}"></td><td class="total-oc"><tr>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" class="editable-cm" data-cm-index="${i}"></td><td contenteditable="true" class="editable-cm" data-cm-index="${i}"></td><td class="total-cm"></td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
     fila.innerHTML = `
         <td style="background:#f0f0f0;">${moduloNombre}</td>
-        <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
-        <td contenteditable="true" style="cursor:text;" placeholder="Unidad"></td>
-        <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
-        <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))" placeholder="P.U."></td>
-        <td></td>
+        <td contenteditable="true" class="editable-desc" style="cursor:text;" placeholder="Descripción"></td>
+        <td contenteditable="true" class="editable-unidad" style="cursor:text;" placeholder="Unidad"></td>
+        <td contenteditable="true" class="editable-cantidad" style="cursor:text;" placeholder="Cantidad"></td>
+        <td contenteditable="true" class="editable-pu" style="cursor:text;" placeholder="P.U."></td>
+        <td>0.00</td>
         ${colOC}
         ${colCM}
-        <td contenteditable="true" style="cursor:text;">0</td>
+        <td contenteditable="true" class="editable-porcentaje" style="cursor:text;">0</td>
         <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
+    
+    // Agregar eventos para calcular total automáticamente
+    const cantidadCell = fila.querySelector('.editable-cantidad');
+    const puCell = fila.querySelector('.editable-pu');
+    
+    const updateTotal = () => {
+        const cantidad = parseFloat(cantidadCell.innerText) || 0;
+        const pu = parseFloat(puCell.innerText) || 0;
+        const total = cantidad * pu;
+        fila.children[5].innerText = total.toFixed(2);
+        actualizarTotales();
+    };
+    
+    cantidadCell.addEventListener('input', updateTotal);
+    cantidadCell.addEventListener('keyup', updateTotal);
+    puCell.addEventListener('input', updateTotal);
+    puCell.addEventListener('keyup', updateTotal);
     
     const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
     if (totalModulo) {
@@ -358,7 +377,7 @@ function actualizarTotales() {
 }
 
 // ============================
-// EDITAR ÍTEM
+// EDITAR ÍTEM (Guardar cambios en BD)
 // ============================
 async function editarFila(btn) {
     const fila = btn.closest('tr');
@@ -483,7 +502,6 @@ async function guardarDatos() {
             return;
         }
         
-        // Primero guardar los items
         const response = await fetch(`${URL_SERVIDOR}/guardar-item`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -493,11 +511,10 @@ async function guardarDatos() {
         const data = await response.json();
         
         if (data.success) {
-            mostrarToast(`✅ ${datos.length} ítems guardados correctamente`, 'success');
-            // Recargar los datos
+            mostrarToast(`✅ ${datos.length} ítems guardados`, 'success');
             await cargarItems();
         } else {
-            mostrarToast('❌ Error al guardar los datos', 'error');
+            mostrarToast('❌ Error al guardar', 'error');
         }
         
     } catch(e) { 
@@ -597,7 +614,6 @@ async function cargarItems() {
         const ocdb = await resOC.json();
         const cmdb = await resCM.json();
         
-        // Limpiar la tabla
         const tabla = document.getElementById('tablaItems');
         tabla.innerHTML = '';
         
@@ -619,7 +635,6 @@ async function cargarItems() {
         let moduloCounter = 1;
         
         for (const [moduloNombre, itemsDelModulo] of Object.entries(itemsPorModulo)) {
-            // Crear grupo-módulo
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
@@ -627,15 +642,14 @@ async function cargarItems() {
             fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
             tabla.appendChild(fm);
             
-            // Crear items
             itemsDelModulo.forEach(item => {
                 const ocItem = ocdb.filter(o => o.item_id == item.id);
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     if (i < ocItem.length) {
-                        colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
+                        colOC += `<td contenteditable="true" class="editable-oc-cant">${ocItem[i].cantidad || 0}</td><td contenteditable="true" class="editable-oc-pu">${ocItem[i].precio || 0}</td><td class="total-oc-display">${ocItem[i].total || 0}</td>`;
                     } else {
-                        colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+                        colOC += `<td contenteditable="true" class="editable-oc-cant"></td><td contenteditable="true" class="editable-oc-pu"></td><td class="total-oc-display">0</td>`;
                     }
                 }
                 
@@ -643,9 +657,9 @@ async function cargarItems() {
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     if (i < cmItem.length) {
-                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
+                        colCM += `<td contenteditable="true" class="editable-cm-cant">${cmItem[i].cantidad || 0}</td><td contenteditable="true" class="editable-cm-pu">${cmItem[i].precio || 0}</td><td class="total-cm-display">${cmItem[i].total || 0}</td>`;
                     } else {
-                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+                        colCM += `<td contenteditable="true" class="editable-cm-cant"></td><td contenteditable="true" class="editable-cm-pu"></td><td class="total-cm-display">0</td>`;
                     }
                 }
                 
@@ -654,20 +668,38 @@ async function cargarItems() {
                 fila.dataset.moduloPadre = moduloCounter;
                 fila.innerHTML = `
                     <td style="background:#f0f0f0;">${moduloNombre}</td>
-                    <td contenteditable="true" style="cursor:text;">${item.descripcion || ''}</td>
-                    <td contenteditable="true" style="cursor:text;">${item.unidad || ''}</td>
-                    <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
-                    <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.precio_unitario || 0}</td>
-                    <td>${item.total || 0}</td>
+                    <td contenteditable="true" class="editable-desc" style="cursor:text;">${item.descripcion || ''}</td>
+                    <td contenteditable="true" class="editable-unidad" style="cursor:text;">${item.unidad || ''}</td>
+                    <td contenteditable="true" class="editable-cantidad" style="cursor:text;">${item.cantidad || 0}</td>
+                    <td contenteditable="true" class="editable-pu" style="cursor:text;">${item.precio_unitario || 0}</td>
+                    <td class="total-display">${item.total || 0}</td>
                     ${colOC}
                     ${colCM}
-                    <td contenteditable="true" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
+                    <td contenteditable="true" class="editable-porcentaje" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
                     <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
                 `;
+                
+                // Agregar eventos para cálculo automático
+                const cantidadCell = fila.querySelector('.editable-cantidad');
+                const puCell = fila.querySelector('.editable-pu');
+                const totalCell = fila.querySelector('.total-display');
+                
+                const updateTotal = () => {
+                    const cantidad = parseFloat(cantidadCell.innerText) || 0;
+                    const pu = parseFloat(puCell.innerText) || 0;
+                    const total = cantidad * pu;
+                    totalCell.innerText = total.toFixed(2);
+                    actualizarTotales();
+                };
+                
+                cantidadCell.addEventListener('input', updateTotal);
+                cantidadCell.addEventListener('keyup', updateTotal);
+                puCell.addEventListener('input', updateTotal);
+                puCell.addEventListener('keyup', updateTotal);
+                
                 tabla.appendChild(fila);
             });
             
-            // Crear total del módulo
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
