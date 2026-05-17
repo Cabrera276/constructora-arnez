@@ -45,7 +45,8 @@
     <button id="btnEliminarOC" onclick="eliminarOC()">🗑 Eliminar OC</button>
     <button id="btnEliminarCM" onclick="eliminarCM()">🗑 Eliminar CM</button>
 </div>
-<!-- BUSCADOR (MEJORA #7) -->
+
+<!-- BUSCADOR -->
 <div class="search-container">
     <i class="fa fa-search"></i>
     <input type="text" id="buscarItem" placeholder="Buscar ítem por descripción o módulo..." oninput="filtrarItems()">
@@ -61,7 +62,6 @@
                 <th rowspan="2">UNID.</th>
                 <th colspan="3">CONTRATO ORIGINAL</th>
                 <th rowspan="2">% INCIDENCIA</th>
-                <th rowspan="2">EVIDENCIA</th>
                 <th rowspan="2">ACCIONES</th>
             </tr>
             <tr id="filaSecundaria">
@@ -75,7 +75,7 @@
             <tr>
                 <td colspan="5"><strong>TOTAL CONTRATO</strong></td>
                 <td>0</td>
-                <td colspan="3"></td>
+                <td colspan="2"></td>
             </tr>
         </tfoot>
     </table>
@@ -110,18 +110,18 @@
     </div>
 </div>
 
-
-<!-- TOAST DE NOTIFICACIÓN (MEJORA #9) -->
+<!-- TOAST DE NOTIFICACIÓN -->
 <div id="toast" class="toast-notification">
     <i class="fa fa-check-circle"></i>
     <span id="toastMessage">Datos guardados</span>
 </div>
 
-<!-- BOTÓN MODO OSCURO (MEJORA #10) -->
+<!-- BOTÓN MODO OSCURO -->
 <button class="modo-oscuro-toggle" onclick="toggleModoOscuro()" title="Cambiar tema">
     <i class="fa fa-moon"></i>
 </button>
-<script src="script.js"></script>
+
+<script src="items.js"></script>
 
 </body>
 </html>
