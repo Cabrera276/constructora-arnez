@@ -2,6 +2,8 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 
@@ -10,6 +12,48 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
 
+// Crear carpeta uploads si no existe
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('✅ Carpeta uploads creada');
+}
+
+// Servir archivos estáticos de uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configuración de multer para subida de imágenes
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, 'evidencia-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB máximo
+    },
+    fileFilter: function (req, file, cb) {
+        const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
+        if (tiposPermitidos.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Solo se permiten imágenes (JPEG, PNG, GIF, WEBP)'));
+        }
+    }
+});
+
+// Conexión a MySQL
 const db = mysql.createConnection({
     host: 'roundhouse.proxy.rlwy.net',
     user: 'root',
@@ -25,7 +69,67 @@ db.connect((err) => {
         return;
     }
     console.log('✅ MySQL conectado');
+    crearTablas();
 });
+
+// Crear tablas necesarias
+function crearTablas() {
+    // Tabla evidencias
+    db.query(`
+        CREATE TABLE IF NOT EXISTS evidencias (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            item_id INT NOT NULL,
+            url_imagen VARCHAR(500) NOT NULL,
+            descripcion TEXT,
+            fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            orden INT DEFAULT 0,
+            FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `, (err) => {
+        if (err) {
+            console.log('⚠️ Error creando tabla evidencias:', err.message);
+        } else {
+            console.log('✅ Tabla evidencias verificada');
+        }
+    });
+
+    // Verificar/modificar tabla planillas para agregar precio_unitario
+    db.query("SHOW COLUMNS FROM planillas LIKE 'precio_unitario'", (err, result) => {
+        if (err) {
+            console.log('⚠️ Error verificando planillas:', err.message);
+            return;
+        }
+        if (result.length === 0) {
+            db.query("ALTER TABLE planillas ADD COLUMN precio_unitario DECIMAL(10,2) DEFAULT 0 AFTER cantidad", (err2) => {
+                if (err2) {
+                    console.log('⚠️ Columna precio_unitario ya existe o error:', err2.message);
+                } else {
+                    console.log('✅ Columna precio_unitario agregada a planillas');
+                }
+            });
+        } else {
+            console.log('✅ Tabla planillas verificada');
+        }
+    });
+
+    // Tabla ampliaciones
+    db.query(`
+        CREATE TABLE IF NOT EXISTS ampliaciones (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            descripcion TEXT,
+            inicio DATE,
+            fin DATE,
+            plazo INT,
+            acumulado INT
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `, (err) => {
+        if (err) {
+            console.log('⚠️ Error creando tabla ampliaciones:', err.message);
+        } else {
+            console.log('✅ Tabla ampliaciones verificada');
+        }
+    });
+}
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -50,7 +154,7 @@ app.post('/login', (req, res) => {
 });
 
 /* =========================
-   AGREGAR COLUMNA item_numero (ejecutar una sola vez)
+   AGREGAR COLUMNA item_numero
 ========================= */
 app.get('/migrar-agregar-item-numero', (req, res) => {
     db.query("ALTER TABLE items ADD COLUMN item_numero VARCHAR(10) DEFAULT '' AFTER modulo_id", (err) => {
@@ -65,7 +169,7 @@ app.get('/migrar-agregar-item-numero', (req, res) => {
 });
 
 /* =========================
-   GUARDAR ITEMS (SIN DUPLICADOS - INSERTS Y UPDATES)
+   GUARDAR ITEMS
 ========================= */
 app.post('/guardar-item', (req, res) => {
     const items = req.body;
@@ -79,7 +183,6 @@ app.post('/guardar-item', (req, res) => {
     const idsRetornados = [];
 
     items.forEach(item => {
-        // Verificar si el item ya existe (por descripción y módulo)
         db.query(
             "SELECT id FROM items WHERE modulo_id = ? AND descripcion = ?",
             [item.modulo_id, item.descripcion],
@@ -94,7 +197,6 @@ app.post('/guardar-item', (req, res) => {
                 }
                 
                 if (result.length > 0) {
-                    // Actualizar item existente
                     const itemId = result[0].id;
                     db.query(
                         `UPDATE items SET 
@@ -125,7 +227,6 @@ app.post('/guardar-item', (req, res) => {
                         }
                     );
                 } else {
-                    // Insertar nuevo item
                     db.query(
                         `INSERT INTO items 
                             (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
@@ -148,7 +249,6 @@ app.post('/guardar-item', (req, res) => {
                                 const itemId = result.insertId;
                                 idsRetornados.push(itemId);
                                 
-                                // Guardar OC
                                 if (item.ordenesCambio && item.ordenesCambio.length > 0) {
                                     item.ordenesCambio.forEach(oc => {
                                         db.query(
@@ -159,7 +259,6 @@ app.post('/guardar-item', (req, res) => {
                                     });
                                 }
                                 
-                                // Guardar CM
                                 if (item.contratosMod && item.contratosMod.length > 0) {
                                     item.contratosMod.forEach(cm => {
                                         db.query(
@@ -184,7 +283,7 @@ app.post('/guardar-item', (req, res) => {
 });
 
 /* =========================
-   GUARDAR ITEMS BATCH (NUEVO - RECOMENDADO)
+   GUARDAR ITEMS BATCH
 ========================= */
 app.post('/guardar-items-batch', (req, res) => {
     const { items } = req.body;
@@ -199,7 +298,6 @@ app.post('/guardar-items-batch', (req, res) => {
     items.forEach(async (item) => {
         try {
             if (item.id) {
-                // Actualizar item existente
                 await db.promise().query(
                     `UPDATE items SET 
                         modulo_id = ?, 
@@ -218,7 +316,6 @@ app.post('/guardar-items-batch', (req, res) => {
                     ]
                 );
                 
-                // Actualizar OC
                 await db.promise().query('DELETE FROM ordenes_cambio WHERE item_id = ?', [item.id]);
                 if (item.ordenesCambio && item.ordenesCambio.length > 0) {
                     for (const oc of item.ordenesCambio) {
@@ -229,7 +326,6 @@ app.post('/guardar-items-batch', (req, res) => {
                     }
                 }
                 
-                // Actualizar CM
                 await db.promise().query('DELETE FROM contratos_mod WHERE item_id = ?', [item.id]);
                 if (item.contratosMod && item.contratosMod.length > 0) {
                     for (const cm of item.contratosMod) {
@@ -241,7 +337,6 @@ app.post('/guardar-items-batch', (req, res) => {
                 }
                 exitos++;
             } else {
-                // Insertar nuevo item
                 const [result] = await db.promise().query(
                     `INSERT INTO items 
                         (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
@@ -253,7 +348,6 @@ app.post('/guardar-items-batch', (req, res) => {
                 );
                 const nuevoId = result.insertId;
                 
-                // Insertar OC
                 if (item.ordenesCambio && item.ordenesCambio.length > 0) {
                     for (const oc of item.ordenesCambio) {
                         await db.promise().query(
@@ -263,7 +357,6 @@ app.post('/guardar-items-batch', (req, res) => {
                     }
                 }
                 
-                // Insertar CM
                 if (item.contratosMod && item.contratosMod.length > 0) {
                     for (const cm of item.contratosMod) {
                         await db.promise().query(
@@ -316,7 +409,7 @@ app.get('/contratos-mod', (req, res) => {
 });
 
 /* =========================
-   EDITAR ITEM (ACTUALIZADO)
+   EDITAR ITEM
 ========================= */
 app.put('/editar-item/:id', (req, res) => {
     const { modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia } = req.body;
@@ -344,11 +437,15 @@ app.put('/editar-item/:id', (req, res) => {
 ========================= */
 app.delete('/eliminar-item/:id', (req, res) => {
     const id = req.params.id;
-    db.query('DELETE FROM ordenes_cambio WHERE item_id=?', [id], () => {
-        db.query('DELETE FROM contratos_mod WHERE item_id=?', [id], () => {
-            db.query('DELETE FROM items WHERE id=?', [id], (err) => {
-                if (err) { console.log('Error /eliminar-item:', err.message); return res.json({ success: false }); }
-                res.json({ success: true });
+    db.query('DELETE FROM evidencias WHERE item_id=?', [id], () => {
+        db.query('DELETE FROM ordenes_cambio WHERE item_id=?', [id], () => {
+            db.query('DELETE FROM contratos_mod WHERE item_id=?', [id], () => {
+                db.query('DELETE FROM planillas WHERE item_id=?', [id], () => {
+                    db.query('DELETE FROM items WHERE id=?', [id], (err) => {
+                        if (err) { console.log('Error /eliminar-item:', err.message); return res.json({ success: false }); }
+                        res.json({ success: true });
+                    });
+                });
             });
         });
     });
@@ -360,23 +457,225 @@ app.delete('/eliminar-item/:id', (req, res) => {
 app.post('/guardar-planillas', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
-    datos.forEach(p => {
-        db.query(
-            "INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)",
-            [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance],
-            (err) => { if (err) console.log('Error planillas:', err.message); }
-        );
+    
+    // Primero eliminar planillas existentes
+    const numerosPlanilla = [...new Set(datos.map(d => d.numero_planilla))];
+    
+    db.query('DELETE FROM planillas WHERE numero_planilla IN (?)', [numerosPlanilla], (err) => {
+        if (err) {
+            console.log('Error limpiando planillas:', err.message);
+        }
+        
+        let pendientes = datos.length;
+        if (pendientes === 0) return res.json({ success: true });
+        
+        datos.forEach(p => {
+            db.query(
+                "INSERT INTO planillas (numero_planilla, item_id, cantidad, precio_unitario, total, avance) VALUES (?, ?, ?, ?, ?, ?)",
+                [p.numero_planilla, p.item_id, p.cantidad, p.precio_unitario || 0, p.total, p.avance || '100%'],
+                (err) => {
+                    if (err) console.log('Error planillas:', err.message);
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: true });
+                }
+            );
+        });
     });
-    res.json({ success: true });
 });
 
 /* =========================
    OBTENER PLANILLAS
 ========================= */
 app.get('/planillas', (req, res) => {
-    db.query('SELECT * FROM planillas', (err, result) => {
+    db.query('SELECT * FROM planillas ORDER BY numero_planilla ASC, item_id ASC', (err, result) => {
         if (err) { console.log('Error /planillas:', err.message); return res.json([]); }
         res.json(result || []);
+    });
+});
+
+/* =========================
+   EVIDENCIAS - GESTOR MULTIMEDIA
+========================= */
+
+// OBTENER TODAS LAS EVIDENCIAS
+app.get('/evidencias', (req, res) => {
+    db.query(
+        'SELECT * FROM evidencias ORDER BY item_id ASC, orden ASC, id ASC',
+        (err, result) => {
+            if (err) {
+                console.error('❌ Error /evidencias:', err.message);
+                return res.json([]);
+            }
+            res.json(result || []);
+        }
+    );
+});
+
+// OBTENER EVIDENCIAS POR ITEM
+app.get('/evidencias/:item_id', (req, res) => {
+    db.query(
+        'SELECT * FROM evidencias WHERE item_id = ? ORDER BY orden ASC, id ASC',
+        [req.params.item_id],
+        (err, result) => {
+            if (err) {
+                console.error('❌ Error /evidencias/:item_id:', err.message);
+                return res.json([]);
+            }
+            res.json(result || []);
+        }
+    );
+});
+
+// SUBIR MÚLTIPLES IMÁGENES DE EVIDENCIA
+app.post('/subir-evidencias', upload.array('imagenes', 10), (req, res) => {
+    const { item_id } = req.body;
+    
+    if (!item_id) {
+        return res.json({ success: false, error: 'Se requiere item_id' });
+    }
+    
+    if (!req.files || req.files.length === 0) {
+        return res.json({ success: false, error: 'No se subieron imágenes' });
+    }
+    
+    const evidencias = [];
+    let pendientes = req.files.length;
+    
+    req.files.forEach((file, index) => {
+        const url_imagen = '/uploads/' + file.filename;
+        
+        db.query(
+            'INSERT INTO evidencias (item_id, url_imagen, orden) VALUES (?, ?, ?)',
+            [item_id, url_imagen, index],
+            (err, result) => {
+                if (err) {
+                    console.error('❌ Error insertando evidencia:', err.message);
+                } else {
+                    evidencias.push({
+                        id: result.insertId,
+                        item_id: parseInt(item_id),
+                        url_imagen: url_imagen,
+                        descripcion: '',
+                        orden: index
+                    });
+                }
+                
+                pendientes--;
+                if (pendientes === 0) {
+                    res.json({ 
+                        success: true, 
+                        evidencias: evidencias,
+                        mensaje: evidencias.length + ' imágenes subidas exitosamente'
+                    });
+                }
+            }
+        );
+    });
+});
+
+// REEMPLAZAR IMAGEN DE EVIDENCIA
+app.put('/reemplazar-evidencia', upload.single('imagen'), (req, res) => {
+    const { evidencia_id } = req.body;
+    
+    if (!evidencia_id || !req.file) {
+        return res.json({ success: false, error: 'Faltan datos requeridos' });
+    }
+    
+    const nuevaUrl = '/uploads/' + req.file.filename;
+    
+    db.query('SELECT url_imagen FROM evidencias WHERE id = ?', [evidencia_id], (err, result) => {
+        if (err || result.length === 0) {
+            return res.json({ success: false, error: 'Evidencia no encontrada' });
+        }
+        
+        const urlAntigua = result[0].url_imagen;
+        
+        db.query(
+            'UPDATE evidencias SET url_imagen = ? WHERE id = ?',
+            [nuevaUrl, evidencia_id],
+            (err) => {
+                if (err) {
+                    console.error('❌ Error reemplazando:', err.message);
+                    return res.json({ success: false, error: err.message });
+                }
+                
+                // Eliminar archivo antiguo
+                const archivoAntiguo = path.join(__dirname, urlAntigua);
+                fs.unlink(archivoAntiguo, (err) => {
+                    if (err && err.code !== 'ENOENT') {
+                        console.log('⚠️ No se pudo eliminar archivo antiguo:', err.message);
+                    }
+                });
+                
+                res.json({ 
+                    success: true, 
+                    url_imagen: nuevaUrl,
+                    mensaje: 'Imagen reemplazada exitosamente'
+                });
+            }
+        );
+    });
+});
+
+// GUARDAR/ACTUALIZAR DESCRIPCIÓN DE EVIDENCIA
+app.put('/evidencias/:id/descripcion', (req, res) => {
+    const { descripcion } = req.body;
+    const id = req.params.id;
+    
+    if (!id) {
+        return res.json({ success: false, error: 'ID de evidencia requerido' });
+    }
+    
+    db.query(
+        'UPDATE evidencias SET descripcion = ? WHERE id = ?',
+        [descripcion || '', id],
+        (err) => {
+            if (err) {
+                console.error('❌ Error guardando descripción:', err.message);
+                return res.json({ success: false, error: err.message });
+            }
+            
+            res.json({ 
+                success: true, 
+                mensaje: 'Descripción guardada exitosamente' 
+            });
+        }
+    );
+});
+
+// ELIMINAR EVIDENCIA
+app.delete('/evidencias/:id', (req, res) => {
+    const id = req.params.id;
+    
+    if (!id) {
+        return res.json({ success: false, error: 'ID de evidencia requerido' });
+    }
+    
+    db.query('SELECT url_imagen FROM evidencias WHERE id = ?', [id], (err, result) => {
+        if (err || result.length === 0) {
+            return res.json({ success: false, error: 'Evidencia no encontrada' });
+        }
+        
+        const urlImagen = result[0].url_imagen;
+        
+        db.query('DELETE FROM evidencias WHERE id = ?', [id], (err) => {
+            if (err) {
+                console.error('❌ Error eliminando evidencia:', err.message);
+                return res.json({ success: false, error: err.message });
+            }
+            
+            const archivo = path.join(__dirname, urlImagen);
+            fs.unlink(archivo, (err) => {
+                if (err && err.code !== 'ENOENT') {
+                    console.log('⚠️ No se pudo eliminar archivo:', err.message);
+                }
+            });
+            
+            res.json({ 
+                success: true, 
+                mensaje: 'Evidencia eliminada exitosamente' 
+            });
+        });
     });
 });
 
@@ -413,8 +712,24 @@ app.get('/ampliaciones', (req, res) => {
     });
 });
 
+// Manejo de errores de multer
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.json({ success: false, error: 'Archivo demasiado grande. Máximo 10MB' });
+        }
+        return res.json({ success: false, error: err.message });
+    }
+    console.error('Error:', err);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+});
+
 /* =========================
    INICIAR SERVIDOR
 ========================= */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
+app.listen(PORT, () => {
+    console.log('🚀 Servidor corriendo en puerto ' + PORT);
+    console.log('📁 Archivos estáticos desde: ' + __dirname);
+    console.log('📸 Uploads en: ' + uploadsDir);
+});
