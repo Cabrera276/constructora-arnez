@@ -77,9 +77,8 @@ function filtrarItems() {
     if (!input) return;
     const busqueda = input.value.toLowerCase();
     document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
-        const moduloText = fila.querySelector('td:first-child')?.textContent.toLowerCase() || '';
         const descText = fila.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-        fila.style.display = (moduloText.includes(busqueda) || descText.includes(busqueda)) ? '' : 'none';
+        fila.style.display = descText.includes(busqueda) ? '' : 'none';
     });
 }
 
@@ -416,85 +415,91 @@ async function eliminarFila(btn) {
 }
 
 // ============================
-// GUARDAR DATOS (VERSIÓN SIMPLE - SIN item_numero)
+// GUARDAR DATOS
 // ============================
 document.getElementById("btnGuardar").addEventListener("click", guardarDatos);
 
 async function guardarDatos() {
-    const filas = document.querySelectorAll("#tablaItems tr:not(.grupo-modulo):not(.total-modulo)");
-    const datos = [];
-    
-    for (const fila of filas) {
-        const celdas = fila.children;
-        if (celdas.length < 6) continue;
-        
-        const moduloPadre = fila.dataset.moduloPadre;
-        const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
-        const descripcion = celdas[1]?.textContent.trim();
-        
-        if (!descripcion) continue;
-        
-        let ocs = [];
-        let ocIndex = 7;
-        for (let i = 0; i < ordenCambio; i++) {
-            ocs.push({
-                numero: i + 1,
-                cantidad: parseFloat(celdas[ocIndex]?.innerText) || 0,
-                precio: parseFloat(celdas[ocIndex + 1]?.innerText) || 0,
-                total: parseFloat(celdas[ocIndex + 2]?.innerText) || 0
-            });
-            ocIndex += 3;
-        }
-        
-        let cms = [];
-        let cmIndex = 7 + (ordenCambio * 3);
-        for (let i = 0; i < contratoMod; i++) {
-            cms.push({
-                numero: i + 1,
-                cantidad: parseFloat(celdas[cmIndex]?.innerText) || 0,
-                precio: parseFloat(celdas[cmIndex + 1]?.innerText) || 0,
-                total: parseFloat(celdas[cmIndex + 2]?.innerText) || 0
-            });
-            cmIndex += 3;
-        }
-        
-        datos.push({
-            modulo_id: moduloNombre,
-            descripcion: descripcion,
-            unidad: celdas[2]?.innerText.trim() || '',
-            cantidad: parseFloat(celdas[3]?.innerText) || 0,
-            precio_unitario: parseFloat(celdas[4]?.innerText) || 0,
-            total: parseFloat(celdas[5]?.innerText) || 0,
-            ordenesCambio: ocs,
-            contratosMod: cms,
-            porcentaje_incidencia: parseFloat(celdas[celdas.length - 2]?.innerText) || 0
-        });
-    }
-    
-    if (!datos.length) { 
-        mostrarToast('⚠️ No hay datos', 'warning'); 
-        return; 
-    }
-    
     const btn = document.getElementById('btnGuardar');
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
     btn.disabled = true;
     
     try {
+        const filas = document.querySelectorAll("#tablaItems tr:not(.grupo-modulo):not(.total-modulo)");
+        const datos = [];
+        
+        for (const fila of filas) {
+            const celdas = fila.children;
+            if (celdas.length < 6) continue;
+            
+            const moduloPadre = fila.dataset.moduloPadre;
+            const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
+            const descripcion = celdas[1]?.textContent.trim();
+            
+            if (!descripcion || !moduloNombre) continue;
+            
+            let ocs = [];
+            let ocIndex = 7;
+            for (let i = 0; i < ordenCambio; i++) {
+                ocs.push({
+                    numero: i + 1,
+                    cantidad: parseFloat(celdas[ocIndex]?.innerText) || 0,
+                    precio: parseFloat(celdas[ocIndex + 1]?.innerText) || 0,
+                    total: parseFloat(celdas[ocIndex + 2]?.innerText) || 0
+                });
+                ocIndex += 3;
+            }
+            
+            let cms = [];
+            let cmIndex = 7 + (ordenCambio * 3);
+            for (let i = 0; i < contratoMod; i++) {
+                cms.push({
+                    numero: i + 1,
+                    cantidad: parseFloat(celdas[cmIndex]?.innerText) || 0,
+                    precio: parseFloat(celdas[cmIndex + 1]?.innerText) || 0,
+                    total: parseFloat(celdas[cmIndex + 2]?.innerText) || 0
+                });
+                cmIndex += 3;
+            }
+            
+            datos.push({
+                modulo_id: moduloNombre,
+                descripcion: descripcion,
+                unidad: celdas[2]?.innerText.trim() || '',
+                cantidad: parseFloat(celdas[3]?.innerText) || 0,
+                precio_unitario: parseFloat(celdas[4]?.innerText) || 0,
+                total: parseFloat(celdas[5]?.innerText) || 0,
+                ordenesCambio: ocs,
+                contratosMod: cms,
+                porcentaje_incidencia: parseFloat(celdas[celdas.length - 2]?.innerText) || 0
+            });
+        }
+        
+        if (datos.length === 0) {
+            mostrarToast('⚠️ No hay datos para guardar', 'warning');
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+            return;
+        }
+        
+        // Primero guardar los items
         const response = await fetch(`${URL_SERVIDOR}/guardar-item`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
+        
         const data = await response.json();
         
-        if (data.success) { 
-            mostrarToast(`✅ ${datos.length} ítems guardados`, 'success'); 
-            setTimeout(() => location.reload(), 1500);
+        if (data.success) {
+            mostrarToast(`✅ ${datos.length} ítems guardados correctamente`, 'success');
+            // Recargar los datos
+            await cargarItems();
         } else {
-            mostrarToast('❌ Error al guardar', 'error');
+            mostrarToast('❌ Error al guardar los datos', 'error');
         }
+        
     } catch(e) { 
         mostrarToast('❌ Error de conexión', 'error');
         console.error(e);
@@ -592,37 +597,29 @@ async function cargarItems() {
         const ocdb = await resOC.json();
         const cmdb = await resCM.json();
         
-        items = items.map(item => ({
-            ...item,
-            modulo_id: String(item.modulo_id || '').trim()
-        }));
-        
-        const maxOC = Math.max(...ocdb.map(o => o.numero_oc), 0);
-        for (let i = ordenCambio; i < maxOC; i++) { 
-            ordenCambio++; 
-            agregarGrupo(`ORDEN CAMBIO Nº${ordenCambio}`, 'OC'); 
-        }
-        
-        const maxCM = Math.max(...cmdb.map(o => o.numero_cm), 0);
-        for (let i = contratoMod; i < maxCM; i++) { 
-            contratoMod++; 
-            agregarGrupo(`CONTRATO MOD Nº${contratoMod}`, 'CM'); 
-        }
-        
+        // Limpiar la tabla
         const tabla = document.getElementById('tablaItems');
         tabla.innerHTML = '';
         
+        if (!items || items.length === 0) {
+            console.log('No hay items para cargar');
+            return;
+        }
+        
+        // Agrupar items por modulo_id
         const itemsPorModulo = {};
         items.forEach(item => {
-            if (!itemsPorModulo[item.modulo_id]) {
-                itemsPorModulo[item.modulo_id] = [];
+            const moduloNombre = String(item.modulo_id || 'Sin módulo').trim();
+            if (!itemsPorModulo[moduloNombre]) {
+                itemsPorModulo[moduloNombre] = [];
             }
-            itemsPorModulo[item.modulo_id].push(item);
+            itemsPorModulo[moduloNombre].push(item);
         });
         
         let moduloCounter = 1;
         
         for (const [moduloNombre, itemsDelModulo] of Object.entries(itemsPorModulo)) {
+            // Crear grupo-módulo
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
@@ -630,6 +627,7 @@ async function cargarItems() {
             fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
             tabla.appendChild(fm);
             
+            // Crear items
             itemsDelModulo.forEach(item => {
                 const ocItem = ocdb.filter(o => o.item_id == item.id);
                 let colOC = '';
@@ -647,7 +645,7 @@ async function cargarItems() {
                     if (i < cmItem.length) {
                         colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
                     } else {
-                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></tr>`;
+                        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
                     }
                 }
                 
@@ -669,6 +667,7 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
+            // Crear total del módulo
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
@@ -683,7 +682,7 @@ async function cargarItems() {
         moduloActual = moduloCounter;
         
     } catch(e) { 
-        console.error('Error:', e);
+        console.error('Error cargando items:', e);
         mostrarToast('❌ Error al cargar datos', 'error');
     }
 }
