@@ -1,63 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Items - Constructora Arnez</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="responsive.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
-
-<!-- HEADER -->
-<header class="header">
-    <nav class="navbar">
-        <div class="logo">
-            <img src="Imagenes/LOGO_ARNEZ_CAMACHO-removebg-preview.png" alt="Logo">
-        </div>
-
-        <button class="menu-hamburguesa" onclick="toggleMenu()">
-            <i class="fa-solid fa-bars"></i>
-        </button>
-
-        <ul class="menu">
-            <li><a href="inicio.html">INICIO</a></li>
-            <li><a href="datos.html">DATOS DEL<br>PROYECTO</a></li>
-            <li><a href="items.html" class="active">ITEMS</a></li>
-            <li><a href="plantillas.html">PLANILLAS</a></li>
-            <li><a href="plazos.html">AMPLIACIONES<br>DE PLAZO</a></li>
-        </ul>
-
-        <button class="contact-btn" onclick="abrirContactos()">
-            <i class="fa fa-phone"></i> Contactos
-        </button>
-    </nav>
-</header>
-
-<!-- BOTONES -->
-<div class="actions">
-    <button id="btnModulo"><i class="fa fa-folder"></i> Añadir Módulo</button>
-    <button id="btnItem"><i class="fa fa-list"></i> Añadir Ítem</button>
-    <button id="btnOC"><i class="fa fa-share"></i> Añadir Orden Cambio</button>
-    <button id="btnCM"><i class="fa fa-file-contract"></i> Añadir Contrato Mod.</button>
-    <button id="btnEliminarOC" onclick="eliminarOC()">🗑 Eliminar OC</button>
-    <button id="btnEliminarCM" onclick="eliminarCM()">🗑 Eliminar CM</button>
-</div>
-
-<!-- BUSCADOR -->
-<div class="search-container">
-    <i class="fa fa-search"></i>
-    <input type="text" id="buscarItem" placeholder="Buscar ítem por descripción..." oninput="filtrarItems()">
-</div>
-
 <!-- TABLA -->
 <section class="table-container">
     <table id="tablaPrincipal">
         <thead>
             <tr id="filaPrincipal">
                 <th rowspan="2">N°</th>
-                <th rowspan="2">MÓDULO</th>
                 <th rowspan="2">DESCRIPCIÓN</th>
                 <th rowspan="2">UNID.</th>
                 <th colspan="3">CONTRATO ORIGINAL</th>
@@ -73,55 +19,10 @@
         <tbody id="tablaItems"></tbody>
         <tfoot>
             <tr>
-                <td colspan="6"><strong>TOTAL CONTRATO</strong></td>
+                <td colspan="5"><strong>TOTAL CONTRATO</strong></td>
                 <td><strong>0</strong></td>
                 <td colspan="2"></td>
             </tr>
         </tfoot>
     </table>
 </section>
-
-<div class="guardar-container">
-    <button id="btnGuardar"><i class="fa fa-save"></i> Guardar Datos</button>
-</div>
-
-<!-- MODAL CONFIRMACIÓN -->
-<div class="confirm-modal" id="confirmModal">
-    <div class="confirm-box">
-        <h2 id="confirmTitle">Confirmación</h2>
-        <p id="confirmText">¿Seguro?</p>
-        <div class="confirm-actions">
-            <button id="cancelBtn">Cancelar</button>
-            <button id="acceptBtn">Eliminar</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL CONTACTOS -->
-<div id="modalContactos" class="modal-contactos">
-    <div class="panel-contactos">
-        <button class="cerrar-contactos" onclick="cerrarContactos()">✕</button>
-        <h2><i class="fa-solid fa-address-book"></i> Contactos</h2>
-        <div class="contacto-item"><i class="fa-solid fa-mobile-screen"></i><strong>Cel:</strong> 72782366</div>
-        <div class="contacto-item"><i class="fa-solid fa-phone"></i><strong>Tel:</strong> 4284022</div>
-        <div class="contacto-item"><i class="fa-solid fa-phone-volume"></i><strong>Oficina:</strong> 4490299</div>
-        <div class="contacto-item"><i class="fa-solid fa-envelope"></i><strong>Correo:</strong> ingecivil36@gmail.com</div>
-        <div class="contacto-item"><i class="fa-solid fa-location-dot"></i><strong>Ubicación:</strong> Pacata Baja Calle Vizcarra N138</div>
-    </div>
-</div>
-
-<!-- TOAST DE NOTIFICACIÓN -->
-<div id="toast" class="toast-notification">
-    <i class="fa fa-check-circle"></i>
-    <span id="toastMessage">Datos guardados</span>
-</div>
-
-<!-- BOTÓN MODO OSCURO -->
-<button class="modo-oscuro-toggle" onclick="toggleModoOscuro()" title="Cambiar tema">
-    <i class="fa fa-moon"></i>
-</button>
-
-<script src="script.js"></script>
-
-</body>
-</html>
