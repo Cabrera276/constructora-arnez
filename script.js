@@ -130,7 +130,6 @@ function actualizarContadores() {
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
-    // Solicitar número de módulo manualmente
     let numModulo = prompt("Ingrese el número del módulo:", moduloActual);
     if (numModulo === null) return;
     numModulo = numModulo.trim();
@@ -139,7 +138,6 @@ document.getElementById('btnModulo').addEventListener('click', () => {
         return;
     }
     
-    // Verificar que el número no exista ya
     const modulosExistentes = document.querySelectorAll('.grupo-modulo');
     let existe = false;
     modulosExistentes.forEach(mod => {
@@ -167,7 +165,6 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
-    // Actualizar el contador para el siguiente módulo sugerido
     moduloActual = parseInt(numModulo) + 1;
     if (isNaN(moduloActual)) moduloActual = 1;
     
@@ -197,12 +194,12 @@ document.getElementById('btnItem').addEventListener('click', () => {
     }
     
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td></td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.modulo = moduloId;
-    fila.innerHTML = `<td>${moduloId}</td>
+    fila.innerHTML = `<td>${moduloId}<td>
         <td contenteditable="true">${contadorItems}</td>
         <td contenteditable="true"></td>
         <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))"></td>
@@ -229,7 +226,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 function calcularTotalOC(elemento) {
     const fila = elemento.closest('tr');
     const celdas = fila.querySelectorAll('td');
-    let ocIndex = 6; // Índice donde empiezan las OC
+    let ocIndex = 6;
     
     for (let i = 0; i < ordenCambio; i++) {
         const cantidad = parseFloat(celdas[ocIndex]?.innerText) || 0;
@@ -297,7 +294,6 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
-    // Actualizar el colspan de las filas de módulo
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
         if (td.getAttribute('colspan')) {
@@ -328,7 +324,6 @@ function actualizarTotales() {
         totalGeneral += totalItem;
     });
     
-    // Actualizar totales de módulo
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const moduloId = totalMod.dataset.modulo;
         const totalModulo = totalesModulo[moduloId] || 0;
@@ -338,7 +333,6 @@ function actualizarTotales() {
         }
     });
     
-    // Actualizar total general
     const tfoot = document.querySelector('tfoot tr');
     if (tfoot) {
         const celdas = tfoot.querySelectorAll('td');
@@ -444,7 +438,6 @@ async function guardarDatos() {
         
         if (!descripcion) continue;
         
-        // Recolectar OC
         let ocs = [];
         let ocIndex = 6;
         for (let i = 0; i < ordenCambio; i++) {
@@ -457,7 +450,6 @@ async function guardarDatos() {
             ocIndex += 3;
         }
         
-        // Recolectar CM
         let cms = [];
         let cmIndex = 6 + (ordenCambio * 3);
         for (let i = 0; i < contratoMod; i++) {
@@ -523,7 +515,6 @@ function eliminarOC() {
     if (ordenCambio <= 0) { mostrarToast('⚠️ No hay Órdenes de Cambio para eliminar', 'warning'); return; }
     
     abrirModal('Eliminar OC', `¿Eliminar la Orden de Cambio Nº${ordenCambio}?`, () => {
-        // Eliminar cabeceras
         const filaPrincipal = document.getElementById('filaPrincipal');
         const filaSecundaria = document.getElementById('filaSecundaria');
         
@@ -532,7 +523,6 @@ function eliminarOC() {
             filaSecundaria.lastElementChild.remove();
         }
         
-        // Eliminar columnas de todas las filas
         document.querySelectorAll('#tablaItems tr').forEach(fila => {
             if (!fila.classList.contains('grupo-modulo')) {
                 const pos = fila.cells.length - 3;
@@ -544,7 +534,6 @@ function eliminarOC() {
         
         ordenCambio--;
         
-        // Actualizar colspan
         const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
         document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
             if (td.getAttribute('colspan')) {
@@ -607,7 +596,6 @@ async function cargarItems() {
         const ocdb = await resOC.json();
         const cmdb = await resCM.json();
         
-        // Cargar OC y CM existentes
         const maxOC = Math.max(...ocdb.map(o => o.numero_oc), 0);
         for (let i = 0; i < maxOC; i++) { 
             ordenCambio++; 
@@ -625,11 +613,130 @@ async function cargarItems() {
         
         let modulosExistentes = new Set();
         
-        items.forEach(item => {
+        for (const item of items) {
             if (!modulosExistentes.has(item.modulo_id)) {
                 modulosExistentes.add(item.modulo_id);
                 const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
                 const fm = document.createElement('tr');
                 fm.classList.add('grupo-modulo');
                 fm.dataset.modulo = item.modulo_id;
-                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn
+                fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${item.modulo_id}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true">${item.modulo_id}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></td>`;
+                tabla.appendChild(fm);
+            }
+            
+            const ocItem = ocdb.filter(o => o.item_id == item.id);
+            let colOC = '';
+            for (let i = 0; i < ordenCambio; i++) {
+                if (i < ocItem.length) {
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
+                } else {
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+                }
+            }
+            
+            const cmItem = cmdb.filter(o => o.item_id == item.id);
+            let colCM = '';
+            for (let i = 0; i < contratoMod; i++) {
+                if (i < cmItem.length) {
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cmItem[i].precio || 0}</td><td oninput="calcularTotalCM(this)">${cmItem[i].total || 0}</td>`;
+                } else {
+                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+                }
+            }
+            
+            const fila = document.createElement('tr');
+            fila.dataset.modulo = item.modulo_id;
+            fila.dataset.id = item.id;
+            fila.innerHTML = `<tr>${item.modulo_id}</td>
+                <td contenteditable="true">${item.descripcion || ''}</td>
+                <td contenteditable="true">${item.unidad || ''}</td>
+                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
+                <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))">${item.precio_unitario || 0}</td>
+                <td>${item.total || 0}</td>
+                ${colOC}
+                ${colCM}
+                <td contenteditable="true">${item.porcentaje_incidencia || 0}</td>
+                <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>`;
+            tabla.appendChild(fila);
+        }
+        
+        for (const moduloId of modulosExistentes) {
+            const ft = document.createElement('tr');
+            ft.classList.add('total-modulo');
+            ft.dataset.modulo = moduloId;
+            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+            tabla.appendChild(ft);
+        }
+        
+        actualizarTotales();
+        actualizarContadores();
+        
+        if (items.length > 0) {
+            const maxModulo = Math.max(...items.map(i => parseInt(i.modulo_id) || 0));
+            moduloActual = maxModulo + 1;
+            contadorItems = items.length + 1;
+        }
+    } catch(e) { 
+        console.error('Error cargando items:', e);
+        mostrarToast('❌ Error al cargar datos', 'error');
+    }
+}
+
+// ============================
+// MODAL CONTACTOS
+// ============================
+function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
+function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
+window.addEventListener("click", function(e) { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
+
+// ============================
+// MENÚ HAMBURGUESA
+// ============================
+function toggleMenu() {
+    const menu = document.querySelector('.menu');
+    const boton = document.querySelector('.menu-hamburguesa');
+    if (!menu || !boton) return;
+    menu.classList.toggle('activo');
+    const icono = boton.querySelector('i');
+    if (menu.classList.contains('activo')) {
+        icono.classList.remove('fa-bars');
+        icono.classList.add('fa-times');
+    } else {
+        icono.classList.remove('fa-times');
+        icono.classList.add('fa-bars');
+    }
+}
+
+document.querySelectorAll('.menu a').forEach(enlace => {
+    enlace.addEventListener('click', () => {
+        const menu = document.querySelector('.menu');
+        const boton = document.querySelector('.menu-hamburguesa');
+        if (menu && boton && menu.classList.contains('activo')) {
+            menu.classList.remove('activo');
+            const icono = boton.querySelector('i');
+            if (icono) {
+                icono.classList.remove('fa-times');
+                icono.classList.add('fa-bars');
+            }
+        }
+    });
+});
+
+// ============================
+// CERRAR CON ESC
+// ============================
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('confirmModal').style.display = 'none';
+        document.getElementById('modalContactos').style.display = 'none';
+    }
+});
+
+// ============================
+// INICIAR
+// ============================
+window.addEventListener('load', () => {
+    cargarItems();
+    cargarModoOscuro();
+    console.log('🚀 Sistema cargado - Sin evidencias');
+});
