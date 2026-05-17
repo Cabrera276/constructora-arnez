@@ -128,6 +128,41 @@ function actualizarContadores() {
 }
 
 // ============================
+// REORDENAR TOTALES (MOVERLOS DEBAJO DE LOS ITEMS)
+// ============================
+function reordenarTotales() {
+    const modulos = document.querySelectorAll('.grupo-modulo');
+    
+    modulos.forEach(modulo => {
+        const moduloNombre = modulo.querySelector('.modulo-nombre')?.innerText;
+        let totalModulo = null;
+        
+        // Buscar el total-modulo que corresponde
+        document.querySelectorAll('.total-modulo').forEach(total => {
+            if (total.dataset.modulo === moduloNombre) {
+                totalModulo = total;
+            }
+        });
+        
+        if (totalModulo) {
+            // Encontrar el último item de este módulo
+            let ultimoItem = null;
+            document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(item => {
+                const itemModulo = item.querySelector('td:first-child')?.innerText;
+                if (itemModulo === moduloNombre) {
+                    ultimoItem = item;
+                }
+            });
+            
+            // Mover el total después del último item
+            if (ultimoItem && ultimoItem.nextSibling !== totalModulo) {
+                totalModulo.parentNode.insertBefore(totalModulo, ultimoItem.nextSibling);
+            }
+        }
+    });
+}
+
+// ============================
 // AÑADIR MÓDULO
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
@@ -148,6 +183,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     
     moduloActual++;
     actualizarContadores();
+    reordenarTotales();
     mostrarToast('✅ Módulo creado', 'success');
 });
 
@@ -188,14 +224,14 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM
+// AÑADIR ÍTEM (INSERTA ANTES DEL TOTAL MÓDULO)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td><td oninput="calcularTotalCM(this)"></td>`;
     
     const fila = document.createElement('tr');
     fila.innerHTML = `
@@ -215,6 +251,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     actualizarTotales();
     actualizarContadores();
+    reordenarTotales();  // IMPORTANTE: reordenar después de agregar
     mostrarToast('✅ Ítem agregado', 'success');
 });
 
@@ -306,22 +343,8 @@ function agregarGrupo(titulo, tipo) {
 // ACTUALIZAR TOTALES
 // ============================
 function actualizarTotales() {
-    // Reordenar: asegurar que cada total-modulo esté después de sus items
-    document.querySelectorAll('.total-modulo').forEach(total => {
-        const moduloNombre = total.dataset.modulo;
-        let ultimoItem = null;
-        
-        document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(item => {
-            const moduloItem = item.querySelector('td:first-child')?.innerText;
-            if (moduloItem === moduloNombre) {
-                ultimoItem = item;
-            }
-        });
-        
-        if (ultimoItem && ultimoItem.nextSibling !== total) {
-            total.parentNode.insertBefore(total, ultimoItem.nextSibling);
-        }
-    });
+    // Reordenar primero
+    reordenarTotales();
     
     // Calcular totales
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
@@ -411,6 +434,7 @@ async function eliminarFila(btn) {
         fila.remove(); 
         actualizarTotales(); 
         actualizarContadores(); 
+        reordenarTotales();
         mostrarToast('🗑 Eliminado', 'info');
     });
 }
@@ -618,7 +642,7 @@ async function cargarItems() {
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
             fm.dataset.modulo = moduloId;
-            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloId}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloId}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></table>`;
+            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloId}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloId}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></tr>`;
             tabla.appendChild(fm);
         });
         
@@ -628,7 +652,7 @@ async function cargarItems() {
             let colOC = '';
             for (let i = 0; i < ordenCambio; i++) {
                 if (i < ocItem.length) {
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</table><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
+                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].cantidad || 0}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${ocItem[i].precio || 0}</td><td oninput="calcularTotalOC(this)">${ocItem[i].total || 0}</td>`;
                 } else {
                     colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
                 }
@@ -661,7 +685,7 @@ async function cargarItems() {
             tabla.appendChild(fila);
         });
         
-        // Agregar totales DESPUÉS de los ítems
+        // Agregar totales
         modulosUnicos.forEach(moduloId => {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
@@ -672,6 +696,7 @@ async function cargarItems() {
         
         actualizarTotales();
         actualizarContadores();
+        reordenarTotales();
         
         let maxModuloNum = 0;
         modulosUnicos.forEach(mod => {
@@ -743,5 +768,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Total módulo abajo');
+    console.log('🚀 Sistema cargado - Total módulo DEBAJO de los items');
 });
