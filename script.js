@@ -149,7 +149,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
 });
 
 // ============================
-// AÑADIR ÍTEM (CON CAMPOS VACÍOS PARA LLENAR MANUALMENTE)
+// AÑADIR ÍTEM (CON NÚMERO DE ÍTEM MANUAL)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -170,12 +170,13 @@ document.getElementById('btnItem').addEventListener('click', () => {
     }
     
     let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td></td>`;
-    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td></td>`;
+    for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
+    for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"><td></td>`;
     
     const fila = document.createElement('tr');
     fila.dataset.modulo = moduloId;
     fila.innerHTML = `<td>${moduloId}</td>
+        <td contenteditable="true" placeholder="N° Ítem"></td>
         <td contenteditable="true" placeholder="Descripción"></td>
         <td contenteditable="true" placeholder="Unidad"></td>
         <td contenteditable="true" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
@@ -186,14 +187,13 @@ document.getElementById('btnItem').addEventListener('click', () => {
         <td contenteditable="true">0</td>
         <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>`;
     
-    contadorItems++;
     const totalMod = document.querySelector(`.total-modulo[data-modulo="${moduloId}"]`);
     if (totalMod) tabla.insertBefore(fila, totalMod);
     else tabla.appendChild(fila);
     
     actualizarTotales();
     actualizarContadores();
-    mostrarToast('✅ Ítem agregado - Completa los datos en los campos', 'success');
+    mostrarToast('✅ Ítem agregado - Completa el número y los datos', 'success');
 });
 
 // ============================
