@@ -124,6 +124,31 @@ function actualizarContadores() {
 }
 
 // ============================
+// OBTENER MÓDULO ACTIVO (el último que se expandió o el primero)
+// ============================
+function obtenerModuloActivo() {
+    // Buscar el módulo que NO está colapsado (flecha hacia abajo, no rotada)
+    let moduloActivo = null;
+    const modulos = document.querySelectorAll('.grupo-modulo');
+    
+    for (let modulo of modulos) {
+        const toggleSpan = modulo.querySelector('.toggle-modulo');
+        const flecha = toggleSpan?.querySelector('i');
+        if (flecha && !flecha.classList.contains('colapsado')) {
+            moduloActivo = modulo;
+            break;
+        }
+    }
+    
+    // Si todos están colapsados, tomar el primero
+    if (!moduloActivo && modulos.length > 0) {
+        moduloActivo = modulos[0];
+    }
+    
+    return moduloActivo;
+}
+
+// ============================
 // AÑADIR MÓDULO
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
@@ -177,43 +202,26 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM
+// AÑADIR ÍTEM (SIN PREGUNTA - USA EL MÓDULO ACTIVO)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
-    const modulos = document.querySelectorAll('.grupo-modulo');
+    const moduloActivo = obtenerModuloActivo();
     
-    if (modulos.length === 0) {
+    if (!moduloActivo) {
         mostrarToast('⚠️ Primero crea un módulo', 'warning');
         return;
     }
     
-    // Mostrar selector de módulos
-    let mensaje = 'Selecciona el módulo:\n\n';
-    modulos.forEach((modulo, index) => {
-        const nombreModulo = modulo.querySelector('.modulo-nombre')?.innerText;
-        mensaje += `${index + 1}. ${nombreModulo}\n`;
-    });
-    
-    const seleccion = prompt(mensaje + '\nEscribe el número del módulo:');
-    if (!seleccion) return;
-    
-    const idx = parseInt(seleccion) - 1;
-    if (isNaN(idx) || idx < 0 || idx >= modulos.length) {
-        mostrarToast('❌ Selección inválida', 'error');
-        return;
-    }
-    
-    const moduloSeleccionado = modulos[idx];
-    const moduloId = moduloSeleccionado.dataset.moduloId;
-    const moduloNombre = moduloSeleccionado.querySelector('.modulo-nombre')?.innerText;
+    const moduloId = moduloActivo.dataset.moduloId;
+    const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
     for (let i = 0; i < contratoMod; i++) colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)"></td><td contenteditable="true" oninput="calcularTotalCM(this)"></td><td oninput="calcularTotalCM(this)"></td>`;
     
     const fila = document.createElement('tr');
-    fila.dataset.moduloPadre = moduloId;  // ← GUARDA EL ID INTERNO
+    fila.dataset.moduloPadre = moduloId;
     fila.innerHTML = `
         <td style="background:#f5f5f5;">${moduloNombre}</td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
@@ -335,7 +343,7 @@ function actualizarTotales() {
         const celdas = item.querySelectorAll('td');
         if (celdas.length < 6) return;
         
-        const moduloPadre = item.dataset.moduloPadre;  // ← USA EL ID INTERNO
+        const moduloPadre = item.dataset.moduloPadre;
         const totalItem = parseFloat(celdas[5]?.innerText) || 0;
         
         if (!totalesPorModulo[moduloPadre]) totalesPorModulo[moduloPadre] = 0;
@@ -433,7 +441,6 @@ async function guardarDatos() {
         const celdas = fila.children;
         if (celdas.length < 6) continue;
         
-        // CORRECCIÓN CLAVE: Guardar el ID del módulo padre, NO el texto de la primera columna
         const moduloPadre = fila.dataset.moduloPadre;
         const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
         const descripcion = celdas[1]?.textContent.trim();
@@ -634,7 +641,7 @@ async function cargarItems() {
             const fm = document.createElement('tr');
             fm.classList.add('grupo-modulo');
             fm.dataset.moduloId = moduloCounter;
-            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></tr>`;
+            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row"><div class="modulo-content"><div style="display:flex;align-items:center;gap:10px"><span class="toggle-modulo" onclick="toggleModulo('${moduloCounter}',this)"><i class="fa fa-chevron-down"></i></span><span contenteditable="true" class="modulo-nombre">${moduloNombre}</span><span class="badge-items">0 ítems</span></div><div class="table-actions"><button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button></div></div></div></td>`;
             tabla.appendChild(fm);
             
             // Crear items
@@ -753,5 +760,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Guarda ID del módulo, no el texto');
+    console.log('🚀 Sistema cargado - Ítems se agregan al módulo activo (sin preguntar)');
 });
