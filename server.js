@@ -50,7 +50,22 @@ app.post('/login', (req, res) => {
 });
 
 /* =========================
-   GUARDAR ITEMS (SIN BORRAR - INSERT SIMPLE)
+   AGREGAR COLUMNA item_numero (ejecutar una sola vez)
+========================= */
+app.get('/migrar-agregar-item-numero', (req, res) => {
+    db.query("ALTER TABLE items ADD COLUMN item_numero VARCHAR(10) DEFAULT '' AFTER modulo_id", (err) => {
+        if (err) {
+            console.log('⚠️ La columna ya existe o error:', err.message);
+            res.json({ success: false, mensaje: err.message });
+        } else {
+            console.log('✅ Columna item_numero agregada');
+            res.json({ success: true, mensaje: 'Columna item_numero agregada' });
+        }
+    });
+});
+
+/* =========================
+   GUARDAR ITEMS (SIN DUPLICADOS - INSERTS Y UPDATES)
 ========================= */
 app.post('/guardar-item', (req, res) => {
     const items = req.body;
@@ -59,58 +74,214 @@ app.post('/guardar-item', (req, res) => {
         return res.json({ success: false, mensaje: 'No hay datos' });
     }
 
-    const sql = "INSERT INTO items (modulo_id, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia, imagen, descripcion_imagen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
     let guardados = 0;
     let pendientes = items.length;
+    const idsRetornados = [];
 
     items.forEach(item => {
-        db.query(sql, [
-            item.modulo_id || 1,
-            item.descripcion || '',
-            item.unidad || '',
-            item.cantidad || 0,
-            item.precio_unitario || 0,
-            item.total || 0,
-            item.porcentaje_incidencia || '0%',
-            item.imagen || '',
-            item.descripcion_imagen || ''
-        ], (err, result) => {
-            if (err) {
-                console.error('❌ Error:', err.message);
-            } else {
-                guardados++;
-                const itemId = result.insertId;
+        // Verificar si el item ya existe (por descripción y módulo)
+        db.query(
+            "SELECT id FROM items WHERE modulo_id = ? AND descripcion = ?",
+            [item.modulo_id, item.descripcion],
+            (err, result) => {
+                if (err) {
+                    console.error('❌ Error al verificar:', err.message);
+                    pendientes--;
+                    if (pendientes === 0) {
+                        res.json({ success: guardados > 0, ids: idsRetornados });
+                    }
+                    return;
+                }
                 
-                // Guardar OC
+                if (result.length > 0) {
+                    // Actualizar item existente
+                    const itemId = result[0].id;
+                    db.query(
+                        `UPDATE items SET 
+                            item_numero = ?, 
+                            unidad = ?, 
+                            cantidad = ?, 
+                            precio_unitario = ?, 
+                            total = ?, 
+                            porcentaje_incidencia = ?
+                         WHERE id = ?`,
+                        [
+                            item.item_numero || '',
+                            item.unidad || '',
+                            item.cantidad || 0,
+                            item.precio_unitario || 0,
+                            item.total || 0,
+                            item.porcentaje_incidencia || '0%',
+                            itemId
+                        ],
+                        (err) => {
+                            if (err) console.error('❌ Error update:', err.message);
+                            guardados++;
+                            idsRetornados.push(itemId);
+                            pendientes--;
+                            if (pendientes === 0) {
+                                res.json({ success: true, ids: idsRetornados });
+                            }
+                        }
+                    );
+                } else {
+                    // Insertar nuevo item
+                    db.query(
+                        `INSERT INTO items 
+                            (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [
+                            item.modulo_id || 1,
+                            item.item_numero || '',
+                            item.descripcion || '',
+                            item.unidad || '',
+                            item.cantidad || 0,
+                            item.precio_unitario || 0,
+                            item.total || 0,
+                            item.porcentaje_incidencia || '0%'
+                        ],
+                        (err, result) => {
+                            if (err) {
+                                console.error('❌ Error insert:', err.message);
+                            } else {
+                                guardados++;
+                                const itemId = result.insertId;
+                                idsRetornados.push(itemId);
+                                
+                                // Guardar OC
+                                if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                                    item.ordenesCambio.forEach(oc => {
+                                        db.query(
+                                            "INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
+                                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total],
+                                            (err) => { if (err) console.log('Error OC:', err.message); }
+                                        );
+                                    });
+                                }
+                                
+                                // Guardar CM
+                                if (item.contratosMod && item.contratosMod.length > 0) {
+                                    item.contratosMod.forEach(cm => {
+                                        db.query(
+                                            "INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
+                                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total],
+                                            (err) => { if (err) console.log('Error CM:', err.message); }
+                                        );
+                                    });
+                                }
+                            }
+                            pendientes--;
+                            if (pendientes === 0) {
+                                console.log(`✅ ${guardados} ítems procesados`);
+                                res.json({ success: true, ids: idsRetornados });
+                            }
+                        }
+                    );
+                }
+            }
+        );
+    });
+});
+
+/* =========================
+   GUARDAR ITEMS BATCH (NUEVO - RECOMENDADO)
+========================= */
+app.post('/guardar-items-batch', (req, res) => {
+    const { items } = req.body;
+    
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.json({ success: false, mensaje: 'No hay datos' });
+    }
+
+    let procesados = 0;
+    let exitos = 0;
+
+    items.forEach(async (item) => {
+        try {
+            if (item.id) {
+                // Actualizar item existente
+                await db.promise().query(
+                    `UPDATE items SET 
+                        modulo_id = ?, 
+                        item_numero = ?, 
+                        descripcion = ?, 
+                        unidad = ?, 
+                        cantidad = ?, 
+                        precio_unitario = ?, 
+                        total = ?, 
+                        porcentaje_incidencia = ?
+                     WHERE id = ?`,
+                    [
+                        item.modulo_id, item.item_numero, item.descripcion, item.unidad,
+                        item.cantidad, item.precio_unitario, item.total, item.porcentaje_incidencia,
+                        item.id
+                    ]
+                );
+                
+                // Actualizar OC
+                await db.promise().query('DELETE FROM ordenes_cambio WHERE item_id = ?', [item.id]);
                 if (item.ordenesCambio && item.ordenesCambio.length > 0) {
-                    item.ordenesCambio.forEach(oc => {
-                        db.query(
-                            "INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, oc.numero, oc.cantidad, oc.precio, oc.total],
-                            (err) => { if (err) console.log('Error OC:', err.message); }
+                    for (const oc of item.ordenesCambio) {
+                        await db.promise().query(
+                            'INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [item.id, oc.numero, oc.cantidad, oc.precio, oc.total]
                         );
-                    });
+                    }
                 }
                 
-                // Guardar CM
+                // Actualizar CM
+                await db.promise().query('DELETE FROM contratos_mod WHERE item_id = ?', [item.id]);
                 if (item.contratosMod && item.contratosMod.length > 0) {
-                    item.contratosMod.forEach(cm => {
-                        db.query(
-                            "INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)",
-                            [itemId, cm.numero, cm.cantidad, cm.precio, cm.total],
-                            (err) => { if (err) console.log('Error CM:', err.message); }
+                    for (const cm of item.contratosMod) {
+                        await db.promise().query(
+                            'INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [item.id, cm.numero, cm.cantidad, cm.precio, cm.total]
                         );
-                    });
+                    }
                 }
+                exitos++;
+            } else {
+                // Insertar nuevo item
+                const [result] = await db.promise().query(
+                    `INSERT INTO items 
+                        (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        item.modulo_id, item.item_numero, item.descripcion, item.unidad,
+                        item.cantidad, item.precio_unitario, item.total, item.porcentaje_incidencia
+                    ]
+                );
+                const nuevoId = result.insertId;
+                
+                // Insertar OC
+                if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                    for (const oc of item.ordenesCambio) {
+                        await db.promise().query(
+                            'INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [nuevoId, oc.numero, oc.cantidad, oc.precio, oc.total]
+                        );
+                    }
+                }
+                
+                // Insertar CM
+                if (item.contratosMod && item.contratosMod.length > 0) {
+                    for (const cm of item.contratosMod) {
+                        await db.promise().query(
+                            'INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [nuevoId, cm.numero, cm.cantidad, cm.precio, cm.total]
+                        );
+                    }
+                }
+                exitos++;
             }
-            
-            pendientes--;
-            if (pendientes === 0) {
-                console.log(`✅ ${guardados} ítems guardados`);
-                res.json({ success: true, mensaje: `${guardados} ítems guardados` });
-            }
-        });
+        } catch (error) {
+            console.error('Error procesando item:', error);
+        }
+        
+        procesados++;
+        if (procesados === items.length) {
+            res.json({ success: exitos > 0, procesados: exitos });
+        }
     });
 });
 
@@ -145,13 +316,22 @@ app.get('/contratos-mod', (req, res) => {
 });
 
 /* =========================
-   EDITAR ITEM
+   EDITAR ITEM (ACTUALIZADO)
 ========================= */
 app.put('/editar-item/:id', (req, res) => {
-    const { descripcion, unidad, cantidad, precio_unitario, total } = req.body;
+    const { modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia } = req.body;
     db.query(
-        "UPDATE items SET descripcion=?, unidad=?, cantidad=?, precio_unitario=?, total=? WHERE id=?",
-        [descripcion, unidad, cantidad, precio_unitario, total, req.params.id],
+        `UPDATE items SET 
+            modulo_id = ?, 
+            item_numero = ?, 
+            descripcion = ?, 
+            unidad = ?, 
+            cantidad = ?, 
+            precio_unitario = ?, 
+            total = ?, 
+            porcentaje_incidencia = ? 
+         WHERE id = ?`,
+        [modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia, req.params.id],
         (err) => {
             if (err) { console.log('Error /editar-item:', err.message); return res.json({ success: false }); }
             res.json({ success: true });
@@ -201,18 +381,12 @@ app.get('/planillas', (req, res) => {
 });
 
 /* =========================
-   INICIAR SERVIDOR
-========================= */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
-/* =========================
    GUARDAR AMPLIACIONES
 ========================= */
 app.post('/guardar-ampliaciones', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
     
-    // Limpiar tabla
     db.query("DELETE FROM ampliaciones", () => {
         const sql = "INSERT INTO ampliaciones (descripcion, inicio, fin, plazo, acumulado) VALUES (?, ?, ?, ?, ?)";
         let pendientes = datos.length;
@@ -238,3 +412,9 @@ app.get('/ampliaciones', (req, res) => {
         res.json(result || []);
     });
 });
+
+/* =========================
+   INICIAR SERVIDOR
+========================= */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
