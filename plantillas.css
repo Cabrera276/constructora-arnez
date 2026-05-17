@@ -924,3 +924,249 @@ text-align:center;
         margin-top: 5px;
     }
 }
+/* =========================
+   GESTOR DE EVIDENCIAS
+========================= */
+
+.columna-evidencia {
+    background: #0a0a0a !important;
+    border-left: 2px solid #1a1a1a;
+}
+
+.evidencia-gestor {
+    background: #0d0d0d;
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #222;
+}
+
+.lista-evidencias {
+    scrollbar-width: thin;
+    scrollbar-color: #ffc400 #0a0a0a;
+}
+
+.lista-evidencias::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lista-evidencias::-webkit-scrollbar-track {
+    background: #0a0a0a;
+    border-radius: 10px;
+}
+
+.lista-evidencias::-webkit-scrollbar-thumb {
+    background: #ffc400;
+    border-radius: 10px;
+}
+
+.tarjeta-evidencia {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.descripcion-evidencia:focus {
+    outline: none;
+    border-color: #ffc400 !important;
+    box-shadow: 0 0 10px rgba(255,196,0,0.2);
+}
+
+.btn-agregar-evidencia:hover {
+    background: #00e6a4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,184,148,0.3);
+}
+
+.btn-reemplazar-img:hover {
+    background: #ffd700 !important;
+    transform: translateY(-1px);
+}
+
+.btn-eliminar-img:hover {
+    background: #ff4444 !important;
+    transform: translateY(-1px);
+}
+
+.btn-guardar-desc:hover {
+    background: #00e6a4 !important;
+    transform: translateY(-1px);
+}
+
+/* Responsive evidencias */
+@media(max-width: 768px) {
+    .columna-evidencia {
+        min-width: 280px !important;
+    }
+    
+    .evidencia-gestor {
+        padding: 8px;
+    }
+    
+    .tarjeta-evidencia {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .tarjeta-evidencia img {
+        width: 100% !important;
+        height: 120px !important;
+    }
+}
+/* =========================
+   GESTOR DE EVIDENCIAS
+========================= */
+
+.columna-evidencia {
+    background: #0a0a0a !important;
+    border-left: 2px solid #1a1a1a;
+    min-width: 350px !important;
+    padding: 10px !important;
+}
+
+.evidencia-gestor {
+    background: #0d0d0d;
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #222;
+}
+
+.lista-evidencias {
+    scrollbar-width: thin;
+    scrollbar-color: #ffc400 #0a0a0a;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.lista-evidencias::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lista-evidencias::-webkit-scrollbar-track {
+    background: #0a0a0a;
+    border-radius: 10px;
+}
+
+.lista-evidencias::-webkit-scrollbar-thumb {
+    background: #ffc400;
+    border-radius: 10px;
+}
+
+.tarjeta-evidencia {
+    animation: slideInEvidencia 0.3s ease;
+}
+
+@keyframes slideInEvidencia {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.descripcion-evidencia:focus {
+    outline: none;
+    border-color: #ffc400 !important;
+    box-shadow: 0 0 10px rgba(255,196,0,0.2);
+}
+
+.btn-agregar-evidencia {
+    background: #00b894;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-agregar-evidencia:hover {
+    background: #00e6a4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,184,148,0.3);
+}
+
+.btn-reemplazar-img,
+.btn-eliminar-img,
+.btn-guardar-desc {
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.btn-reemplazar-img {
+    background: #ffc400;
+    color: #000;
+}
+
+.btn-reemplazar-img:hover {
+    background: #ffd700 !important;
+    transform: translateY(-1px);
+}
+
+.btn-eliminar-img {
+    background: #d63031;
+    color: white;
+}
+
+.btn-eliminar-img:hover {
+    background: #ff4444 !important;
+    transform: translateY(-1px);
+}
+
+.btn-guardar-desc {
+    background: #00b894;
+    color: white;
+}
+
+.btn-guardar-desc:hover {
+    background: #00e6a4 !important;
+    transform: translateY(-1px);
+}
+
+.sin-evidencias {
+    color: #666;
+    text-align: center;
+    padding: 15px;
+    font-size: 12px;
+    border: 1px dashed #333;
+    border-radius: 8px;
+}
+
+/* Responsive evidencias */
+@media(max-width: 768px) {
+    .columna-evidencia {
+        min-width: 280px !important;
+    }
+    
+    .evidencia-gestor {
+        padding: 8px;
+    }
+    
+    .tarjeta-evidencia {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .tarjeta-evidencia img {
+        width: 100% !important;
+        height: 120px !important;
+    }
+}
