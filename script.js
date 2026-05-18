@@ -94,20 +94,28 @@ function calcularTotalFila(fila) {
 }
 
 function actualizarTotalOC(fila, index) {
-    const cantidad = parseFloat(fila.querySelector(`.oc-cant-${index}`)?.value) || 0;
-    const precio = parseFloat(fila.querySelector(`.oc-pu-${index}`)?.value) || 0;
-    const total = cantidad * precio;
-    const totalCell = fila.querySelector(`.oc-total-${index}`);
-    if (totalCell) totalCell.innerText = total.toFixed(2);
+    const inputCant = fila.querySelector(`.oc-cant-${index}`);
+    const inputPu = fila.querySelector(`.oc-pu-${index}`);
+    const totalSpan = fila.querySelector(`.oc-total-${index}`);
+    
+    if (inputCant && inputPu && totalSpan) {
+        const cantidad = parseFloat(inputCant.value) || 0;
+        const precio = parseFloat(inputPu.value) || 0;
+        totalSpan.innerText = (cantidad * precio).toFixed(2);
+    }
     actualizarTodosLosTotales();
 }
 
 function actualizarTotalCM(fila, index) {
-    const cantidad = parseFloat(fila.querySelector(`.cm-cant-${index}`)?.value) || 0;
-    const precio = parseFloat(fila.querySelector(`.cm-pu-${index}`)?.value) || 0;
-    const total = cantidad * precio;
-    const totalCell = fila.querySelector(`.cm-total-${index}`);
-    if (totalCell) totalCell.innerText = total.toFixed(2);
+    const inputCant = fila.querySelector(`.cm-cant-${index}`);
+    const inputPu = fila.querySelector(`.cm-pu-${index}`);
+    const totalSpan = fila.querySelector(`.cm-total-${index}`);
+    
+    if (inputCant && inputPu && totalSpan) {
+        const cantidad = parseFloat(inputCant.value) || 0;
+        const precio = parseFloat(inputPu.value) || 0;
+        totalSpan.innerText = (cantidad * precio).toFixed(2);
+    }
     actualizarTodosLosTotales();
 }
 
@@ -412,24 +420,22 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloId = moduloActivo.dataset.moduloId;
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
-    // Construir OC y CM
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
-                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center;"></td>
+                  <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center;"></td>
                   <td class="oc-total-${i}">0.00</td>`;
     }
     let colCM = '';
     for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
-                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center;"></td>
+                  <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center;"></td>
                   <td class="cm-total-${i}">0.00</td>`;
     }
     
     const fila = document.createElement('tr');
     fila.className = 'item-fila';
     fila.dataset.moduloPadre = moduloId;
-    // IMPORTANTE: PRECIO ES UN INPUT
     fila.innerHTML = `
         <td><input type="text" class="numero-item" value="" placeholder="N°" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
         <td><input type="text" class="descripcion" value="" placeholder="Descripción" style="width:200px; padding:6px; border-radius:6px; border:1px solid #ccc;"></td>
@@ -448,13 +454,11 @@ document.getElementById('btnItem').addEventListener('click', () => {
         </td>
     `;
     
-    // Eventos
     const cantidadInput = fila.querySelector('.cantidad');
     const precioInput = fila.querySelector('.precio');
     cantidadInput.addEventListener('input', () => calcularTotalFila(fila));
     precioInput.addEventListener('input', () => calcularTotalFila(fila));
     
-    // Eventos OC
     for (let i = 0; i < ordenCambio; i++) {
         const cantOC = fila.querySelector(`.oc-cant-${i}`);
         const puOC = fila.querySelector(`.oc-pu-${i}`);
@@ -462,7 +466,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
         if (puOC) puOC.addEventListener('input', () => actualizarTotalOC(fila, i));
     }
     
-    // Eventos CM
     for (let i = 0; i < contratoMod; i++) {
         const cantCM = fila.querySelector(`.cm-cant-${i}`);
         const puCM = fila.querySelector(`.cm-pu-${i}`);
@@ -482,16 +485,19 @@ document.getElementById('btnItem').addEventListener('click', () => {
     mostrarToast(`✅ Ítem agregado al ${moduloNombre}`, 'success');
 });
 
-document.getElementById('btnOC').addEventListener('click', () => {
-    ordenCambio++;
-    agregarColumna(`ORDEN CAMBIO Nº${ordenCambio}`, 'OC');
+document.getElementById('btnOC').addEventListener('click', () => { 
+    ordenCambio++; 
+    agregarColumna(`ORDEN CAMBIO Nº${ordenCambio}`, 'OC'); 
 });
 
-document.getElementById('btnCM').addEventListener('click', () => {
-    contratoMod++;
-    agregarColumna(`CONTRATO MOD Nº${contratoMod}`, 'CM');
+document.getElementById('btnCM').addEventListener('click', () => { 
+    contratoMod++; 
+    agregarColumna(`CONTRATO MOD Nº${contratoMod}`, 'CM'); 
 });
 
+// ============================
+// FUNCIÓN PRINCIPAL CORREGIDA
+// ============================
 function agregarColumna(titulo, tipo) {
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
@@ -512,32 +518,31 @@ function agregarColumna(titulo, tipo) {
     document.querySelectorAll('.item-fila').forEach(fila => {
         const accionesCell = fila.querySelector('.acciones-cell');
         
+        // CREAR INPUT CANTIDAD
         const tdCant = document.createElement('td');
         const inputCant = document.createElement('input');
         inputCant.type = 'number';
         inputCant.className = tipo === 'OC' ? `oc-cant-${nuevoIndice}` : `cm-cant-${nuevoIndice}`;
         inputCant.value = '0';
         inputCant.step = 'any';
-        inputCant.style.width = '80px';
-        inputCant.style.padding = '6px';
-        inputCant.style.borderRadius = '6px';
-        inputCant.style.border = '1px solid #ccc';
-        inputCant.style.textAlign = 'center';
+        inputCant.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
+        inputCant.disabled = false;
+        inputCant.readOnly = false;
         tdCant.appendChild(inputCant);
         
+        // CREAR INPUT P.U. - ESTE ES EL QUE NECESITAS FUNCIONANDO
         const tdPu = document.createElement('td');
         const inputPu = document.createElement('input');
         inputPu.type = 'number';
         inputPu.className = tipo === 'OC' ? `oc-pu-${nuevoIndice}` : `cm-pu-${nuevoIndice}`;
         inputPu.value = '0';
         inputPu.step = 'any';
-        inputPu.style.width = '80px';
-        inputPu.style.padding = '6px';
-        inputPu.style.borderRadius = '6px';
-        inputPu.style.border = '1px solid #ccc';
-        inputPu.style.textAlign = 'center';
+        inputPu.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
+        inputPu.disabled = false;    // <<< CORREGIDO
+        inputPu.readOnly = false;    // <<< CORREGIDO
         tdPu.appendChild(inputPu);
         
+        // CELDA TOTAL
         const tdTotal = document.createElement('td');
         tdTotal.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
         tdTotal.innerText = '0.00';
@@ -549,8 +554,7 @@ function agregarColumna(titulo, tipo) {
         const update = () => {
             const cant = parseFloat(inputCant.value) || 0;
             const pu = parseFloat(inputPu.value) || 0;
-            const total = cant * pu;
-            tdTotal.innerText = total.toFixed(2);
+            tdTotal.innerText = (cant * pu).toFixed(2);
             actualizarTodosLosTotales();
         };
         
@@ -723,16 +727,16 @@ async function cargarItems() {
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     const oc = ocdb.find(o => o.item_id === item.id && o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
-                              <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"></td>
+                              <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"></td>
                               <td class="oc-total-${i}">${oc.total}</td>`;
                 }
                 
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
-                              <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
+                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"></td>
+                              <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"></td>
                               <td class="cm-total-${i}">${cm.total}</td>`;
                 }
                 
@@ -740,7 +744,6 @@ async function cargarItems() {
                 fila.className = 'item-fila';
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
-                // IMPORTANTE: PRECIO ES UN INPUT
                 fila.innerHTML = `
                     <td><input type="text" class="numero-item" value="${escapeHtml(item.item_numero || '')}" placeholder="N°" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"></td>
                     <td><input type="text" class="descripcion" value="${escapeHtml(item.descripcion || '')}" placeholder="Descripción" style="width:200px; padding:6px; border-radius:6px; border:1px solid #ccc;"></td>
@@ -858,5 +861,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - P.U. con input type number');
+    console.log('🚀 Sistema cargado - P.U. con input type number CORREGIDO');
 });
