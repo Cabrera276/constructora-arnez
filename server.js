@@ -50,32 +50,100 @@ app.post('/login', (req, res) => {
 });
 
 /* =========================
-   GUARDAR ITEM SIMPLE (FUNCIONAL)
+   GUARDAR ITEM COMPLETO (CON INSERT Y UPDATE)
 ========================= */
-app.post('/guardar-item-simple', (req, res) => {
+app.post('/guardar-item-completo', (req, res) => {
     const item = req.body;
     
-    const sql = `INSERT INTO items (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    
-    db.query(sql, [
-        item.modulo_id || 'Sin módulo',
-        item.item_numero || '',
-        item.descripcion || '',
-        item.unidad || '',
-        item.cantidad || 0,
-        item.precio_unitario || 0,
-        item.total || 0,
-        item.porcentaje_incidencia || 0
-    ], (err, result) => {
-        if (err) {
-            console.error('❌ Error insert:', err.message);
-            res.json({ success: false, error: err.message });
-        } else {
-            console.log('✅ Item guardado ID:', result.insertId);
-            res.json({ success: true, id: result.insertId });
-        }
-    });
+    if (item.id) {
+        // ACTUALIZAR ITEM EXISTENTE
+        const sqlUpdate = `UPDATE items SET 
+            modulo_id = ?, 
+            item_numero = ?, 
+            descripcion = ?, 
+            unidad = ?, 
+            cantidad = ?, 
+            precio_unitario = ?, 
+            total = ?, 
+            porcentaje_incidencia = ? 
+        WHERE id = ?`;
+        
+        db.query(sqlUpdate, [
+            item.modulo_id, item.item_numero, item.descripcion, item.unidad,
+            item.cantidad, item.precio_unitario, item.total, item.porcentaje_incidencia,
+            item.id
+        ], (err) => {
+            if (err) {
+                console.error('❌ Error update:', err.message);
+                return res.json({ success: false, error: err.message });
+            }
+            
+            // Actualizar OC
+            db.query('DELETE FROM ordenes_cambio WHERE item_id = ?', [item.id], () => {
+                if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                    item.ordenesCambio.forEach(oc => {
+                        db.query(
+                            'INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [item.id, oc.numero, oc.cantidad, oc.precio, oc.total]
+                        );
+                    });
+                }
+            });
+            
+            // Actualizar CM
+            db.query('DELETE FROM contratos_mod WHERE item_id = ?', [item.id], () => {
+                if (item.contratosMod && item.contratosMod.length > 0) {
+                    item.contratosMod.forEach(cm => {
+                        db.query(
+                            'INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                            [item.id, cm.numero, cm.cantidad, cm.precio, cm.total]
+                        );
+                    });
+                }
+            });
+            
+            res.json({ success: true, actualizado: true, id: item.id });
+        });
+    } else {
+        // INSERTAR NUEVO ITEM
+        const sqlInsert = `INSERT INTO items 
+            (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        
+        db.query(sqlInsert, [
+            item.modulo_id, item.item_numero, item.descripcion, item.unidad,
+            item.cantidad, item.precio_unitario, item.total, item.porcentaje_incidencia
+        ], (err, result) => {
+            if (err) {
+                console.error('❌ Error insert:', err.message);
+                return res.json({ success: false, error: err.message });
+            }
+            
+            const nuevoId = result.insertId;
+            
+            // Insertar OC
+            if (item.ordenesCambio && item.ordenesCambio.length > 0) {
+                item.ordenesCambio.forEach(oc => {
+                    db.query(
+                        'INSERT INTO ordenes_cambio (item_id, numero_oc, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                        [nuevoId, oc.numero, oc.cantidad, oc.precio, oc.total]
+                    );
+                });
+            }
+            
+            // Insertar CM
+            if (item.contratosMod && item.contratosMod.length > 0) {
+                item.contratosMod.forEach(cm => {
+                    db.query(
+                        'INSERT INTO contratos_mod (item_id, numero_cm, cantidad, precio, total) VALUES (?, ?, ?, ?, ?)',
+                        [nuevoId, cm.numero, cm.cantidad, cm.precio, cm.total]
+                    );
+                });
+            }
+            
+            res.json({ success: true, actualizado: false, id: nuevoId });
+        });
+    }
 });
 
 /* =========================
