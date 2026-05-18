@@ -518,7 +518,7 @@ function agregarColumna(titulo, tipo) {
     document.querySelectorAll('.item-fila').forEach(fila => {
         const accionesCell = fila.querySelector('.acciones-cell');
         
-        // CREAR INPUT CANTIDAD
+        // Crear input CANTIDAD
         const tdCant = document.createElement('td');
         const inputCant = document.createElement('input');
         inputCant.type = 'number';
@@ -526,11 +526,9 @@ function agregarColumna(titulo, tipo) {
         inputCant.value = '0';
         inputCant.step = 'any';
         inputCant.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
-        inputCant.disabled = false;
-        inputCant.readOnly = false;
         tdCant.appendChild(inputCant);
         
-        // CREAR INPUT P.U. - ESTE ES EL QUE NECESITAS FUNCIONANDO
+        // Crear input P.U.
         const tdPu = document.createElement('td');
         const inputPu = document.createElement('input');
         inputPu.type = 'number';
@@ -538,11 +536,9 @@ function agregarColumna(titulo, tipo) {
         inputPu.value = '0';
         inputPu.step = 'any';
         inputPu.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
-        inputPu.disabled = false;    // <<< CORREGIDO
-        inputPu.readOnly = false;    // <<< CORREGIDO
         tdPu.appendChild(inputPu);
         
-        // CELDA TOTAL
+        // Celda TOTAL
         const tdTotal = document.createElement('td');
         tdTotal.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
         tdTotal.innerText = '0.00';
@@ -551,6 +547,7 @@ function agregarColumna(titulo, tipo) {
         fila.insertBefore(tdPu, accionesCell);
         fila.insertBefore(tdCant, accionesCell);
         
+        // Evento para calcular TOTAL
         const update = () => {
             const cant = parseFloat(inputCant.value) || 0;
             const pu = parseFloat(inputPu.value) || 0;
@@ -560,6 +557,11 @@ function agregarColumna(titulo, tipo) {
         
         inputCant.addEventListener('input', update);
         inputPu.addEventListener('input', update);
+        
+        // FORZAR QUE EL INPUT SEA EDITABLE
+        inputPu.click();
+        inputPu.focus();
+        inputPu.select();
     });
     
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
@@ -571,7 +573,6 @@ function agregarColumna(titulo, tipo) {
     
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
-
 // ============================
 // GUARDAR DATOS
 // ============================
