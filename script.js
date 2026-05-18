@@ -251,13 +251,14 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
     
-    let colOC = '', colCM = '';
-    for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td oninput="calcularTotalOC(this)">0.00</td>`;
-    }
-    for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td oninput="calcularTotalCM(this)">0.00</td>`;
-    }
+   let colOC = '';
+for (let i = 0; i < ordenCambio; i++) {
+    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+}
+let colCM = '';
+for (let i = 0; i < contratoMod; i++) {
+    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+}
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
@@ -320,7 +321,11 @@ function agregarGrupo(titulo, tipo) {
             td2.setAttribute('oninput', tipo === 'OC' ? 'calcularTotalOC(this)' : 'calcularTotalCM(this)');
             td2.innerText = '0';
             const td3 = document.createElement('td');
+            td3.contentEditable = true;  // ← AHORA ES EDITABLE MANUALMENTE
             td3.innerText = '0.00';
+            td3.style.cursor = 'text';
+            td3.style.backgroundColor = 'white';
+            td3.style.color = 'black';
             fila.insertBefore(td3, celdas[pos]);
             fila.insertBefore(td2, celdas[pos]);
             fila.insertBefore(td1, celdas[pos]);
@@ -336,7 +341,6 @@ function agregarGrupo(titulo, tipo) {
     
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
-
 // ============================
 // ACTUALIZAR TOTALES
 // ============================
