@@ -151,7 +151,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td class="total-modulo-valor">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -189,7 +189,7 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (VERSIÓN ORIGINAL QUE FUNCIONABA)
+// AÑADIR ÍTEM (MODIFICADO - SIN "MÓDULO 01" EN LA FILA)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -213,8 +213,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
         moduloId = modulos[idx].dataset.moduloId;
     }
     
-    const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
-    
     let colOC = '', colCM = '';
     for (let i = 0; i < ordenCambio; i++) {
         colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)"></td><td contenteditable="true" oninput="calcularTotalOC(this)"></td><td oninput="calcularTotalOC(this)"></td>`;
@@ -225,8 +223,9 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
+    // MODIFICADO: primera columna es N° Ítem editable (ya no muestra el nombre del módulo)
     fila.innerHTML = `
-        <td style="background:#f0f0f0;">${moduloNombre}</td>
+        <td contenteditable="true" style="cursor:text;" placeholder="N° Ítem"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Unidad"></td>
         <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))" placeholder="Cantidad"></td>
@@ -235,7 +234,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
         ${colOC}
         ${colCM}
         <td contenteditable="true" style="cursor:text;">0</td>
-        <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
+        <td class="acciones-cell"><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
     
     const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
@@ -375,7 +374,7 @@ function actualizarTotales() {
 }
 
 // ============================
-// EDITAR ÍTEM
+// EDITAR ÍTEM (MODIFICADO - GUARDA item_numero)
 // ============================
 async function editarFila(btn) {
     const fila = btn.closest('tr');
@@ -396,6 +395,7 @@ async function editarFila(btn) {
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ 
                 modulo_id: moduloNombre,
+                item_numero: celdas[0].innerText,
                 descripcion: celdas[1].innerText, 
                 unidad: celdas[2].innerText, 
                 cantidad: parseFloat(celdas[3].innerText) || 0, 
@@ -432,7 +432,7 @@ async function eliminarFila(btn) {
 }
 
 // ============================
-// GUARDAR DATOS
+// GUARDAR DATOS (MODIFICADO - GUARDA item_numero)
 // ============================
 document.getElementById("btnGuardar").addEventListener("click", guardarDatos);
 
@@ -446,7 +446,8 @@ async function guardarDatos() {
         
         const moduloPadre = fila.dataset.moduloPadre;
         const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
-        const descripcion = celdas[1]?.textContent.trim();
+        const numeroItem = celdas[0]?.innerText.trim();
+        const descripcion = celdas[1]?.innerText.trim();
         
         if (!descripcion) continue;
         
@@ -476,6 +477,7 @@ async function guardarDatos() {
         
         datos.push({
             modulo_id: moduloNombre,
+            item_numero: numeroItem,
             descripcion: descripcion,
             unidad: celdas[2]?.innerText.trim() || '',
             cantidad: parseFloat(celdas[3]?.innerText) || 0,
@@ -593,7 +595,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS
+// CARGAR ITEMS (MODIFICADO - PRIMERA COLUMNA ES N° ÍTEM)
 // ============================
 async function cargarItems() {
     try {
@@ -662,8 +664,9 @@ async function cargarItems() {
             const fila = document.createElement('tr');
             fila.dataset.id = item.id;
             fila.dataset.moduloPadre = item.modulo_id;
+            // MODIFICADO: primera columna es N° Ítem editable (ya no muestra el nombre del módulo)
             fila.innerHTML = `
-                <td style="background:#f0f0f0;">${item.modulo_id}</td>
+                <td contenteditable="true" style="cursor:text;" placeholder="N° Ítem">${item.item_numero || ''}</td>
                 <td contenteditable="true" style="cursor:text;">${item.descripcion || ''}</td>
                 <td contenteditable="true" style="cursor:text;">${item.unidad || ''}</td>
                 <td contenteditable="true" style="cursor:text;" oninput="calcularTotalFila(this.closest('tr'))">${item.cantidad || 0}</td>
@@ -672,7 +675,7 @@ async function cargarItems() {
                 ${colOC}
                 ${colCM}
                 <td contenteditable="true" style="cursor:text;">${item.porcentaje_incidencia || 0}</td>
-                <td><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
+                <td class="acciones-cell"><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
             `;
             tabla.appendChild(fila);
         }
@@ -681,7 +684,7 @@ async function cargarItems() {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloId;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong><td><td>0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td class="total-modulo-valor">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
             tabla.appendChild(ft);
         }
         
@@ -752,5 +755,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Versión original');
+    console.log('🚀 Sistema cargado');
 });
