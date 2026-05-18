@@ -89,9 +89,8 @@ function actualizarTodosLosTotales() {
         // Contrato Original
         const cantidad = parseFloat(fila.querySelector('.cantidad')?.value) || 0;
         const precio = parseFloat(fila.querySelector('.precio')?.value) || 0;
-        const totalOriginal = cantidad * precio;
         const totalCell = fila.querySelector('.total-fila');
-        if (totalCell) totalCell.innerText = totalOriginal.toFixed(2);
+        if (totalCell) totalCell.innerText = (cantidad * precio).toFixed(2);
         
         // OC
         for (let i = 0; i < 10; i++) {
@@ -99,8 +98,7 @@ function actualizarTodosLosTotales() {
             const puOC = fila.querySelector(`.oc-pu-${i}`);
             const totalOC = fila.querySelector(`.oc-total-${i}`);
             if (cantOC && puOC && totalOC) {
-                const total = (parseFloat(cantOC.value) || 0) * (parseFloat(puOC.value) || 0);
-                totalOC.innerText = total.toFixed(2);
+                totalOC.innerText = ((parseFloat(cantOC.value) || 0) * (parseFloat(puOC.value) || 0)).toFixed(2);
             }
         }
         
@@ -110,8 +108,7 @@ function actualizarTodosLosTotales() {
             const puCM = fila.querySelector(`.cm-pu-${i}`);
             const totalCM = fila.querySelector(`.cm-total-${i}`);
             if (cantCM && puCM && totalCM) {
-                const total = (parseFloat(cantCM.value) || 0) * (parseFloat(puCM.value) || 0);
-                totalCM.innerText = total.toFixed(2);
+                totalCM.innerText = ((parseFloat(cantCM.value) || 0) * (parseFloat(puCM.value) || 0)).toFixed(2);
             }
         }
     });
@@ -132,8 +129,7 @@ function actualizarTodosLosTotales() {
         const moduloId = modulo.dataset.moduloId;
         let totalModulo = 0;
         document.querySelectorAll(`.item-fila[data-modulo-padre="${moduloId}"]`).forEach(item => {
-            const total = parseFloat(item.querySelector('.total-fila')?.innerText) || 0;
-            totalModulo += total;
+            totalModulo += parseFloat(item.querySelector('.total-fila')?.innerText) || 0;
         });
         const badge = modulo.querySelector('.badge-items');
         if (badge) badge.textContent = `${document.querySelectorAll(`.item-fila[data-modulo-padre="${moduloId}"]`).length} ítems`;
@@ -146,20 +142,16 @@ function actualizarTodosLosTotales() {
 }
 
 // ============================
-// HABILITAR INPUTS OC Y CM (FUNCIÓN CLAVE)
+// HABILITAR INPUTS OC Y CM
 // ============================
-function habilitarInputsOCyCM() {
-    setTimeout(() => {
-        document.querySelectorAll('input[class*="oc-pu"], input[class*="cm-pu"], input[class*="oc-cant"], input[class*="cm-cant"]').forEach(input => {
-            input.removeAttribute('disabled');
-            input.removeAttribute('readonly');
-            input.style.backgroundColor = 'white';
-            input.style.color = 'black';
-            input.style.pointerEvents = 'auto';
-            input.setAttribute('oninput', 'actualizarTodosLosTotales()');
-        });
-        console.log('✅ Inputs OC y CM habilitados');
-    }, 50);
+function habilitarInputs() {
+    document.querySelectorAll('input[class*="oc-pu"], input[class*="cm-pu"]').forEach(input => {
+        input.disabled = false;
+        input.readOnly = false;
+        input.style.backgroundColor = 'white';
+        input.style.color = 'black';
+        input.style.pointerEvents = 'auto';
+    });
 }
 
 // ============================
@@ -226,19 +218,17 @@ document.getElementById('btnItem').addEventListener('click', () => {
     const moduloId = moduloActivo.dataset.moduloId;
     const moduloNombre = moduloActivo.querySelector('.modulo-nombre')?.innerText;
     
-    // Construir OC
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
-                    <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
+        colOC += `<td><input type="number" class="oc-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
+                    <td><input type="number" class="oc-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
                   <td class="oc-total-${i}">0.00<\/td>`;
     }
     
-    // Construir CM
     let colCM = '';
     for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
-                    <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
+        colCM += `<td><input type="number" class="cm-cant-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
+                    <td><input type="number" class="cm-pu-${i}" value="0" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
                   <td class="cm-total-${i}">0.00<\/td>`;
     }
     
@@ -271,7 +261,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
     }
     
     actualizarTodosLosTotales();
-    habilitarInputsOCyCM();
+    habilitarInputs();
     mostrarToast(`✅ Ítem agregado al ${moduloNombre}`, 'success');
 });
 
@@ -308,6 +298,7 @@ function agregarColumna(titulo, tipo) {
     document.querySelectorAll('.item-fila').forEach(fila => {
         const accionesCell = fila.querySelector('.acciones-cell');
         
+        // CANTIDAD
         const tdCant = document.createElement('td');
         const inputCant = document.createElement('input');
         inputCant.type = 'number';
@@ -315,9 +306,9 @@ function agregarColumna(titulo, tipo) {
         inputCant.value = '0';
         inputCant.step = 'any';
         inputCant.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
-        inputCant.setAttribute('oninput', 'actualizarTodosLosTotales()');
         tdCant.appendChild(inputCant);
         
+        // P.U.
         const tdPu = document.createElement('td');
         const inputPu = document.createElement('input');
         inputPu.type = 'number';
@@ -325,9 +316,9 @@ function agregarColumna(titulo, tipo) {
         inputPu.value = '0';
         inputPu.step = 'any';
         inputPu.style.cssText = 'width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;';
-        inputPu.setAttribute('oninput', 'actualizarTodosLosTotales()');
         tdPu.appendChild(inputPu);
         
+        // TOTAL
         const tdTotal = document.createElement('td');
         tdTotal.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
         tdTotal.innerText = '0.00';
@@ -335,6 +326,10 @@ function agregarColumna(titulo, tipo) {
         fila.insertBefore(tdTotal, accionesCell);
         fila.insertBefore(tdPu, accionesCell);
         fila.insertBefore(tdCant, accionesCell);
+        
+        // Eventos para actualizar total
+        inputCant.oninput = () => actualizarTodosLosTotales();
+        inputPu.oninput = () => actualizarTodosLosTotales();
     });
     
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
@@ -344,7 +339,7 @@ function agregarColumna(titulo, tipo) {
         }
     });
     
-    habilitarInputsOCyCM();
+    habilitarInputs();
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
 
@@ -390,7 +385,7 @@ window.eliminarModulo = function(btn) {
 };
 
 // ============================
-// EDITAR FILA (ENVIAR A BD)
+// EDITAR FILA
 // ============================
 window.editarFila = async function(btn) {
     const fila = btn.closest('tr');
@@ -403,17 +398,21 @@ window.editarFila = async function(btn) {
     const moduloPadre = fila.dataset.moduloPadre;
     const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
     
-    const numeroItem = fila.querySelector('.numero-item')?.value;
-    const descripcion = fila.querySelector('.descripcion')?.value;
-    const unidad = fila.querySelector('.unidad')?.value;
-    const cantidad = parseFloat(fila.querySelector('.cantidad')?.value) || 0;
-    const precio = parseFloat(fila.querySelector('.precio')?.value) || 0;
-    const total = parseFloat(fila.querySelector('.total-fila')?.innerText) || 0;
-    const porcentaje = parseFloat(fila.querySelector('.porcentaje')?.value) || 0;
+    const data = {
+        modulo_id: moduloNombre,
+        item_numero: fila.querySelector('.numero-item')?.value,
+        descripcion: fila.querySelector('.descripcion')?.value,
+        unidad: fila.querySelector('.unidad')?.value,
+        cantidad: parseFloat(fila.querySelector('.cantidad')?.value) || 0,
+        precio_unitario: parseFloat(fila.querySelector('.precio')?.value) || 0,
+        total: parseFloat(fila.querySelector('.total-fila')?.innerText) || 0,
+        porcentaje_incidencia: parseFloat(fila.querySelector('.porcentaje')?.value) || 0,
+        ordenesCambio: [],
+        contratosMod: []
+    };
     
-    let ocs = [];
     for (let i = 0; i < ordenCambio; i++) {
-        ocs.push({
+        data.ordenesCambio.push({
             numero: i + 1,
             cantidad: parseFloat(fila.querySelector(`.oc-cant-${i}`)?.value) || 0,
             precio: parseFloat(fila.querySelector(`.oc-pu-${i}`)?.value) || 0,
@@ -421,9 +420,8 @@ window.editarFila = async function(btn) {
         });
     }
     
-    let cms = [];
     for (let i = 0; i < contratoMod; i++) {
-        cms.push({
+        data.contratosMod.push({
             numero: i + 1,
             cantidad: parseFloat(fila.querySelector(`.cm-cant-${i}`)?.value) || 0,
             precio: parseFloat(fila.querySelector(`.cm-pu-${i}`)?.value) || 0,
@@ -435,21 +433,10 @@ window.editarFila = async function(btn) {
         const response = await fetch(`${URL_SERVIDOR}/editar-item/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                modulo_id: moduloNombre,
-                item_numero: numeroItem,
-                descripcion: descripcion,
-                unidad: unidad,
-                cantidad: cantidad,
-                precio_unitario: precio,
-                total: total,
-                ordenesCambio: ocs,
-                contratosMod: cms,
-                porcentaje_incidencia: porcentaje
-            })
+            body: JSON.stringify(data)
         });
-        const data = await response.json();
-        if (data.success) mostrarToast('✅ Actualizado', 'success');
+        const result = await response.json();
+        if (result.success) mostrarToast('✅ Actualizado', 'success');
         else mostrarToast('❌ Error', 'error');
     } catch (e) {
         mostrarToast('❌ Error de conexión', 'error');
@@ -578,19 +565,25 @@ async function guardarDatos() {
             const moduloPadre = fila.dataset.moduloPadre;
             const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloPadre}"] .modulo-nombre`)?.innerText;
             
-            const numeroItem = fila.querySelector('.numero-item')?.value;
             const descripcion = fila.querySelector('.descripcion')?.value;
-            const unidad = fila.querySelector('.unidad')?.value;
-            const cantidad = parseFloat(fila.querySelector('.cantidad')?.value) || 0;
-            const precio = parseFloat(fila.querySelector('.precio')?.value) || 0;
-            const total = parseFloat(fila.querySelector('.total-fila')?.innerText) || 0;
-            const porcentaje = parseFloat(fila.querySelector('.porcentaje')?.value) || 0;
-            
             if (!descripcion) continue;
             
-            let ocs = [];
+            const item = {
+                modulo_id: moduloNombre,
+                item_numero: fila.querySelector('.numero-item')?.value,
+                descripcion: descripcion,
+                unidad: fila.querySelector('.unidad')?.value,
+                cantidad: parseFloat(fila.querySelector('.cantidad')?.value) || 0,
+                precio_unitario: parseFloat(fila.querySelector('.precio')?.value) || 0,
+                total: parseFloat(fila.querySelector('.total-fila')?.innerText) || 0,
+                porcentaje_incidencia: parseFloat(fila.querySelector('.porcentaje')?.value) || 0,
+                ordenesCambio: [],
+                contratosMod: [],
+                id: fila.dataset.id
+            };
+            
             for (let i = 0; i < ordenCambio; i++) {
-                ocs.push({
+                item.ordenesCambio.push({
                     numero: i + 1,
                     cantidad: parseFloat(fila.querySelector(`.oc-cant-${i}`)?.value) || 0,
                     precio: parseFloat(fila.querySelector(`.oc-pu-${i}`)?.value) || 0,
@@ -598,9 +591,8 @@ async function guardarDatos() {
                 });
             }
             
-            let cms = [];
             for (let i = 0; i < contratoMod; i++) {
-                cms.push({
+                item.contratosMod.push({
                     numero: i + 1,
                     cantidad: parseFloat(fila.querySelector(`.cm-cant-${i}`)?.value) || 0,
                     precio: parseFloat(fila.querySelector(`.cm-pu-${i}`)?.value) || 0,
@@ -608,23 +600,11 @@ async function guardarDatos() {
                 });
             }
             
-            items.push({
-                modulo_id: moduloNombre,
-                item_numero: numeroItem,
-                descripcion: descripcion,
-                unidad: unidad,
-                cantidad: cantidad,
-                precio_unitario: precio,
-                total: total,
-                ordenesCambio: ocs,
-                contratosMod: cms,
-                porcentaje_incidencia: porcentaje,
-                id: fila.dataset.id
-            });
+            items.push(item);
         }
         
         if (items.length === 0) {
-            mostrarToast('⚠️ No hay datos para guardar', 'warning');
+            mostrarToast('⚠️ No hay datos', 'warning');
             return;
         }
         
@@ -640,7 +620,7 @@ async function guardarDatos() {
             mostrarToast(`✅ ${items.length} ítems guardados`, 'success');
             await cargarItems();
         } else {
-            mostrarToast('❌ Error al guardar', 'error');
+            mostrarToast('❌ Error', 'error');
         }
         
     } catch (e) {
@@ -653,7 +633,7 @@ async function guardarDatos() {
 }
 
 // ============================
-// CARGAR ÍTEMS DESDE BD
+// CARGAR ÍTEMS
 // ============================
 async function cargarItems() {
     try {
@@ -671,65 +651,66 @@ async function cargarItems() {
         tabla.innerHTML = '';
         
         if (!items || items.length === 0) {
-            console.log('No hay items para cargar');
+            console.log('No hay items');
             return;
         }
         
-        const itemsPorModulo = {};
+        // Agrupar por módulo
+        const grupos = {};
         items.forEach(item => {
-            const moduloNombre = String(item.modulo_id || 'Sin módulo').trim();
-            if (!itemsPorModulo[moduloNombre]) {
-                itemsPorModulo[moduloNombre] = [];
-            }
-            itemsPorModulo[moduloNombre].push(item);
+            const nombre = item.modulo_id || 'Sin módulo';
+            if (!grupos[nombre]) grupos[nombre] = [];
+            grupos[nombre].push(item);
         });
         
-        let moduloCounter = 1;
+        let contadorModulo = 1;
         
-        for (const [moduloNombre, itemsDelModulo] of Object.entries(itemsPorModulo)) {
+        for (const [nombreModulo, itemsGrupo] of Object.entries(grupos)) {
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-            const fm = document.createElement('tr');
-            fm.classList.add('grupo-modulo');
-            fm.dataset.moduloId = moduloCounter;
-            fm.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row">
+            
+            // Cabecera del módulo
+            const headerRow = document.createElement('tr');
+            headerRow.classList.add('grupo-modulo');
+            headerRow.dataset.moduloId = contadorModulo;
+            headerRow.innerHTML = `<td colspan="${totalColumnas}" class="modulo-row">
                 <div class="modulo-content">
                     <div style="display:flex;align-items:center;gap:10px">
-                        <span class="toggle-modulo" onclick="toggleModulo(this, ${moduloCounter})">
+                        <span class="toggle-modulo" onclick="toggleModulo(this, ${contadorModulo})">
                             <i class="fa fa-chevron-down"></i>
                         </span>
-                        <span contenteditable="true" class="modulo-nombre">${escapeHtml(moduloNombre)}</span>
+                        <span contenteditable="true" class="modulo-nombre">${escapeHtml(nombreModulo)}</span>
                         <span class="badge-items">0 ítems</span>
                     </div>
                     <div class="table-actions">
-                        <button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i><\/button>
-                        <button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i><\/button>
+                        <button class="edit-btn" onclick="editarModulo(this)"><i class="fa fa-pen"></i></button>
+                        <button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button>
                     </div>
                 </div>
-            <\/div>
-            `;
-            tabla.appendChild(fm);
+            </div>`;
+            tabla.appendChild(headerRow);
             
-            itemsDelModulo.forEach(item => {
+            // Items del módulo
+            itemsGrupo.forEach(item => {
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     const oc = ocdb.find(o => o.item_id === item.id && o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
-                                <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
+                    colOC += `<td><input type="number" class="oc-cant-${i}" value="${oc.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
+                                <td><input type="number" class="oc-pu-${i}" value="${oc.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
                               <td class="oc-total-${i}">${oc.total}<\/td>`;
                 }
                 
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
-                                <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;" oninput="actualizarTodosLosTotales()"><\/td>
+                    colCM += `<td><input type="number" class="cm-cant-${i}" value="${cm.cantidad}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
+                                <td><input type="number" class="cm-pu-${i}" value="${cm.precio}" step="any" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px; text-align:center; background:white; color:black;"><\/td>
                               <td class="cm-total-${i}">${cm.total}<\/td>`;
                 }
                 
                 const fila = document.createElement('tr');
                 fila.className = 'item-fila';
                 fila.dataset.id = item.id;
-                fila.dataset.moduloPadre = moduloCounter;
+                fila.dataset.moduloPadre = contadorModulo;
                 fila.innerHTML = `
                     <td><input type="text" class="numero-item" value="${escapeHtml(item.item_numero || '')}" placeholder="N°" style="width:60px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;"><\/td>
                     <td><input type="text" class="descripcion" value="${escapeHtml(item.descripcion || '')}" placeholder="Descripción" style="width:200px; padding:6px; border-radius:6px; border:1px solid #ccc;"><\/td>
@@ -747,34 +728,34 @@ async function cargarItems() {
                         </div>
                     <\/td>
                 `;
-                
                 tabla.appendChild(fila);
             });
             
-            const ft = document.createElement('tr');
-            ft.classList.add('total-modulo');
-            ft.dataset.moduloPadre = moduloCounter;
-            ft.innerHTML = `<td colspan="6"><strong>TOTAL MÓDULO</strong><\/td>
-                            <td class="total-modulo-valor">0.00<\/td>
-                            <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 1}"><\/td>`;
-            tabla.appendChild(ft);
+            // Total del módulo
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-modulo');
+            totalRow.dataset.moduloPadre = contadorModulo;
+            totalRow.innerHTML = `<td colspan="6"><strong>TOTAL MÓDULO</strong><\/td>
+                                  <td class="total-modulo-valor">0.00<\/td>
+                                  <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 1}"><\/td>`;
+            tabla.appendChild(totalRow);
             
-            moduloCounter++;
+            contadorModulo++;
         }
         
         actualizarTodosLosTotales();
-        habilitarInputsOCyCM();
-        moduloActual = moduloCounter;
+        habilitarInputs();
+        moduloActual = contadorModulo;
         
     } catch (e) {
-        console.error('Error cargando items:', e);
-        mostrarToast('❌ Error al cargar datos', 'error');
+        console.error('Error:', e);
+        mostrarToast('❌ Error al cargar', 'error');
     }
 }
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
+    return str.replace(/[&<>]/g, m => {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
@@ -838,5 +819,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado - Totalmente funcional');
+    console.log('🚀 Sistema cargado - P.U. funcional');
 });
