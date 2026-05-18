@@ -407,3 +407,31 @@ app.get('/ampliaciones', (req, res) => {
 ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
+/* =========================
+   GUARDAR ITEM SIMPLE (FUNCIONAL)
+========================= */
+app.post('/guardar-item-simple', (req, res) => {
+    const item = req.body;
+    
+    const sql = `INSERT INTO items (modulo_id, item_numero, descripcion, unidad, cantidad, precio_unitario, total, porcentaje_incidencia) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+    db.query(sql, [
+        item.modulo_id || 'Sin módulo',
+        item.item_numero || '',
+        item.descripcion || '',
+        item.unidad || '',
+        item.cantidad || 0,
+        item.precio_unitario || 0,
+        item.total || 0,
+        item.porcentaje_incidencia || 0
+    ], (err, result) => {
+        if (err) {
+            console.error('❌ Error insert:', err.message);
+            res.json({ success: false, error: err.message });
+        } else {
+            console.log('✅ Item guardado ID:', result.insertId);
+            res.json({ success: true, id: result.insertId });
+        }
+    });
+});
