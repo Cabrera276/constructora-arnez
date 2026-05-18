@@ -38,9 +38,9 @@
     <h1 class="titulo-reporte">REPORTE DE PLANILLAS</h1>
 
     <div class="acciones-planilla">
-        <button onclick="agregarPlanillaGeneral()" class="btn-planilla-general">➕ Añadir Planilla</button>
-        <button onclick="eliminarPlanillaGeneral()" class="btn-planilla-general btn-eliminar-planilla">🗑 Eliminar Planilla</button>
-        <button onclick="guardarPlanillas()" class="btn-planilla-general">💾 Guardar Todo</button>
+        <button onclick="agregarPlanillaGeneral()" class="btn-planilla-general">➕ Añadir</button>
+        <button onclick="eliminarPlanillaGeneral()" class="btn-planilla-general btn-eliminar-planilla">🗑 Eliminar</button>
+        <button onclick="guardarPlanillas()" class="btn-planilla-general">💾 Guardar</button>
     </div>
 
     <div class="table-container">
@@ -55,18 +55,18 @@
                     <th colspan="3" class="cm-header">CONTRATO MOD Nº1</th>
                     <th rowspan="2">% INC.</th>
                     <th rowspan="2">EVIDENCIA</th>
-                </tr>
+                 </tr>
                 <tr id="filaSecundaria">
                     <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
                     <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
                     <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
-                </tr>
+                 </tr>
             </thead>
             <tbody id="tablaReporte"></tbody>
             <tfoot>
                 <tr>
                     <td colspan="5"><strong>TOTAL CONTRATO</strong></td>
-                    <td id="totalContratoPlanilla" style="color:#00ff88;font-size:18px;">0.00</td>
+                    <td id="totalContratoPlanilla">0.00</td>
                     <td colspan="10"></td>
                 </tr>
             </tfoot>
