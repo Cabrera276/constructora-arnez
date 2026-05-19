@@ -2,7 +2,6 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 
@@ -10,12 +9,6 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
-
-// Crear carpeta uploads
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
 
 const db = mysql.createConnection({
     host: 'roundhouse.proxy.rlwy.net',
@@ -208,7 +201,7 @@ app.get('/ampliaciones', (req, res) => {
     });
 });
 
-// ===== EVIDENCIAS =====
+// ===== EVIDENCIAS CON BASE64 =====
 
 // Obtener todas las evidencias
 app.get('/evidencias', (req, res) => {
@@ -221,9 +214,9 @@ app.get('/evidencias', (req, res) => {
     });
 });
 
-// Subir evidencia
+// Subir evidencia - Guarda Base64 directamente en la BD
 app.post('/subir-evidencia', (req, res) => {
-    console.log('📸 POST /subir-evidencia');
+    console.log('📸 POST /subir-evidencia - Guardando Base64 en BD');
     
     try {
         const { item_id, descripcion, orden, imagen_base64 } = req.body;
@@ -232,30 +225,17 @@ app.post('/subir-evidencia', (req, res) => {
             return res.status(400).json({ success: false, error: 'No se recibió imagen' });
         }
         
-        const matches = imagen_base64.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches) {
-            return res.status(400).json({ success: false, error: 'Formato inválido' });
-        }
-        
-        const extension = matches[1];
-        const base64Data = matches[2];
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        const filename = `${Date.now()}-${Math.round(Math.random() * 10000)}.${extension}`;
-        const filepath = path.join(uploadDir, filename);
-        fs.writeFileSync(filepath, buffer);
-        
-        const urlImagen = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
-        
+        // Guardar el Base64 directamente en la base de datos
         db.query(
             'INSERT INTO evidencias (item_id, url_imagen, descripcion, orden, fecha_subida) VALUES (?, ?, ?, ?, NOW())',
-            [item_id, urlImagen, descripcion || '', orden || 0],
+            [item_id, imagen_base64, descripcion || '', orden || 0],
             (err, result) => {
                 if (err) {
                     console.log('Error insertando:', err.message);
                     return res.status(500).json({ success: false, error: err.message });
                 }
-                res.json({ success: true, id: result.insertId, url: urlImagen });
+                console.log('✅ Imagen guardada en BD como Base64');
+                res.json({ success: true, id: result.insertId });
             }
         );
     } catch (error) {
@@ -278,23 +258,13 @@ app.post('/actualizar-evidencia-imagen', (req, res) => {
     try {
         const { evidencia_id, imagen_base64 } = req.body;
         
-        const matches = imagen_base64.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches) {
+        if (!imagen_base64) {
             return res.status(400).json({ success: false });
         }
         
-        const extension = matches[1];
-        const buffer = Buffer.from(matches[2], 'base64');
-        
-        const filename = `${Date.now()}-${Math.round(Math.random() * 10000)}.${extension}`;
-        const filepath = path.join(uploadDir, filename);
-        fs.writeFileSync(filepath, buffer);
-        
-        const urlImagen = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
-        
-        db.query('UPDATE evidencias SET url_imagen = ?, fecha_subida = NOW() WHERE id = ?', [urlImagen, evidencia_id], (err) => {
+        db.query('UPDATE evidencias SET url_imagen = ?, fecha_subida = NOW() WHERE id = ?', [imagen_base64, evidencia_id], (err) => {
             if (err) return res.json({ success: false });
-            res.json({ success: true, url: urlImagen });
+            res.json({ success: true });
         });
     } catch (error) {
         res.json({ success: false });
@@ -304,24 +274,11 @@ app.post('/actualizar-evidencia-imagen', (req, res) => {
 // Eliminar evidencia
 app.post('/eliminar-evidencia', (req, res) => {
     const { evidencia_id } = req.body;
-    
-    db.query('SELECT url_imagen FROM evidencias WHERE id = ?', [evidencia_id], (err, result) => {
+    db.query('DELETE FROM evidencias WHERE id = ?', [evidencia_id], (err) => {
         if (err) return res.json({ success: false });
-        
-        if (result && result[0] && result[0].url_imagen) {
-            const oldFile = path.join(__dirname, 'uploads', path.basename(result[0].url_imagen));
-            if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
-        }
-        
-        db.query('DELETE FROM evidencias WHERE id = ?', [evidencia_id], (err) => {
-            if (err) return res.json({ success: false });
-            res.json({ success: true });
-        });
+        res.json({ success: true });
     });
 });
-
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Puerto
 const PORT = process.env.PORT || 3000;
