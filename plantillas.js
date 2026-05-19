@@ -58,7 +58,6 @@ async function cargarTodo() {
     descripcion: ev.descripcion || '',
     orden: ev.orden || 0
 });
-            
             });
         }
         
@@ -137,41 +136,46 @@ function renderizarTabla() {
         const precioUnitario = item.precio_unitario || 0;
         const totalContrato = item.total || 0;
         
-        for (let p = 1; p <= numeroPlanillas; p++) {
-            const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, total: 0, avance: "0%" };
-            
-            const tdCant = document.createElement('td');
-            tdCant.contentEditable = 'true';
-            tdCant.className = 'planilla-cant';
-            tdCant.textContent = guardado.cantidad;
-            tdCant.style.background = "#fff9e6";
-            
-            const tdTotal = document.createElement('td');
-            tdTotal.className = 'planilla-total';
-            tdTotal.textContent = guardado.total;
-            tdTotal.style.background = "#e8f5e9";
-            tdTotal.style.fontWeight = "bold";
-            
-            const tdAvance = document.createElement('td');
-            tdAvance.contentEditable = 'true';
-            tdAvance.className = 'planilla-avance';
-            tdAvance.textContent = guardado.avance;
-            tdAvance.style.background = "#fff9e6";
-            
-            const actualizar = () => {
-                let cant = parseFloat(tdCant.textContent) || 0;
-                let totalCalc = cant * precioUnitario;
-                tdTotal.textContent = totalCalc.toFixed(2);
-                let porcentaje = totalContrato > 0 ? (totalCalc / totalContrato) * 100 : 0;
-                tdAvance.textContent = Math.min(100, porcentaje).toFixed(1) + "%";
-                actualizarTotalGeneral();
-            };
-            
-            tdCant.addEventListener('input', actualizar);
-            fila.appendChild(tdCant);
-            fila.appendChild(tdTotal);
-            fila.appendChild(tdAvance);
-        }
+       for (let p = 1; p <= numeroPlanillas; p++) {
+    const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, total: 0 };
+    
+    // Campo CANTIDAD (editable)
+    const tdCant = document.createElement('td');
+    tdCant.contentEditable = 'true';
+    tdCant.className = 'planilla-cant';
+    tdCant.textContent = guardado.cantidad || '0';
+    tdCant.style.background = "#fff9e6";
+    
+    // Campo P.U. (editable)
+    const tdPU = document.createElement('td');
+    tdPU.contentEditable = 'true';
+    tdPU.className = 'planilla-pu';
+    tdPU.textContent = guardado.pu || '0';
+    tdPU.style.background = "#fff9e6";
+    
+    // Campo TOTAL (solo lectura, se calcula)
+    const tdTotal = document.createElement('td');
+    tdTotal.className = 'planilla-total';
+    tdTotal.textContent = guardado.total || '0';
+    tdTotal.style.background = "#e8f5e9";
+    tdTotal.style.fontWeight = "bold";
+    
+    // Función: TOTAL = CANTIDAD × P.U.
+    const actualizarTotal = () => {
+        let cant = parseFloat(tdCant.textContent) || 0;
+        let pu = parseFloat(tdPU.textContent) || 0;
+        let totalCalc = cant * pu;
+        tdTotal.textContent = totalCalc.toFixed(2);
+        actualizarTotalGeneral();
+    };
+    
+    tdCant.addEventListener('input', actualizarTotal);
+    tdPU.addEventListener('input', actualizarTotal);
+    
+    fila.appendChild(tdCant);
+    fila.appendChild(tdPU);
+    fila.appendChild(tdTotal);
+}
         
         tbody.appendChild(fila);
         renderizarEvidencias(item.id);
@@ -211,11 +215,11 @@ function renderizarCabeceras() {
         row1.appendChild(thGroup);
         
         const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
-        const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL (Bs)";
-        const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
-        row2.appendChild(thCant);
-        row2.appendChild(thTotal);
-        row2.appendChild(thAvance);
+const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
+const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
+row2.appendChild(thCant);
+row2.appendChild(thPU);
+row2.appendChild(thTotal);
     }
     
     thead.appendChild(row1);
@@ -352,7 +356,7 @@ function abrirModalEvidencia(itemId, evId) {
                 <button id="cerrarModalBtn" style="background:#e74c3c;border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;font-size:16px">✕</button>
             </div>
             <div style="padding:20px">
-                <img id="modalImg" src="${imagenUrl}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
+                <img id="modalImg" src="${evidencia.url}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
                 <textarea id="modalDescEv" rows="3" style="width:100%;padding:10px;border-radius:8px;background:#2a2a2a;color:white;border:1px solid #444;margin-bottom:15px;resize:vertical">${evidencia.descripcion || ''}</textarea>
                 <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
                     <button id="guardarDescBtn" style="background:#27ae60;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-save"></i> Guardar</button>
@@ -465,23 +469,24 @@ function agregarPlanilla() {
     row1.appendChild(thGroup);
     
     const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
-    const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL (Bs)";
-    const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
+    const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
+    const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
     row2.appendChild(thCant);
+    row2.appendChild(thPU);
     row2.appendChild(thTotal);
-    row2.appendChild(thAvance);
     
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
-        let precioUnitario = 0, totalContrato = 0;
-        const cells = fila.cells;
-        if (cells[4]) precioUnitario = parseFloat(cells[4].textContent) || 0;
-        if (cells[5]) totalContrato = parseFloat(cells[5].textContent) || 0;
-        
         const tdCant = document.createElement('td');
         tdCant.contentEditable = 'true';
         tdCant.className = 'planilla-cant';
         tdCant.textContent = '0';
         tdCant.style.background = "#fff9e6";
+        
+        const tdPU = document.createElement('td');
+        tdPU.contentEditable = 'true';
+        tdPU.className = 'planilla-pu';
+        tdPU.textContent = '0';
+        tdPU.style.background = "#fff9e6";
         
         const tdTotal = document.createElement('td');
         tdTotal.className = 'planilla-total';
@@ -489,30 +494,26 @@ function agregarPlanilla() {
         tdTotal.style.background = "#e8f5e9";
         tdTotal.style.fontWeight = "bold";
         
-        const tdAvance = document.createElement('td');
-        tdAvance.contentEditable = 'true';
-        tdAvance.className = 'planilla-avance';
-        tdAvance.textContent = '0%';
-        tdAvance.style.background = "#fff9e6";
-        
-        const actualizar = () => {
+        const actualizarTotal = () => {
             let cant = parseFloat(tdCant.textContent) || 0;
-            let totalCalc = cant * precioUnitario;
+            let pu = parseFloat(tdPU.textContent) || 0;
+            let totalCalc = cant * pu;
             tdTotal.textContent = totalCalc.toFixed(2);
-            let porc = totalContrato > 0 ? (totalCalc / totalContrato) * 100 : 0;
-            tdAvance.textContent = Math.min(100, porc).toFixed(1) + "%";
             actualizarTotalGeneral();
         };
         
-        tdCant.addEventListener('input', actualizar);
+        tdCant.addEventListener('input', actualizarTotal);
+        tdPU.addEventListener('input', actualizarTotal);
+        
         fila.appendChild(tdCant);
+        fila.appendChild(tdPU);
         fila.appendChild(tdTotal);
-        fila.appendChild(tdAvance);
     });
     
     actualizarTotalGeneral();
 }
-
+    
+   
 function eliminarPlanilla() {
     if (numeroPlanillas <= 1) {
         alert("Debe haber al menos una planilla");

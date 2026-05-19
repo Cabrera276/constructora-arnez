@@ -147,23 +147,52 @@ app.delete('/eliminar-item/:id', (req, res) => {
     });
 });
 
-// ===== PLANILLAS =====
+// ===== PLANILLAS (CORREGIDO - ACTUALIZA EN VEZ DE BORRAR TODO) =====
 app.post('/guardar-planillas', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
     
-    db.query("DELETE FROM planillas", () => {
-        const sql = "INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)";
-        let pendientes = datos.length;
-        if (pendientes === 0) return res.json({ success: true });
-        
-        datos.forEach(p => {
-            db.query(sql, [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance], (err) => {
-                if (err) console.log('Error planillas:', err.message);
-                pendientes--;
-                if (pendientes === 0) res.json({ success: true });
-            });
-        });
+    let pendientes = datos.length;
+    if (pendientes === 0) return res.json({ success: true });
+    
+    datos.forEach(p => {
+        // Verificar si ya existe el registro
+        db.query(
+            'SELECT id FROM planillas WHERE item_id = ? AND numero_planilla = ?',
+            [p.item_id, p.numero_planilla],
+            (err, result) => {
+                if (err) {
+                    console.log('Error verificando:', err);
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: false });
+                    return;
+                }
+                
+                if (result && result.length > 0) {
+                    // ACTUALIZAR si ya existe
+                    db.query(
+                        'UPDATE planillas SET cantidad = ?, total = ?, avance = ? WHERE item_id = ? AND numero_planilla = ?',
+                        [p.cantidad, p.total, p.avance, p.item_id, p.numero_planilla],
+                        (err) => {
+                            if (err) console.log('Error update:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                } else {
+                    // INSERTAR si no existe
+                    db.query(
+                        'INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)',
+                        [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance],
+                        (err) => {
+                            if (err) console.log('Error insert:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                }
+            }
+        );
     });
 });
 
