@@ -208,7 +208,7 @@ app.get('/ampliaciones', (req, res) => {
     });
 });
 
-// ===== EVIDENCIAS (usando url_imagen - TU ESTRUCTURA ACTUAL) =====
+// ===== EVIDENCIAS =====
 
 // Obtener todas las evidencias
 app.get('/evidencias', (req, res) => {
@@ -221,7 +221,7 @@ app.get('/evidencias', (req, res) => {
     });
 });
 
-// Subir evidencia (guarda archivo en carpeta uploads y guarda URL)
+// Subir evidencia
 app.post('/subir-evidencia', (req, res) => {
     console.log('📸 POST /subir-evidencia');
     
@@ -232,7 +232,6 @@ app.post('/subir-evidencia', (req, res) => {
             return res.status(400).json({ success: false, error: 'No se recibió imagen' });
         }
         
-        // Extraer extensión
         const matches = imagen_base64.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
         if (!matches) {
             return res.status(400).json({ success: false, error: 'Formato inválido' });
@@ -242,12 +241,10 @@ app.post('/subir-evidencia', (req, res) => {
         const base64Data = matches[2];
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Guardar archivo
         const filename = `${Date.now()}-${Math.round(Math.random() * 10000)}.${extension}`;
         const filepath = path.join(uploadDir, filename);
         fs.writeFileSync(filepath, buffer);
         
-        // URL pública
         const urlImagen = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
         
         db.query(

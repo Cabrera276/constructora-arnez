@@ -11,46 +11,67 @@ let planillasGuardadas = {};
 
 window.addEventListener('load', () => cargarTodo());
 
-async function cargarTodo() {
-    mostrarCargando();
+async function fetchJSON(url, defaultValue = []) {
     try {
-        const [itemsRes, ocRes, cmRes, planRes, evRes] = await Promise.all([
-            fetch(`${URL_SERVIDOR}/items`),
-            fetch(`${URL_SERVIDOR}/ordenes-cambio`).catch(() => ({ json: () => [] })),
-            fetch(`${URL_SERVIDOR}/contratos-mod`).catch(() => ({ json: () => [] })),
-            fetch(`${URL_SERVIDOR}/planillas`).catch(() => ({ json: () => [] })),
-            fetch(`${URL_SERVIDOR}/evidencias`).catch(() => ({ json: () => [] }))
+        const response = await fetch(url);
+        if (!response.ok) return defaultValue;
+        const text = await response.text();
+        if (text.trim().startsWith('<')) return defaultValue;
+        try {
+            return JSON.parse(text);
+        } catch(e) {
+            return defaultValue;
+        }
+    } catch(error) {
+        return defaultValue;
+    }
+}
+
+async function cargarTodo() {
+    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
+    
+    try {
+        const [items, ocs, cms, planillasDB, evidenciasDB] = await Promise.all([
+            fetchJSON(`${URL_SERVIDOR}/items`, []),
+            fetchJSON(`${URL_SERVIDOR}/ordenes-cambio`, []),
+            fetchJSON(`${URL_SERVIDOR}/contratos-mod`, []),
+            fetchJSON(`${URL_SERVIDOR}/planillas`, []),
+            fetchJSON(`${URL_SERVIDOR}/evidencias`, [])
         ]);
 
-        itemsData = await itemsRes.json();
-        ocData = await ocRes.json();
-        cmData = await cmRes.json();
-        const planillasDB = await planRes.json();
-        const evidenciasDB = await evRes.json();
+        itemsData = items;
+        ocData = ocs;
+        cmData = cms;
 
-        // Cargar evidencias
+        if (!itemsData.length) {
+            document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff9800;text-align:center;padding:40px">No hay items cargados. Primero agregue items en la página de ITEMS.</td></tr>`;
+            return;
+        }
+
+        evidenciasData = {};
         if (Array.isArray(evidenciasDB)) {
             evidenciasDB.forEach(ev => {
                 if (!evidenciasData[ev.item_id]) evidenciasData[ev.item_id] = [];
                 evidenciasData[ev.item_id].push({
-                    id: ev.id,
-                    url: ev.url_imagen || ev.url,
-                    descripcion: ev.descripcion || ''
-                });
+    id: ev.id,
+    url: ev.url_imagen,
+    descripcion: ev.descripcion || '',
+    orden: ev.orden || 0
+});
+            
             });
         }
         
         itemsData.forEach(item => {
             if (!evidenciasData[item.id]) evidenciasData[item.id] = [];
+            evidenciasData[item.id].sort((a, b) => (a.orden || 0) - (b.orden || 0));
         });
 
-        // Determinar número de planillas
         if (planillasDB.length > 0) {
             const maxPlan = Math.max(...planillasDB.map(p => p.numero_planilla));
             if (maxPlan > numeroPlanillas) numeroPlanillas = maxPlan;
         }
 
-        // Guardar valores de planillas
         planillasGuardadas = {};
         planillasDB.forEach(p => {
             if (!planillasGuardadas[p.item_id]) planillasGuardadas[p.item_id] = {};
@@ -64,9 +85,13 @@ async function cargarTodo() {
         renderizarTabla();
         
     } catch (error) {
-        console.error(error);
-        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:red;text-align:center">Error al cargar datos: ${error.message}</td></tr>`;
+        console.error('Error:', error);
+        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button></td></tr>`;
     }
+}
+
+function getImagenUrl(evidenciaId) {
+    return `${URL_SERVIDOR}/evidencias/imagen/${evidenciaId}`;
 }
 
 function renderizarTabla() {
@@ -77,42 +102,38 @@ function renderizarTabla() {
     let moduloActual = null;
     
     for (const item of itemsData) {
-        // Fila de módulo
         if (moduloActual !== item.modulo_id) {
             moduloActual = item.modulo_id;
             const colspan = 14 + (numeroPlanillas * 3);
             const rowModulo = document.createElement('tr');
             rowModulo.className = 'fila-modulo';
-            rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')} - ${item.modulo_nombre || ''}</td>`;
+            rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left;background:#e0e0e0">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')}${item.modulo_nombre ? ' - ' + item.modulo_nombre : ''}</td>`;
             tbody.appendChild(rowModulo);
         }
         
-        // Buscar OC y CM para este item
         const oc = ocData.find(o => o.item_id == item.id) || { cantidad: 0, precio: 0, total: 0 };
         const cm = cmData.find(c => c.item_id == item.id) || { cantidad: 0, precio: 0, total: 0 };
         
         const fila = document.createElement('tr');
         fila.setAttribute('data-item-id', item.id);
         
-        // Crear fila con datos (TODOS EN MODO SOLO LECTURA excepto % INCIDENCIA)
         fila.innerHTML = `
-            <td class="campo-solo-lectura">${item.modulo_id || ''}</td>
-            <td class="campo-solo-lectura" style="text-align:left">${item.descripcion || ''}</td>
-            <td class="campo-solo-lectura">${item.unidad || ''}</td>
-            <td class="campo-solo-lectura">${item.cantidad || 0}</td>
-            <td class="campo-solo-lectura">${item.precio_unitario || 0}</td>
-            <td class="campo-solo-lectura" style="font-weight:bold">${item.total || 0}</td>
-            <td class="campo-solo-lectura">${oc.cantidad || 0}</td>
-            <td class="campo-solo-lectura">${oc.precio || 0}</td>
-            <td class="campo-solo-lectura" style="font-weight:bold">${oc.total || 0}</td>
-            <td class="campo-solo-lectura">${cm.cantidad || 0}</td>
-            <td class="campo-solo-lectura">${cm.precio || 0}</td>
-            <td class="campo-solo-lectura" style="font-weight:bold">${cm.total || 0}</td>
-            <td class="porcentaje-incidencia" contenteditable="true">${item.porcentaje_incidencia || '0%'}</td>
-            <td class="evidencia-container" id="ev-${item.id}"></td>
+            <td style="background:#e8e8e8">${item.modulo_id || ''}</td>
+            <td style="text-align:left;background:#e8e8e8">${item.descripcion || ''}</td>
+            <td style="background:#e8e8e8">${item.unidad || ''}</td>
+            <td style="background:#e8e8e8">${item.cantidad || 0}</td>
+            <td style="background:#e8e8e8">${item.precio_unitario || 0}</td>
+            <td style="font-weight:bold;background:#e8e8e8">${item.total || 0}</td>
+            <td style="background:#e8e8e8">${oc.cantidad || 0}</td>
+            <td style="background:#e8e8e8">${oc.precio || 0}</td>
+            <td style="font-weight:bold;background:#e8e8e8">${oc.total || 0}</td>
+            <td style="background:#e8e8e8">${cm.cantidad || 0}</td>
+            <td style="background:#e8e8e8">${cm.precio || 0}</td>
+            <td style="font-weight:bold;background:#e8e8e8">${cm.total || 0}</td>
+            <td class="porcentaje-incidencia" contenteditable="true" style="background:#fff9e6;font-weight:bold;color:#e67e22">${item.porcentaje_incidencia || '0%'}</td>
+            <td class="evidencia-container" id="ev-${item.id}" style="min-width:200px;padding:5px"></td>
         `;
         
-        // Agregar celdas de planillas
         const precioUnitario = item.precio_unitario || 0;
         const totalContrato = item.total || 0;
         
@@ -123,15 +144,19 @@ function renderizarTabla() {
             tdCant.contentEditable = 'true';
             tdCant.className = 'planilla-cant';
             tdCant.textContent = guardado.cantidad;
+            tdCant.style.background = "#fff9e6";
             
             const tdTotal = document.createElement('td');
             tdTotal.className = 'planilla-total';
             tdTotal.textContent = guardado.total;
+            tdTotal.style.background = "#e8f5e9";
+            tdTotal.style.fontWeight = "bold";
             
             const tdAvance = document.createElement('td');
             tdAvance.contentEditable = 'true';
             tdAvance.className = 'planilla-avance';
             tdAvance.textContent = guardado.avance;
+            tdAvance.style.background = "#fff9e6";
             
             const actualizar = () => {
                 let cant = parseFloat(tdCant.textContent) || 0;
@@ -143,20 +168,12 @@ function renderizarTabla() {
             };
             
             tdCant.addEventListener('input', actualizar);
-            tdAvance.addEventListener('blur', function() {
-                let val = parseFloat(this.textContent);
-                if (isNaN(val)) this.textContent = "0%";
-                else if (!this.textContent.includes('%')) this.textContent = val + "%";
-            });
-            
             fila.appendChild(tdCant);
             fila.appendChild(tdTotal);
             fila.appendChild(tdAvance);
         }
         
         tbody.appendChild(fila);
-        
-        // Renderizar evidencias
         renderizarEvidencias(item.id);
     }
     
@@ -213,23 +230,39 @@ function renderizarEvidencias(itemId) {
     contenedor.innerHTML = '';
     
     const galeria = document.createElement('div');
-    galeria.className = 'galeria-evidencias';
+    galeria.style.display = 'flex';
+    galeria.style.flexWrap = 'wrap';
+    galeria.style.gap = '8px';
+    galeria.style.justifyContent = 'center';
     
     if (evidencias.length === 0) {
-        galeria.innerHTML = '<div class="sin-evidencias"><i class="fa-regular fa-image"></i><br>Sin evidencias</div>';
+        galeria.innerHTML = '<div style="color:#999;font-size:11px;text-align:center;padding:15px"><i class="fa-regular fa-image"></i><br>Sin evidencias</div>';
     } else {
         evidencias.forEach(ev => {
             const img = document.createElement('img');
             img.src = ev.url;
-            img.className = 'miniatura-ev';
+            img.style.width = '55px';
+            img.style.height = '55px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '6px';
+            img.style.cursor = 'pointer';
+            img.style.border = '2px solid #ffc400';
             img.onclick = () => abrirModalEvidencia(itemId, ev.id);
             galeria.appendChild(img);
         });
     }
     
     const btnAgregar = document.createElement('button');
-    btnAgregar.className = 'btn-agregar-ev';
     btnAgregar.innerHTML = '<i class="fa fa-plus"></i> Agregar evidencia';
+    btnAgregar.style.background = '#00b894';
+    btnAgregar.style.color = 'white';
+    btnAgregar.style.border = 'none';
+    btnAgregar.style.padding = '5px 10px';
+    btnAgregar.style.borderRadius = '15px';
+    btnAgregar.style.fontSize = '10px';
+    btnAgregar.style.cursor = 'pointer';
+    btnAgregar.style.marginTop = '8px';
+    btnAgregar.style.width = '100%';
     btnAgregar.onclick = () => agregarEvidencia(itemId);
     
     if (evidencias.length >= 4) {
@@ -240,93 +273,6 @@ function renderizarEvidencias(itemId) {
     
     contenedor.appendChild(galeria);
     contenedor.appendChild(btnAgregar);
-}
-
-function abrirModalEvidencia(itemId, evId) {
-    const evidencia = evidenciasData[itemId]?.find(e => e.id == evId);
-    if (!evidencia) return;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal-ev-modal';
-    modal.innerHTML = `
-        <div class="modal-ev-content">
-            <div class="modal-ev-header">
-                <h3><i class="fa fa-image"></i> Evidencia</h3>
-                <button onclick="this.closest('.modal-ev-modal').remove()" style="background:#e74c3c;border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer">✕</button>
-            </div>
-            <div class="modal-ev-body">
-                <img src="${evidencia.url}" class="modal-ev-img">
-                <textarea class="modal-ev-desc" rows="3" placeholder="Descripción...">${evidencia.descripcion || ''}</textarea>
-                <div class="modal-ev-buttons">
-                    <button class="modal-ev-btn btn-guardar" onclick="guardarDescripcionModal(${itemId}, ${evId})"><i class="fa fa-save"></i> Guardar</button>
-                    <button class="modal-ev-btn btn-cambiar" onclick="cambiarImagenModal(${itemId}, ${evId})"><i class="fa fa-upload"></i> Cambiar</button>
-                    <button class="modal-ev-btn btn-eliminar" onclick="eliminarEvidenciaModal(${itemId}, ${evId})"><i class="fa fa-trash"></i> Eliminar</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-function guardarDescripcionModal(itemId, evId) {
-    const modal = document.querySelector('.modal-ev-modal');
-    const textarea = modal?.querySelector('.modal-ev-desc');
-    if (textarea) {
-        const ev = evidenciasData[itemId]?.find(e => e.id == evId);
-        if (ev) ev.descripcion = textarea.value;
-        guardarEvidenciaEnBD(itemId, ev);
-        alert("✅ Descripción guardada");
-    }
-    modal?.remove();
-    renderizarEvidencias(itemId);
-}
-
-async function cambiarImagenModal(itemId, evId) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/jpeg,image/png,image/webp';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const formData = new FormData();
-        formData.append('imagen', file);
-        formData.append('item_id', itemId);
-        formData.append('evidencia_id', evId);
-        
-        try {
-            const res = await fetch(`${URL_SERVIDOR}/actualizar-evidencia-imagen`, { method: 'POST', body: formData });
-            const data = await res.json();
-            const ev = evidenciasData[itemId]?.find(e => e.id == evId);
-            if (ev) ev.url = data.url || data.url_imagen;
-            renderizarEvidencias(itemId);
-            alert("✅ Imagen cambiada");
-            document.querySelector('.modal-ev-modal')?.remove();
-        } catch(err) {
-            alert("❌ Error al cambiar imagen");
-        }
-    };
-    input.click();
-}
-
-async function eliminarEvidenciaModal(itemId, evId) {
-    if (!confirm("¿Eliminar esta evidencia permanentemente?")) return;
-    try {
-        await fetch(`${URL_SERVIDOR}/eliminar-evidencia`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ evidencia_id: evId, item_id: itemId })
-        });
-        evidenciasData[itemId] = (evidenciasData[itemId] || []).filter(e => e.id != evId);
-        renderizarEvidencias(itemId);
-        alert("✅ Evidencia eliminada");
-        document.querySelector('.modal-ev-modal')?.remove();
-    } catch(err) {
-        evidenciasData[itemId] = (evidenciasData[itemId] || []).filter(e => e.id != evId);
-        renderizarEvidencias(itemId);
-        alert("⚠️ Evidencia eliminada localmente");
-        document.querySelector('.modal-ev-modal')?.remove();
-    }
 }
 
 async function agregarEvidencia(itemId) {
@@ -343,58 +289,173 @@ async function agregarEvidencia(itemId) {
         const file = e.target.files[0];
         if (!file) return;
         
-        const formData = new FormData();
-        formData.append('imagen', file);
-        formData.append('item_id', itemId);
-        formData.append('descripcion', '');
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:#ffc400;padding:10px;border-radius:8px;z-index:9999';
+        loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Subiendo imagen...';
+        document.body.appendChild(loadingMsg);
         
         try {
-            const res = await fetch(`${URL_SERVIDOR}/subir-evidencia`, { method: 'POST', body: formData });
-            const data = await res.json();
-            const url = data.url || data.url_imagen;
-            
-            if (url) {
-                const nueva = { id: Date.now(), url: url, descripcion: '' };
-                if (!evidenciasData[itemId]) evidenciasData[itemId] = [];
-                evidenciasData[itemId].push(nueva);
-                await guardarEvidenciaEnBD(itemId, nueva);
-                renderizarEvidencias(itemId);
-                alert("✅ Imagen subida correctamente");
-            }
-        } catch(err) {
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                const nueva = { id: Date.now(), url: ev.target.result, descripcion: '' };
-                if (!evidenciasData[itemId]) evidenciasData[itemId] = [];
-                evidenciasData[itemId].push(nueva);
-                renderizarEvidencias(itemId);
-                alert("⚠️ Imagen guardada localmente");
-            };
             reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const imagenBase64 = reader.result;
+                
+                const response = await fetch(`${URL_SERVIDOR}/subir-evidencia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_id: itemId,
+                        descripcion: '',
+                        orden: evidencias.length,
+                        imagen_base64: imagenBase64
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const nuevaEvidencia = {
+                        id: data.id,
+                        descripcion: '',
+                        orden: evidencias.length
+                    };
+                    if (!evidenciasData[itemId]) evidenciasData[itemId] = [];
+                    evidenciasData[itemId].push(nuevaEvidencia);
+                    renderizarEvidencias(itemId);
+                    alert("✅ Imagen guardada en la base de datos");
+                } else {
+                    throw new Error(data.error || 'Error al guardar');
+                }
+                loadingMsg.remove();
+            };
+        } catch (error) {
+            alert("❌ Error: " + error.message);
+            loadingMsg.remove();
         }
     };
     input.click();
 }
 
-async function guardarEvidenciaEnBD(itemId, evidencia) {
-    try {
-        await fetch(`${URL_SERVIDOR}/guardar-evidencia`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: evidencia.id,
-                item_id: itemId,
-                url_imagen: evidencia.url,
-                descripcion: evidencia.descripcion
-            })
-        });
-    } catch(err) {}
+function abrirModalEvidencia(itemId, evId) {
+    const evidencia = evidenciasData[itemId]?.find(e => e.id == evId);
+    if (!evidencia) return;
+    
+    const imagenUrl = getImagenUrl(evId);
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:200000';
+    
+    modal.innerHTML = `
+        <div style="background:#1a1a1a;border-radius:16px;max-width:500px;width:90%;border:2px solid #ffc400">
+            <div style="padding:15px;background:#0d0d0d;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center">
+                <h3 style="color:#ffc400;margin:0"><i class="fa fa-image"></i> Evidencia</h3>
+                <button id="cerrarModalBtn" style="background:#e74c3c;border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;font-size:16px">✕</button>
+            </div>
+            <div style="padding:20px">
+                <img id="modalImg" src="${imagenUrl}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
+                <textarea id="modalDescEv" rows="3" style="width:100%;padding:10px;border-radius:8px;background:#2a2a2a;color:white;border:1px solid #444;margin-bottom:15px;resize:vertical">${evidencia.descripcion || ''}</textarea>
+                <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+                    <button id="guardarDescBtn" style="background:#27ae60;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-save"></i> Guardar</button>
+                    <button id="cambiarImgBtn" style="background:#f39c12;border:none;padding:8px 16px;border-radius:20px;color:black;cursor:pointer"><i class="fa fa-upload"></i> Cambiar</button>
+                    <button id="eliminarEvBtn" style="background:#e74c3c;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-trash"></i> Eliminar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('cerrarModalBtn').onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    document.getElementById('guardarDescBtn').onclick = async () => {
+        const textarea = document.getElementById('modalDescEv');
+        if (textarea) {
+            const ev = evidenciasData[itemId]?.find(e => e.id == evId);
+            if (ev) {
+                ev.descripcion = textarea.value;
+                await fetch(`${URL_SERVIDOR}/guardar-evidencia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: ev.id,
+                        item_id: itemId,
+                        descripcion: ev.descripcion,
+                        orden: ev.orden || 0
+                    })
+                });
+                alert("✅ Descripción guardada");
+            }
+        }
+        modal.remove();
+        renderizarEvidencias(itemId);
+    };
+    
+    document.getElementById('cambiarImgBtn').onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,image/webp';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const loadingMsg = document.createElement('div');
+            loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:#ffc400;padding:10px;border-radius:8px;z-index:9999';
+            loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Actualizando imagen...';
+            document.body.appendChild(loadingMsg);
+            
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const res = await fetch(`${URL_SERVIDOR}/actualizar-evidencia-imagen`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            item_id: itemId,
+                            evidencia_id: evId,
+                            imagen_base64: reader.result
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        document.getElementById('modalImg').src = getImagenUrl(evId);
+                        alert("✅ Imagen actualizada");
+                    } else {
+                        throw new Error(data.error);
+                    }
+                    loadingMsg.remove();
+                };
+            } catch (error) {
+                alert("❌ Error: " + error.message);
+                loadingMsg.remove();
+            }
+        };
+        input.click();
+    };
+    
+    document.getElementById('eliminarEvBtn').onclick = async () => {
+        if (!confirm("¿Eliminar esta evidencia permanentemente?")) return;
+        
+        try {
+            await fetch(`${URL_SERVIDOR}/eliminar-evidencia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ evidencia_id: evId, item_id: itemId })
+            });
+            evidenciasData[itemId] = (evidenciasData[itemId] || []).filter(e => e.id != evId);
+            renderizarEvidencias(itemId);
+            alert("✅ Evidencia eliminada");
+            modal.remove();
+        } catch(err) {
+            alert("❌ Error al eliminar");
+        }
+    };
 }
 
 function agregarPlanilla() {
     numeroPlanillas++;
     
-    // Agregar cabeceras
     const row1 = document.querySelector('#tablaHead tr:first-child');
     const row2 = document.querySelector('#tablaHead tr:last-child');
     
@@ -410,28 +471,29 @@ function agregarPlanilla() {
     row2.appendChild(thTotal);
     row2.appendChild(thAvance);
     
-    // Agregar celdas a cada fila
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
-        const cells = fila.cells;
         let precioUnitario = 0, totalContrato = 0;
-        for (let i = 0; i < cells.length; i++) {
-            if (i === 4) precioUnitario = parseFloat(cells[4]?.textContent) || 0;
-            if (i === 5) totalContrato = parseFloat(cells[5]?.textContent) || 0;
-        }
+        const cells = fila.cells;
+        if (cells[4]) precioUnitario = parseFloat(cells[4].textContent) || 0;
+        if (cells[5]) totalContrato = parseFloat(cells[5].textContent) || 0;
         
         const tdCant = document.createElement('td');
         tdCant.contentEditable = 'true';
         tdCant.className = 'planilla-cant';
         tdCant.textContent = '0';
+        tdCant.style.background = "#fff9e6";
         
         const tdTotal = document.createElement('td');
         tdTotal.className = 'planilla-total';
         tdTotal.textContent = '0';
+        tdTotal.style.background = "#e8f5e9";
+        tdTotal.style.fontWeight = "bold";
         
         const tdAvance = document.createElement('td');
         tdAvance.contentEditable = 'true';
         tdAvance.className = 'planilla-avance';
         tdAvance.textContent = '0%';
+        tdAvance.style.background = "#fff9e6";
         
         const actualizar = () => {
             let cant = parseFloat(tdCant.textContent) || 0;
@@ -512,10 +574,6 @@ async function guardarTodo() {
     } catch(e) {
         alert("❌ Error de conexión");
     }
-}
-
-function mostrarCargando() {
-    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
 }
 
 function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
