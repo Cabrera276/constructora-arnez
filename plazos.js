@@ -14,12 +14,17 @@ async function cargarDatos() {
         const res = await fetch(`${URL_SERVIDOR}/ampliaciones`);
         const datos = await res.json();
         if (datos.length > 0) {
+            // Limpiar tabla antes de cargar
+            const tabla = document.getElementById('tablaPlazos');
+            tabla.innerHTML = '';
+            
             datos.forEach(d => agregarFila(d));
             contador = datos.length + 1;
         }
         recalcularAcumulados();
     } catch (e) {
-        console.error('Error:', e);
+        console.error('Error al cargar:', e);
+        alert('Error al cargar los datos');
     }
 }
 
@@ -30,16 +35,31 @@ document.getElementById('btnAgregarPlazo').addEventListener('click', () => agreg
 
 function agregarFila(dato = null) {
     const tabla = document.getElementById('tablaPlazos');
-    const num = dato ? dato.id : contador;
+    // Usar el ID real de la BD o generar uno temporal negativo
+    const num = dato ? dato.id : -contador; // Negativo para identificar nuevos
     
     const fila = document.createElement('tr');
     fila.dataset.id = num;
     
+    // Formatear fechas correctamente (YYYY-MM-DD)
+    let inicioValor = '';
+    let finValor = '';
+    if (dato) {
+        if (dato.inicio) {
+            const fechaInicio = new Date(dato.inicio);
+            inicioValor = fechaInicio.toISOString().split('T')[0];
+        }
+        if (dato.fin) {
+            const fechaFin = new Date(dato.fin);
+            finValor = fechaFin.toISOString().split('T')[0];
+        }
+    }
+    
     fila.innerHTML = `
         <td>${num}</td>
         <td contenteditable="true">${dato ? dato.descripcion || '' : ''}</td>
-        <td><input type="date" class="inicio-input" value="${dato ? dato.inicio || '' : ''}"></td>
-        <td><input type="date" class="fin-input" value="${dato ? dato.fin || '' : ''}"></td>
+        <td><input type="date" class="inicio-input" value="${inicioValor}"></td>
+        <td><input type="date" class="fin-input" value="${finValor}"></td>
         <td><input type="number" class="plazo-input" value="${dato ? dato.plazo || 0 : 0}" oninput="recalcularAcumulados()"></td>
         <td class="acumulado-cell">${dato ? dato.acumulado || 0 : 0}</td>
         <td><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></td>
@@ -70,35 +90,46 @@ function recalcularAcumulados() {
 }
 
 // ============================
-// ELIMINAR FILA (CORREGIDO)
+// ELIMINAR FILA
 // ============================
 async function eliminarFila(btn) {
     const fila = btn.closest('tr');
-    const id = fila.dataset.id;
+    const id = parseInt(fila.dataset.id);
+    
+    // Si es un ID negativo (nuevo registro no guardado), solo eliminar visualmente
+    if (id < 0) {
+        fila.remove();
+        recalcularAcumulados();
+        return;
+    }
     
     if (!confirm('¿Estás seguro de eliminar esta ampliación?')) return;
     
     try {
+        console.log('Eliminando ID:', id);
         const r = await fetch(`${URL_SERVIDOR}/eliminar-ampliacion/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
         });
+        
         const data = await r.json();
+        console.log('Respuesta:', data);
         
         if (data.success) {
             fila.remove();
             recalcularAcumulados();
             alert('✅ Eliminado correctamente');
         } else {
-            alert('❌ Error al eliminar: ' + (data.message || 'Desconocido'));
+            alert('❌ Error: ' + (data.message || 'No se pudo eliminar'));
         }
     } catch (e) {
-        console.error('Error:', e);
-        alert('❌ Error de conexión');
+        console.error('Error detallado:', e);
+        alert('❌ Error de conexión: ' + e.message);
     }
 }
 
 // ============================
-// GUARDAR (CORREGIDO - ENVÍA IDs)
+// GUARDAR
 // ============================
 document.getElementById('btnGuardarPlazos').addEventListener('click', guardar);
 
@@ -106,19 +137,31 @@ async function guardar() {
     const filas = document.querySelectorAll('#tablaPlazos tr');
     const datos = [];
     
-    filas.forEach(fila => {
+    for (let fila of filas) {
         const id = parseInt(fila.dataset.id);
+        const descripcion = fila.cells[1]?.textContent.trim() || '';
+        const inicio = fila.querySelector('.inicio-input')?.value || '';
+        const fin = fila.querySelector('.fin-input')?.value || '';
+        const plazo = parseInt(fila.querySelector('.plazo-input')?.value) || 0;
+        const acumulado = parseInt(fila.querySelector('.acumulado-cell')?.textContent) || 0;
+        
+        // Solo enviar si el ID es positivo (existe en BD) o si es nuevo (negativo)
         datos.push({
-            id: id && !isNaN(id) ? id : null,
-            descripcion: fila.cells[1]?.textContent.trim() || '',
-            inicio: fila.querySelector('.inicio-input')?.value || '',
-            fin: fila.querySelector('.fin-input')?.value || '',
-            plazo: parseInt(fila.querySelector('.plazo-input')?.value) || 0,
-            acumulado: parseInt(fila.querySelector('.acumulado-cell')?.textContent) || 0
+            id: (id > 0) ? id : null,
+            descripcion: descripcion,
+            inicio: inicio,
+            fin: fin,
+            plazo: plazo,
+            acumulado: acumulado
         });
-    });
+    }
     
-    if (!datos.length) { alert('No hay datos'); return; }
+    if (!datos.length) { 
+        alert('No hay datos para guardar'); 
+        return; 
+    }
+    
+    console.log('Enviando datos:', datos);
     
     try {
         const r = await fetch(`${URL_SERVIDOR}/guardar-ampliaciones`, {
@@ -126,31 +169,54 @@ async function guardar() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        const resultado = await r.json();
-        alert(resultado.success ? '✅ Guardado correctamente' : '❌ Error al guardar');
         
-        // Recargar para actualizar IDs
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        
+        const resultado = await r.json();
+        console.log('Respuesta:', resultado);
+        
         if (resultado.success) {
+            alert('✅ Guardado correctamente');
+            // Recargar para actualizar los IDs
             location.reload();
+        } else {
+            alert('❌ Error al guardar');
         }
     } catch (e) {
-        console.error('Error:', e);
-        alert('❌ Error de conexión');
+        console.error('Error detallado:', e);
+        alert('❌ Error de conexión: ' + e.message);
     }
 }
 
 // ============================
 // CONTACTOS Y MENÚ
 // ============================
-function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
-function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
-window.addEventListener("click", function(e) { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
+function abrirContactos() { 
+    document.getElementById("modalContactos").style.display = "flex"; 
+}
+
+function cerrarContactos() { 
+    document.getElementById("modalContactos").style.display = "none"; 
+}
+
+window.addEventListener("click", function(e) { 
+    if (e.target === document.getElementById("modalContactos")) cerrarContactos(); 
+});
 
 function toggleMenu() {
-    const menu = document.querySelector('.menu'), boton = document.querySelector('.menu-hamburguesa');
+    const menu = document.querySelector('.menu'), 
+          boton = document.querySelector('.menu-hamburguesa');
     if (!menu || !boton) return;
-    menu.classList.toggle('activo'); boton.classList.toggle('activo');
+    menu.classList.toggle('activo'); 
+    boton.classList.toggle('activo');
     const icono = boton.querySelector('i');
-    if (menu.classList.contains('activo')) { icono.classList.remove('fa-bars'); icono.classList.add('fa-times'); }
-    else { icono.classList.remove('fa-times'); icono.classList.add('fa-bars'); }
+    if (menu.classList.contains('activo')) { 
+        icono.classList.remove('fa-bars'); 
+        icono.classList.add('fa-times'); 
+    } else { 
+        icono.classList.remove('fa-times'); 
+        icono.classList.add('fa-bars'); 
+    }
 }
