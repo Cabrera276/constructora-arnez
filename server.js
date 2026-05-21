@@ -147,7 +147,7 @@ app.delete('/eliminar-item/:id', (req, res) => {
     });
 });
 
-// ===== PLANILLAS (CORREGIDO - ACTUALIZA EN VEZ DE BORRAR TODO) =====
+// ===== PLANILLAS =====
 app.post('/guardar-planillas', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
@@ -156,7 +156,6 @@ app.post('/guardar-planillas', (req, res) => {
     if (pendientes === 0) return res.json({ success: true });
     
     datos.forEach(p => {
-        // Verificar si ya existe el registro
         db.query(
             'SELECT id FROM planillas WHERE item_id = ? AND numero_planilla = ?',
             [p.item_id, p.numero_planilla],
@@ -169,7 +168,6 @@ app.post('/guardar-planillas', (req, res) => {
                 }
                 
                 if (result && result.length > 0) {
-                    // ACTUALIZAR si ya existe
                     db.query(
                         'UPDATE planillas SET cantidad = ?, total = ?, avance = ? WHERE item_id = ? AND numero_planilla = ?',
                         [p.cantidad, p.total, p.avance, p.item_id, p.numero_planilla],
@@ -180,7 +178,6 @@ app.post('/guardar-planillas', (req, res) => {
                         }
                     );
                 } else {
-                    // INSERTAR si no existe
                     db.query(
                         'INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)',
                         [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance],
@@ -203,23 +200,36 @@ app.get('/planillas', (req, res) => {
     });
 });
 
-// ===== AMPLIACIONES =====
+// ===== AMPLIACIONES (CORREGIDO) =====
 app.post('/guardar-ampliaciones', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
     
-    db.query("DELETE FROM ampliaciones", () => {
-        const sql = "INSERT INTO ampliaciones (descripcion, inicio, fin, plazo, acumulado) VALUES (?, ?, ?, ?, ?)";
-        let pendientes = datos.length;
-        if (pendientes === 0) return res.json({ success: true });
-        
-        datos.forEach(d => {
-            db.query(sql, [d.descripcion, d.inicio, d.fin, d.plazo, d.acumulado], (err) => {
-                if (err) console.log('Error:', err);
-                pendientes--;
-                if (pendientes === 0) res.json({ success: true });
-            });
-        });
+    let pendientes = datos.length;
+    if (pendientes === 0) return res.json({ success: true });
+    
+    datos.forEach(d => {
+        if (d.id && d.id > 0) {
+            db.query(
+                `UPDATE ampliaciones SET descripcion = ?, inicio = ?, fin = ?, plazo = ?, acumulado = ? WHERE id = ?`,
+                [d.descripcion, d.inicio, d.fin, d.plazo, d.acumulado, d.id],
+                (err) => {
+                    if (err) console.log('Error update:', err.message);
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: true });
+                }
+            );
+        } else {
+            db.query(
+                `INSERT INTO ampliaciones (descripcion, inicio, fin, plazo, acumulado) VALUES (?, ?, ?, ?, ?)`,
+                [d.descripcion, d.inicio, d.fin, d.plazo, d.acumulado],
+                (err) => {
+                    if (err) console.log('Error insert:', err.message);
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: true });
+                }
+            );
+        }
     });
 });
 
@@ -230,9 +240,22 @@ app.get('/ampliaciones', (req, res) => {
     });
 });
 
-// ===== EVIDENCIAS CON BASE64 =====
+// ===== ELIMINAR AMPLIACIÓN POR ID (NUEVO) =====
+app.delete('/eliminar-ampliacion/:id', (req, res) => {
+    const id = req.params.id;
+    db.query("DELETE FROM ampliaciones WHERE id = ?", [id], (err, result) => {
+        if (err) {
+            console.log('Error al eliminar ampliación:', err.message);
+            return res.json({ success: false, error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.json({ success: false, message: 'No se encontró el registro' });
+        }
+        res.json({ success: true, message: 'Eliminado correctamente' });
+    });
+});
 
-// Obtener todas las evidencias
+// ===== EVIDENCIAS CON BASE64 =====
 app.get('/evidencias', (req, res) => {
     db.query('SELECT id, item_id, url_imagen, descripcion, fecha_subida, orden FROM evidencias ORDER BY orden ASC', (err, result) => {
         if (err) {
@@ -243,7 +266,6 @@ app.get('/evidencias', (req, res) => {
     });
 });
 
-// Subir evidencia - Guarda Base64 directamente en la BD
 app.post('/subir-evidencia', (req, res) => {
     console.log('📸 POST /subir-evidencia - Guardando Base64 en BD');
     
@@ -254,7 +276,6 @@ app.post('/subir-evidencia', (req, res) => {
             return res.status(400).json({ success: false, error: 'No se recibió imagen' });
         }
         
-        // Guardar el Base64 directamente en la base de datos
         db.query(
             'INSERT INTO evidencias (item_id, url_imagen, descripcion, orden, fecha_subida) VALUES (?, ?, ?, ?, NOW())',
             [item_id, imagen_base64, descripcion || '', orden || 0],
@@ -273,7 +294,6 @@ app.post('/subir-evidencia', (req, res) => {
     }
 });
 
-// Actualizar descripción
 app.post('/guardar-evidencia', (req, res) => {
     const { id, descripcion, orden } = req.body;
     db.query('UPDATE evidencias SET descripcion = ?, orden = ? WHERE id = ?', [descripcion || '', orden || 0, id], (err) => {
@@ -282,7 +302,6 @@ app.post('/guardar-evidencia', (req, res) => {
     });
 });
 
-// Actualizar imagen
 app.post('/actualizar-evidencia-imagen', (req, res) => {
     try {
         const { evidencia_id, imagen_base64 } = req.body;
@@ -300,7 +319,6 @@ app.post('/actualizar-evidencia-imagen', (req, res) => {
     }
 });
 
-// Eliminar evidencia
 app.post('/eliminar-evidencia', (req, res) => {
     const { evidencia_id } = req.body;
     db.query('DELETE FROM evidencias WHERE id = ?', [evidencia_id], (err) => {
@@ -309,6 +327,5 @@ app.post('/eliminar-evidencia', (req, res) => {
     });
 });
 
-// Puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));

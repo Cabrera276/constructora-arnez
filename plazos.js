@@ -70,15 +70,35 @@ function recalcularAcumulados() {
 }
 
 // ============================
-// ELIMINAR FILA
+// ELIMINAR FILA (CORREGIDO)
 // ============================
-function eliminarFila(btn) {
-    btn.closest('tr').remove();
-    recalcularAcumulados();
+async function eliminarFila(btn) {
+    const fila = btn.closest('tr');
+    const id = fila.dataset.id;
+    
+    if (!confirm('¿Estás seguro de eliminar esta ampliación?')) return;
+    
+    try {
+        const r = await fetch(`${URL_SERVIDOR}/eliminar-ampliacion/${id}`, {
+            method: 'DELETE'
+        });
+        const data = await r.json();
+        
+        if (data.success) {
+            fila.remove();
+            recalcularAcumulados();
+            alert('✅ Eliminado correctamente');
+        } else {
+            alert('❌ Error al eliminar: ' + (data.message || 'Desconocido'));
+        }
+    } catch (e) {
+        console.error('Error:', e);
+        alert('❌ Error de conexión');
+    }
 }
 
 // ============================
-// GUARDAR
+// GUARDAR (CORREGIDO - ENVÍA IDs)
 // ============================
 document.getElementById('btnGuardarPlazos').addEventListener('click', guardar);
 
@@ -87,7 +107,9 @@ async function guardar() {
     const datos = [];
     
     filas.forEach(fila => {
+        const id = parseInt(fila.dataset.id);
         datos.push({
+            id: id && !isNaN(id) ? id : null,
             descripcion: fila.cells[1]?.textContent.trim() || '',
             inicio: fila.querySelector('.inicio-input')?.value || '',
             fin: fila.querySelector('.fin-input')?.value || '',
@@ -104,8 +126,15 @@ async function guardar() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        alert((await r.json()).success ? '✅ Guardado' : '❌ Error');
+        const resultado = await r.json();
+        alert(resultado.success ? '✅ Guardado correctamente' : '❌ Error al guardar');
+        
+        // Recargar para actualizar IDs
+        if (resultado.success) {
+            location.reload();
+        }
     } catch (e) {
+        console.error('Error:', e);
         alert('❌ Error de conexión');
     }
 }
