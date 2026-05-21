@@ -28,7 +28,7 @@ async function fetchJSON(url, defaultValue = []) {
 }
 
 async function cargarTodo() {
-    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
+    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></table>`;
     
     try {
         const [items, ocs, cms, planillasDB, evidenciasDB] = await Promise.all([
@@ -44,7 +44,7 @@ async function cargarTodo() {
         cmData = cms;
 
         if (!itemsData.length) {
-            document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff9800;text-align:center;padding:40px">No hay items cargados. Primero agregue items en la página de ITEMS.</td></tr>`;
+            document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff9800;text-align:center;padding:40px">No hay items cargados. Primero agregue items en la página de ITEMS.`;
             return;
         }
 
@@ -53,11 +53,11 @@ async function cargarTodo() {
             evidenciasDB.forEach(ev => {
                 if (!evidenciasData[ev.item_id]) evidenciasData[ev.item_id] = [];
                 evidenciasData[ev.item_id].push({
-    id: ev.id,
-    url: ev.url_imagen,
-    descripcion: ev.descripcion || '',
-    orden: ev.orden || 0
-});
+                    id: ev.id,
+                    url: ev.url_imagen,
+                    descripcion: ev.descripcion || '',
+                    orden: ev.orden || 0
+                });
             });
         }
         
@@ -76,6 +76,7 @@ async function cargarTodo() {
             if (!planillasGuardadas[p.item_id]) planillasGuardadas[p.item_id] = {};
             planillasGuardadas[p.item_id][p.numero_planilla] = {
                 cantidad: p.cantidad || 0,
+                precio_unitario: p.precio_unitario || 0,
                 total: p.total || 0,
                 avance: p.avance || "0%"
             };
@@ -85,7 +86,7 @@ async function cargarTodo() {
         
     } catch (error) {
         console.error('Error:', error);
-        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button></td></tr>`;
+        document.getElementById('tablaBody').innerHTML = `</table><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button>`;
     }
 }
 
@@ -103,7 +104,7 @@ function renderizarTabla() {
     for (const item of itemsData) {
         if (moduloActual !== item.modulo_id) {
             moduloActual = item.modulo_id;
-            const colspan = 14 + (numeroPlanillas * 3);
+            const colspan = 10 + (numeroPlanillas * 4) + 1;
             const rowModulo = document.createElement('tr');
             rowModulo.className = 'fila-modulo';
             rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left;background:#e0e0e0">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')}${item.modulo_nombre ? ' - ' + item.modulo_nombre : ''}</td>`;
@@ -116,6 +117,7 @@ function renderizarTabla() {
         const fila = document.createElement('tr');
         fila.setAttribute('data-item-id', item.id);
         
+        // Columnas fijas (sin EVIDENCIA aquí)
         fila.innerHTML = `
             <td style="background:#e8e8e8">${item.modulo_id || ''}</td>
             <td style="text-align:left;background:#e8e8e8">${item.descripcion || ''}</td>
@@ -129,53 +131,62 @@ function renderizarTabla() {
             <td style="background:#e8e8e8">${cm.cantidad || 0}</td>
             <td style="background:#e8e8e8">${cm.precio || 0}</td>
             <td style="font-weight:bold;background:#e8e8e8">${cm.total || 0}</td>
-            <td class="porcentaje-incidencia" contenteditable="true" style="background:#fff9e6;font-weight:bold;color:#e67e22">${item.porcentaje_incidencia || '0%'}</td>
-            <td class="evidencia-container" id="ev-${item.id}" style="min-width:200px;padding:5px"></td>
         `;
         
         const precioUnitario = item.precio_unitario || 0;
         const totalContrato = item.total || 0;
         
-       for (let p = 1; p <= numeroPlanillas; p++) {
-    const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, total: 0 };
-    
-    // Campo CANTIDAD (editable)
-    const tdCant = document.createElement('td');
-    tdCant.contentEditable = 'true';
-    tdCant.className = 'planilla-cant';
-    tdCant.textContent = guardado.cantidad || '0';
-    tdCant.style.background = "#fff9e6";
-    
-    // Campo P.U. (editable)
-    const tdPU = document.createElement('td');
-    tdPU.contentEditable = 'true';
-    tdPU.className = 'planilla-pu';
-    tdPU.textContent = guardado.pu || '0';
-    tdPU.style.background = "#fff9e6";
-    
-    // Campo TOTAL (solo lectura, se calcula)
-    const tdTotal = document.createElement('td');
-    tdTotal.className = 'planilla-total';
-    tdTotal.textContent = guardado.total || '0';
-    tdTotal.style.background = "#e8f5e9";
-    tdTotal.style.fontWeight = "bold";
-    
-    // Función: TOTAL = CANTIDAD × P.U.
-    const actualizarTotal = () => {
-        let cant = parseFloat(tdCant.textContent) || 0;
-        let pu = parseFloat(tdPU.textContent) || 0;
-        let totalCalc = cant * pu;
-        tdTotal.textContent = totalCalc.toFixed(2);
-        actualizarTotalGeneral();
-    };
-    
-    tdCant.addEventListener('input', actualizarTotal);
-    tdPU.addEventListener('input', actualizarTotal);
-    
-    fila.appendChild(tdCant);
-    fila.appendChild(tdPU);
-    fila.appendChild(tdTotal);
-}
+        for (let p = 1; p <= numeroPlanillas; p++) {
+            const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, precio_unitario: 0, total: 0, avance: "0%" };
+            
+            const tdCant = document.createElement('td');
+            tdCant.contentEditable = 'true';
+            tdCant.className = 'planilla-cant';
+            tdCant.textContent = guardado.cantidad || '0';
+            tdCant.style.background = "#fff9e6";
+            
+            const tdPU = document.createElement('td');
+            tdPU.contentEditable = 'true';
+            tdPU.className = 'planilla-pu';
+            tdPU.textContent = guardado.precio_unitario || '0';
+            tdPU.style.background = "#fff9e6";
+            
+            const tdTotal = document.createElement('td');
+            tdTotal.className = 'planilla-total';
+            tdTotal.textContent = guardado.total || '0';
+            tdTotal.style.background = "#e8f5e9";
+            tdTotal.style.fontWeight = "bold";
+            
+            const tdAvance = document.createElement('td');
+            tdAvance.contentEditable = 'true';
+            tdAvance.className = 'planilla-avance';
+            tdAvance.textContent = guardado.avance || '0%';
+            tdAvance.style.background = "#fff9e6";
+            
+            const actualizarTotal = () => {
+                let cant = parseFloat(tdCant.textContent) || 0;
+                let pu = parseFloat(tdPU.textContent) || 0;
+                let totalCalc = cant * pu;
+                tdTotal.textContent = totalCalc.toFixed(2);
+                actualizarTotalGeneral();
+            };
+            
+            tdCant.addEventListener('input', actualizarTotal);
+            tdPU.addEventListener('input', actualizarTotal);
+            
+            fila.appendChild(tdCant);
+            fila.appendChild(tdPU);
+            fila.appendChild(tdTotal);
+            fila.appendChild(tdAvance);
+        }
+        
+        // EVIDENCIA al final
+        const tdEvidencia = document.createElement('td');
+        tdEvidencia.className = 'evidencia-container';
+        tdEvidencia.id = `ev-${item.id}`;
+        tdEvidencia.style.minWidth = "200px";
+        tdEvidencia.style.padding = "5px";
+        fila.appendChild(tdEvidencia);
         
         tbody.appendChild(fila);
         renderizarEvidencias(item.id);
@@ -191,6 +202,7 @@ function renderizarCabeceras() {
     const row1 = document.createElement('tr');
     const row2 = document.createElement('tr');
     
+    // Fila 1: Encabezados principales
     row1.innerHTML = `
         <th rowspan="2">MÓDULO</th>
         <th rowspan="2">DESCRIPCIÓN</th>
@@ -198,29 +210,37 @@ function renderizarCabeceras() {
         <th colspan="3">CONTRATO ORIGINAL</th>
         <th colspan="3">ORDEN CAMBIO Nº1</th>
         <th colspan="3">CONTRATO MOD Nº1</th>
-        <th rowspan="2">% INC.</th>
-        <th rowspan="2">EVIDENCIA</th>
     `;
     
+    // Fila 2: Subencabezados
     row2.innerHTML = `
         <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
         <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
         <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
     `;
     
+    // Agregar columnas de PLANILLAS
     for (let i = 1; i <= numeroPlanillas; i++) {
         const thGroup = document.createElement('th');
-        thGroup.colSpan = 3;
+        thGroup.colSpan = 4;
         thGroup.textContent = `PLANILLA Nº${i}`;
         row1.appendChild(thGroup);
         
         const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
-const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
-const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
-row2.appendChild(thCant);
-row2.appendChild(thPU);
-row2.appendChild(thTotal);
+        const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
+        const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
+        const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
+        row2.appendChild(thCant);
+        row2.appendChild(thPU);
+        row2.appendChild(thTotal);
+        row2.appendChild(thAvance);
     }
+    
+    // EVIDENCIA al final (última columna)
+    const thEvidencia = document.createElement('th');
+    thEvidencia.rowSpan = 2;
+    thEvidencia.textContent = "EVIDENCIA";
+    row1.appendChild(thEvidencia);
     
     thead.appendChild(row1);
     thead.appendChild(row2);
@@ -463,17 +483,20 @@ function agregarPlanilla() {
     const row1 = document.querySelector('#tablaHead tr:first-child');
     const row2 = document.querySelector('#tablaHead tr:last-child');
     
+    // Insertar antes de EVIDENCIA (que ahora es la última columna)
     const thGroup = document.createElement('th');
-    thGroup.colSpan = 3;
+    thGroup.colSpan = 4;
     thGroup.textContent = `PLANILLA Nº${numeroPlanillas}`;
-    row1.appendChild(thGroup);
+    row1.insertBefore(thGroup, row1.lastElementChild);
     
     const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
     const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
     const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
-    row2.appendChild(thCant);
-    row2.appendChild(thPU);
-    row2.appendChild(thTotal);
+    const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
+    row2.insertBefore(thCant, row2.lastElementChild);
+    row2.insertBefore(thPU, row2.lastElementChild);
+    row2.insertBefore(thTotal, row2.lastElementChild);
+    row2.insertBefore(thAvance, row2.lastElementChild);
     
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
         const tdCant = document.createElement('td');
@@ -494,6 +517,12 @@ function agregarPlanilla() {
         tdTotal.style.background = "#e8f5e9";
         tdTotal.style.fontWeight = "bold";
         
+        const tdAvance = document.createElement('td');
+        tdAvance.contentEditable = 'true';
+        tdAvance.className = 'planilla-avance';
+        tdAvance.textContent = '0%';
+        tdAvance.style.background = "#fff9e6";
+        
         const actualizarTotal = () => {
             let cant = parseFloat(tdCant.textContent) || 0;
             let pu = parseFloat(tdPU.textContent) || 0;
@@ -505,15 +534,17 @@ function agregarPlanilla() {
         tdCant.addEventListener('input', actualizarTotal);
         tdPU.addEventListener('input', actualizarTotal);
         
-        fila.appendChild(tdCant);
-        fila.appendChild(tdPU);
-        fila.appendChild(tdTotal);
+        // Insertar antes de EVIDENCIA (última celda)
+        const evidenciaCelda = fila.lastElementChild;
+        fila.insertBefore(tdCant, evidenciaCelda);
+        fila.insertBefore(tdPU, evidenciaCelda);
+        fila.insertBefore(tdTotal, evidenciaCelda);
+        fila.insertBefore(tdAvance, evidenciaCelda);
     });
     
     actualizarTotalGeneral();
 }
-    
-   
+
 function eliminarPlanilla() {
     if (numeroPlanillas <= 1) {
         alert("Debe haber al menos una planilla");
@@ -523,11 +554,17 @@ function eliminarPlanilla() {
     const row1 = document.querySelector('#tablaHead tr:first-child');
     const row2 = document.querySelector('#tablaHead tr:last-child');
     
-    row1.removeChild(row1.lastElementChild);
-    for (let i = 0; i < 3; i++) row2.removeChild(row2.lastElementChild);
+    // Eliminar última planilla antes de EVIDENCIA
+    row1.removeChild(row1.children[row1.children.length - 2]);
+    for (let i = 0; i < 4; i++) {
+        row2.removeChild(row2.children[row2.children.length - 2]);
+    }
     
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
-        for (let i = 0; i < 3; i++) fila.removeChild(fila.lastElementChild);
+        const evidenciaCelda = fila.lastElementChild;
+        for (let i = 0; i < 4; i++) {
+            fila.removeChild(evidenciaCelda.previousElementSibling);
+        }
     });
     
     numeroPlanillas--;
@@ -540,23 +577,24 @@ function actualizarTotalGeneral() {
         total += parseFloat(td.textContent) || 0;
     });
     const tfoot = document.getElementById('tablaFoot');
-    tfoot.innerHTML = `<tr><td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td><td style="background:#ffc400;font-weight:bold;font-size:16px">${total.toFixed(2)}</td><td colspan="10"></td></tr>`;
+    tfoot.innerHTML = `<tr><td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td><td style="background:#ffc400;font-weight:bold;font-size:16px">${total.toFixed(2)}<td colspan="10">`;
 }
 
 async function guardarTodo() {
     const datos = [];
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
         const itemId = parseInt(fila.getAttribute('data-item-id'));
-        const celdas = Array.from(fila.querySelectorAll('.planilla-cant, .planilla-total, .planilla-avance'));
+        const celdas = Array.from(fila.querySelectorAll('.planilla-cant, .planilla-pu, .planilla-total, .planilla-avance'));
         for (let p = 1; p <= numeroPlanillas; p++) {
-            const idx = (p - 1) * 3;
+            const idx = (p - 1) * 4;
             if (celdas[idx]) {
                 datos.push({
                     numero_planilla: p,
                     item_id: itemId,
                     cantidad: parseFloat(celdas[idx].textContent) || 0,
-                    total: parseFloat(celdas[idx + 1].textContent) || 0,
-                    avance: celdas[idx + 2]?.textContent || '0%'
+                    precio_unitario: parseFloat(celdas[idx + 1].textContent) || 0,
+                    total: parseFloat(celdas[idx + 2].textContent) || 0,
+                    avance: celdas[idx + 3]?.textContent || '0%'
                 });
             }
         }
