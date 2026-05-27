@@ -1,8 +1,48 @@
 const usuario = localStorage.getItem("usuario");
+const usuarioRol = localStorage.getItem("usuarioRol");
+
 if (!usuario) window.location.replace("index.html");
 
 const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
 let contador = 1;
+
+// ============================
+// MODO LECTURA - OCULTAR BOTONES
+// ============================
+function aplicarModoLectura() {
+    if (usuarioRol === 'lectura') {
+        // Ocultar botón de agregar
+        const btnAgregar = document.getElementById('btnAgregarPlazo');
+        if (btnAgregar) btnAgregar.style.display = 'none';
+        
+        // Ocultar botón de guardar
+        const btnGuardar = document.getElementById('btnGuardarPlazos');
+        if (btnGuardar) btnGuardar.style.display = 'none';
+        
+        // Hacer celdas no editables
+        const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
+        celdasEditables.forEach(celda => {
+            celda.setAttribute('contenteditable', 'false');
+            celda.style.backgroundColor = '#f0f0f0';
+        });
+        
+        // Deshabilitar inputs de fecha y plazo
+        const inputs = document.querySelectorAll('.inicio-input, .fin-input, .plazo-input');
+        inputs.forEach(input => {
+            input.disabled = true;
+            input.style.backgroundColor = '#f0f0f0';
+            input.style.cursor = 'not-allowed';
+        });
+        
+        // Ocultar botones de eliminar
+        const btnsEliminar = document.querySelectorAll('.delete-btn');
+        btnsEliminar.forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        console.log('🔒 Modo lectura activado en Plazos');
+    }
+}
 
 // ============================
 // CARGAR DATOS
@@ -22,6 +62,10 @@ async function cargarDatos() {
             contador = datos.length + 1;
         }
         recalcularAcumulados();
+        
+        // Aplicar modo lectura después de cargar los datos
+        aplicarModoLectura();
+        
     } catch (e) {
         console.error('Error al cargar:', e);
         alert('Error al cargar los datos');
@@ -93,6 +137,12 @@ function recalcularAcumulados() {
 // ELIMINAR FILA
 // ============================
 async function eliminarFila(btn) {
+    // Si es usuario de lectura, no permitir
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede eliminar.");
+        return;
+    }
+    
     const fila = btn.closest('tr');
     const id = parseInt(fila.dataset.id);
     
@@ -134,6 +184,12 @@ async function eliminarFila(btn) {
 document.getElementById('btnGuardarPlazos').addEventListener('click', guardar);
 
 async function guardar() {
+    // Si es usuario de lectura, no permitir
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede guardar cambios.");
+        return;
+    }
+    
     const filas = document.querySelectorAll('#tablaPlazos tr');
     const datos = [];
     
