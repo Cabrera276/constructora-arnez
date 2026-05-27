@@ -28,7 +28,7 @@ async function fetchJSON(url, defaultValue = []) {
 }
 
 async function cargarTodo() {
-    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></table>`;
+    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
     
     try {
         const [items, ocs, cms, planillasDB, evidenciasDB] = await Promise.all([
@@ -86,7 +86,7 @@ async function cargarTodo() {
         
     } catch (error) {
         console.error('Error:', error);
-        document.getElementById('tablaBody').innerHTML = `</table><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button>`;
+        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button>`;
     }
 }
 
@@ -104,20 +104,17 @@ function renderizarTabla() {
     for (const item of itemsData) {
         if (moduloActual !== item.modulo_id) {
             moduloActual = item.modulo_id;
-            const colspan = 10 + (numeroPlanillas * 4) + 1;
+            const colspan = 4 + (numeroPlanillas * 4) + 1;
             const rowModulo = document.createElement('tr');
             rowModulo.className = 'fila-modulo';
             rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left;background:#e0e0e0">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')}${item.modulo_nombre ? ' - ' + item.modulo_nombre : ''}</td>`;
             tbody.appendChild(rowModulo);
         }
         
-        const oc = ocData.find(o => o.item_id == item.id) || { cantidad: 0, precio: 0, total: 0 };
-        const cm = cmData.find(c => c.item_id == item.id) || { cantidad: 0, precio: 0, total: 0 };
-        
         const fila = document.createElement('tr');
         fila.setAttribute('data-item-id', item.id);
         
-        // Columnas fijas (sin EVIDENCIA aquí)
+        // Columnas fijas: MÓDULO, DESCRIPCIÓN, UNID, CONTRATO ORIGINAL (3 columnas)
         fila.innerHTML = `
             <td style="background:#e8e8e8">${item.modulo_id || ''}</td>
             <td style="text-align:left;background:#e8e8e8">${item.descripcion || ''}</td>
@@ -125,12 +122,6 @@ function renderizarTabla() {
             <td style="background:#e8e8e8">${item.cantidad || 0}</td>
             <td style="background:#e8e8e8">${item.precio_unitario || 0}</td>
             <td style="font-weight:bold;background:#e8e8e8">${item.total || 0}</td>
-            <td style="background:#e8e8e8">${oc.cantidad || 0}</td>
-            <td style="background:#e8e8e8">${oc.precio || 0}</td>
-            <td style="font-weight:bold;background:#e8e8e8">${oc.total || 0}</td>
-            <td style="background:#e8e8e8">${cm.cantidad || 0}</td>
-            <td style="background:#e8e8e8">${cm.precio || 0}</td>
-            <td style="font-weight:bold;background:#e8e8e8">${cm.total || 0}</td>
         `;
         
         const precioUnitario = item.precio_unitario || 0;
@@ -202,20 +193,16 @@ function renderizarCabeceras() {
     const row1 = document.createElement('tr');
     const row2 = document.createElement('tr');
     
-    // Fila 1: Encabezados principales
+    // Fila 1: Encabezados principales (solo CONTRATO ORIGINAL)
     row1.innerHTML = `
         <th rowspan="2">MÓDULO</th>
         <th rowspan="2">DESCRIPCIÓN</th>
         <th rowspan="2">UNID.</th>
         <th colspan="3">CONTRATO ORIGINAL</th>
-        <th colspan="3">ORDEN CAMBIO Nº1</th>
-        <th colspan="3">CONTRATO MOD Nº1</th>
     `;
     
-    // Fila 2: Subencabezados
+    // Fila 2: Subencabezados de CONTRATO ORIGINAL
     row2.innerHTML = `
-        <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
-        <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
         <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
     `;
     
