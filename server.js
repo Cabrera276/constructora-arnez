@@ -31,7 +31,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ===== LOGIN =====
+// ===== LOGIN (MODIFICADO - incluye rol) =====
 app.post('/login', (req, res) => {
     const { usuario, password } = req.body;
     if (!usuario || !password) {
@@ -40,7 +40,14 @@ app.post('/login', (req, res) => {
     db.query("SELECT * FROM usuarios WHERE usuario = ? AND password = ?", [usuario, password], (err, result) => {
         if (err) return res.status(500).json({ success: false });
         if (result.length > 0) {
-            res.json({ success: true, usuario: { id: result[0].id, usuario: result[0].usuario } });
+            res.json({ 
+                success: true, 
+                usuario: { 
+                    id: result[0].id, 
+                    usuario: result[0].usuario,
+                    rol: result[0].rol || 'lectura'
+                } 
+            });
         } else {
             res.json({ success: false, mensaje: 'Credenciales incorrectas' });
         }
@@ -169,8 +176,8 @@ app.post('/guardar-planillas', (req, res) => {
                 
                 if (result && result.length > 0) {
                     db.query(
-                        'UPDATE planillas SET cantidad = ?, total = ?, avance = ? WHERE item_id = ? AND numero_planilla = ?',
-                        [p.cantidad, p.total, p.avance, p.item_id, p.numero_planilla],
+                        'UPDATE planillas SET cantidad = ?, precio_unitario = ?, total = ?, avance = ? WHERE item_id = ? AND numero_planilla = ?',
+                        [p.cantidad, p.precio_unitario, p.total, p.avance, p.item_id, p.numero_planilla],
                         (err) => {
                             if (err) console.log('Error update:', err.message);
                             pendientes--;
@@ -179,8 +186,8 @@ app.post('/guardar-planillas', (req, res) => {
                     );
                 } else {
                     db.query(
-                        'INSERT INTO planillas (numero_planilla, item_id, cantidad, total, avance) VALUES (?, ?, ?, ?, ?)',
-                        [p.numero_planilla, p.item_id, p.cantidad, p.total, p.avance],
+                        'INSERT INTO planillas (numero_planilla, item_id, cantidad, precio_unitario, total, avance) VALUES (?, ?, ?, ?, ?, ?)',
+                        [p.numero_planilla, p.item_id, p.cantidad, p.precio_unitario, p.total, p.avance],
                         (err) => {
                             if (err) console.log('Error insert:', err.message);
                             pendientes--;
@@ -200,7 +207,7 @@ app.get('/planillas', (req, res) => {
     });
 });
 
-// ===== AMPLIACIONES (CORREGIDO) =====
+// ===== AMPLIACIONES =====
 app.post('/guardar-ampliaciones', (req, res) => {
     const datos = req.body;
     if (!Array.isArray(datos)) return res.json({ success: false });
@@ -240,7 +247,6 @@ app.get('/ampliaciones', (req, res) => {
     });
 });
 
-// ===== ELIMINAR AMPLIACIÓN POR ID (NUEVO) =====
 app.delete('/eliminar-ampliacion/:id', (req, res) => {
     const id = req.params.id;
     db.query("DELETE FROM ampliaciones WHERE id = ?", [id], (err, result) => {
@@ -255,7 +261,7 @@ app.delete('/eliminar-ampliacion/:id', (req, res) => {
     });
 });
 
-// ===== EVIDENCIAS CON BASE64 =====
+// ===== EVIDENCIAS =====
 app.get('/evidencias', (req, res) => {
     db.query('SELECT id, item_id, url_imagen, descripcion, fecha_subida, orden FROM evidencias ORDER BY orden ASC', (err, result) => {
         if (err) {

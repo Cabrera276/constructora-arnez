@@ -1,4 +1,6 @@
 const usuario = localStorage.getItem("usuario");
+const usuarioRol = localStorage.getItem("usuarioRol");
+
 if (!usuario) window.location.replace("index.html");
 
 const URL_SERVIDOR = "https://constructora-arnez.onrender.com";
@@ -28,7 +30,7 @@ async function fetchJSON(url, defaultValue = []) {
 }
 
 async function cargarTodo() {
-    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
+    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></table>`;
     
     try {
         const [items, ocs, cms, planillasDB, evidenciasDB] = await Promise.all([
@@ -84,10 +86,41 @@ async function cargarTodo() {
 
         renderizarTabla();
         
+        // Deshabilitar edición si es usuario de solo lectura
+        if (usuarioRol === 'lectura') {
+            deshabilitarEdicion();
+        }
+        
     } catch (error) {
         console.error('Error:', error);
         document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button>`;
     }
+}
+
+// Función para deshabilitar edición en modo lectura
+function deshabilitarEdicion() {
+    // Deshabilitar botones
+    const botones = document.querySelectorAll('.btn-planilla-general');
+    botones.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
+    
+    // Deshabilitar celdas editables
+    const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
+    celdasEditables.forEach(celda => {
+        celda.setAttribute('contenteditable', 'false');
+        celda.style.backgroundColor = '#f0f0f0';
+    });
+    
+    // Deshabilitar botón de agregar evidencia
+    const botonesEvidencia = document.querySelectorAll('.btn-agregar-evidencia');
+    botonesEvidencia.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
 }
 
 function getImagenUrl(evidenciaId) {
@@ -114,7 +147,6 @@ function renderizarTabla() {
         const fila = document.createElement('tr');
         fila.setAttribute('data-item-id', item.id);
         
-        // Columnas fijas: MÓDULO, DESCRIPCIÓN, UNID, CONTRATO ORIGINAL (3 columnas)
         fila.innerHTML = `
             <td style="background:#e8e8e8">${item.modulo_id || ''}</td>
             <td style="text-align:left;background:#e8e8e8">${item.descripcion || ''}</td>
@@ -171,7 +203,6 @@ function renderizarTabla() {
             fila.appendChild(tdAvance);
         }
         
-        // EVIDENCIA al final
         const tdEvidencia = document.createElement('td');
         tdEvidencia.className = 'evidencia-container';
         tdEvidencia.id = `ev-${item.id}`;
@@ -193,7 +224,6 @@ function renderizarCabeceras() {
     const row1 = document.createElement('tr');
     const row2 = document.createElement('tr');
     
-    // Fila 1: Encabezados principales (solo CONTRATO ORIGINAL)
     row1.innerHTML = `
         <th rowspan="2">MÓDULO</th>
         <th rowspan="2">DESCRIPCIÓN</th>
@@ -201,12 +231,10 @@ function renderizarCabeceras() {
         <th colspan="3">CONTRATO ORIGINAL</th>
     `;
     
-    // Fila 2: Subencabezados de CONTRATO ORIGINAL
     row2.innerHTML = `
         <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
     `;
     
-    // Agregar columnas de PLANILLAS
     for (let i = 1; i <= numeroPlanillas; i++) {
         const thGroup = document.createElement('th');
         thGroup.colSpan = 4;
@@ -223,7 +251,6 @@ function renderizarCabeceras() {
         row2.appendChild(thAvance);
     }
     
-    // EVIDENCIA al final (última columna)
     const thEvidencia = document.createElement('th');
     thEvidencia.rowSpan = 2;
     thEvidencia.textContent = "EVIDENCIA";
@@ -284,9 +311,22 @@ function renderizarEvidencias(itemId) {
     
     contenedor.appendChild(galeria);
     contenedor.appendChild(btnAgregar);
+    
+    // Si es usuario de lectura, deshabilitar botón de agregar evidencia
+    if (usuarioRol === 'lectura') {
+        btnAgregar.disabled = true;
+        btnAgregar.style.opacity = '0.5';
+        btnAgregar.style.cursor = 'not-allowed';
+    }
 }
 
 async function agregarEvidencia(itemId) {
+    // Si es usuario de lectura, no permitir
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede agregar evidencias.");
+        return;
+    }
+    
     const evidencias = evidenciasData[itemId] || [];
     if (evidencias.length >= 4) {
         alert("⚠️ Máximo 4 imágenes por ítem");
@@ -364,7 +404,7 @@ function abrirModalEvidencia(itemId, evId) {
             </div>
             <div style="padding:20px">
                 <img id="modalImg" src="${evidencia.url}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
-                <textarea id="modalDescEv" rows="3" style="width:100%;padding:10px;border-radius:8px;background:#2a2a2a;color:white;border:1px solid #444;margin-bottom:15px;resize:vertical">${evidencia.descripcion || ''}</textarea>
+                <textarea id="modalDescEv" rows="3" style="width:100%;padding:10px;border-radius:8px;background:#2a2a2a;color:white;border:1px solid #444;margin-bottom:15px;resize:vertical" ${usuarioRol === 'lectura' ? 'disabled' : ''}>${evidencia.descripcion || ''}</textarea>
                 <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
                     <button id="guardarDescBtn" style="background:#27ae60;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-save"></i> Guardar</button>
                     <button id="cambiarImgBtn" style="background:#f39c12;border:none;padding:8px 16px;border-radius:20px;color:black;cursor:pointer"><i class="fa fa-upload"></i> Cambiar</button>
@@ -376,10 +416,27 @@ function abrirModalEvidencia(itemId, evId) {
     
     document.body.appendChild(modal);
     
+    // Si es usuario de lectura, deshabilitar botones de edición en el modal
+    if (usuarioRol === 'lectura') {
+        const guardarBtn = document.getElementById('guardarDescBtn');
+        const cambiarBtn = document.getElementById('cambiarImgBtn');
+        const eliminarBtn = document.getElementById('eliminarEvBtn');
+        if (guardarBtn) guardarBtn.disabled = true;
+        if (cambiarBtn) cambiarBtn.disabled = true;
+        if (eliminarBtn) eliminarBtn.disabled = true;
+        guardarBtn.style.opacity = '0.5';
+        cambiarBtn.style.opacity = '0.5';
+        eliminarBtn.style.opacity = '0.5';
+    }
+    
     document.getElementById('cerrarModalBtn').onclick = () => modal.remove();
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     document.getElementById('guardarDescBtn').onclick = async () => {
+        if (usuarioRol === 'lectura') {
+            alert("⚠️ Usuario de solo lectura. No puede modificar.");
+            return;
+        }
         const textarea = document.getElementById('modalDescEv');
         if (textarea) {
             const ev = evidenciasData[itemId]?.find(e => e.id == evId);
@@ -403,6 +460,10 @@ function abrirModalEvidencia(itemId, evId) {
     };
     
     document.getElementById('cambiarImgBtn').onclick = () => {
+        if (usuarioRol === 'lectura') {
+            alert("⚠️ Usuario de solo lectura. No puede modificar.");
+            return;
+        }
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/jpeg,image/png,image/webp';
@@ -446,6 +507,10 @@ function abrirModalEvidencia(itemId, evId) {
     };
     
     document.getElementById('eliminarEvBtn').onclick = async () => {
+        if (usuarioRol === 'lectura') {
+            alert("⚠️ Usuario de solo lectura. No puede modificar.");
+            return;
+        }
         if (!confirm("¿Eliminar esta evidencia permanentemente?")) return;
         
         try {
@@ -465,12 +530,16 @@ function abrirModalEvidencia(itemId, evId) {
 }
 
 function agregarPlanilla() {
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede agregar planillas.");
+        return;
+    }
+    
     numeroPlanillas++;
     
     const row1 = document.querySelector('#tablaHead tr:first-child');
     const row2 = document.querySelector('#tablaHead tr:last-child');
     
-    // Insertar antes de EVIDENCIA (que ahora es la última columna)
     const thGroup = document.createElement('th');
     thGroup.colSpan = 4;
     thGroup.textContent = `PLANILLA Nº${numeroPlanillas}`;
@@ -521,7 +590,6 @@ function agregarPlanilla() {
         tdCant.addEventListener('input', actualizarTotal);
         tdPU.addEventListener('input', actualizarTotal);
         
-        // Insertar antes de EVIDENCIA (última celda)
         const evidenciaCelda = fila.lastElementChild;
         fila.insertBefore(tdCant, evidenciaCelda);
         fila.insertBefore(tdPU, evidenciaCelda);
@@ -533,6 +601,11 @@ function agregarPlanilla() {
 }
 
 function eliminarPlanilla() {
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede eliminar planillas.");
+        return;
+    }
+    
     if (numeroPlanillas <= 1) {
         alert("Debe haber al menos una planilla");
         return;
@@ -541,7 +614,6 @@ function eliminarPlanilla() {
     const row1 = document.querySelector('#tablaHead tr:first-child');
     const row2 = document.querySelector('#tablaHead tr:last-child');
     
-    // Eliminar última planilla antes de EVIDENCIA
     row1.removeChild(row1.children[row1.children.length - 2]);
     for (let i = 0; i < 4; i++) {
         row2.removeChild(row2.children[row2.children.length - 2]);
@@ -568,6 +640,11 @@ function actualizarTotalGeneral() {
 }
 
 async function guardarTodo() {
+    if (usuarioRol === 'lectura') {
+        alert("⚠️ Usuario de solo lectura. No puede guardar cambios.");
+        return;
+    }
+    
     const datos = [];
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
         const itemId = parseInt(fila.getAttribute('data-item-id'));

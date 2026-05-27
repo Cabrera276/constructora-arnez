@@ -38,6 +38,7 @@ async function iniciarSesion() {
         if (data.success) {
             // Guardar usuario en localStorage
             localStorage.setItem("usuario", JSON.stringify(data.usuario));
+            localStorage.setItem("usuarioRol", data.usuario.rol || 'lectura');
             
             // Redireccionar
             window.location.href = "inicio.html";
@@ -93,4 +94,3 @@ document.addEventListener('keypress', function(e) {
         iniciarSesion();
     }
 });
-
