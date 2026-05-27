@@ -30,7 +30,7 @@ async function fetchJSON(url, defaultValue = []) {
 }
 
 async function cargarTodo() {
-    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></table>`;
+    document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="text-align:center;padding:40px"><i class="fa fa-spinner fa-spin"></i> Cargando datos...</td></tr>`;
     
     try {
         const [items, ocs, cms, planillasDB, evidenciasDB] = await Promise.all([
@@ -86,10 +86,8 @@ async function cargarTodo() {
 
         renderizarTabla();
         
-        // Deshabilitar edición si es usuario de solo lectura
-        if (usuarioRol === 'lectura') {
-            deshabilitarEdicion();
-        }
+        // Aplicar modo lectura si es necesario
+        aplicarModoLectura();
         
     } catch (error) {
         console.error('Error:', error);
@@ -97,30 +95,32 @@ async function cargarTodo() {
     }
 }
 
-// Función para deshabilitar edición en modo lectura
-function deshabilitarEdicion() {
-    // Deshabilitar botones
-    const botones = document.querySelectorAll('.btn-planilla-general');
-    botones.forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
-    });
-    
-    // Deshabilitar celdas editables
-    const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
-    celdasEditables.forEach(celda => {
-        celda.setAttribute('contenteditable', 'false');
-        celda.style.backgroundColor = '#f0f0f0';
-    });
-    
-    // Deshabilitar botón de agregar evidencia
-    const botonesEvidencia = document.querySelectorAll('.btn-agregar-evidencia');
-    botonesEvidencia.forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
-    });
+// ============================
+// MODO LECTURA - OCULTAR BOTONES
+// ============================
+function aplicarModoLectura() {
+    if (usuarioRol === 'lectura') {
+        // Ocultar botones principales
+        const botones = document.querySelectorAll('.btn-planilla-general');
+        botones.forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        // Hacer celdas no editables
+        const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
+        celdasEditables.forEach(celda => {
+            celda.setAttribute('contenteditable', 'false');
+            celda.style.backgroundColor = '#f0f0f0';
+        });
+        
+        // Ocultar botón de agregar evidencia
+        const botonesEvidencia = document.querySelectorAll('.btn-agregar-evidencia');
+        botonesEvidencia.forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        console.log('🔒 Modo lectura activado en Planillas');
+    }
 }
 
 function getImagenUrl(evidenciaId) {
@@ -311,13 +311,6 @@ function renderizarEvidencias(itemId) {
     
     contenedor.appendChild(galeria);
     contenedor.appendChild(btnAgregar);
-    
-    // Si es usuario de lectura, deshabilitar botón de agregar evidencia
-    if (usuarioRol === 'lectura') {
-        btnAgregar.disabled = true;
-        btnAgregar.style.opacity = '0.5';
-        btnAgregar.style.cursor = 'not-allowed';
-    }
 }
 
 async function agregarEvidencia(itemId) {
@@ -636,7 +629,7 @@ function actualizarTotalGeneral() {
         total += parseFloat(td.textContent) || 0;
     });
     const tfoot = document.getElementById('tablaFoot');
-    tfoot.innerHTML = `<tr><td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td><td style="background:#ffc400;font-weight:bold;font-size:16px">${total.toFixed(2)}<td colspan="10">`;
+    tfoot.innerHTML = `<td><td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td><td style="background:#ffc400;font-weight:bold;font-size:16px">${total.toFixed(2)}<td colspan="10">`;
 }
 
 async function guardarTodo() {

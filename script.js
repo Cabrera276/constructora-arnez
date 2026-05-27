@@ -160,6 +160,53 @@ function actualizarContadores() {
 }
 
 // ============================
+// MODO LECTURA - OCULTAR BOTONES
+// ============================
+function aplicarModoLectura() {
+    const usuarioRol = localStorage.getItem("usuarioRol");
+    
+    if (usuarioRol === 'lectura') {
+        // Ocultar botones de acción por ID
+        const botonesOcultar = [
+            'btnModulo',      // Añadir Módulo
+            'btnItem',        // Añadir Ítem
+            'btnOC',          // Añadir Orden Cambio
+            'btnCM',          // Añadir Contrato Mod.
+            'btnGuardar',     // Guardar Datos
+            'btnEliminarOC',  // Eliminar OC
+            'btnEliminarCM'   // Eliminar CM
+        ];
+        
+        botonesOcultar.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.style.display = 'none';
+        });
+        
+        // Hacer celdas no editables
+        document.querySelectorAll('#tablaItems td[contenteditable="true"]').forEach(celda => {
+            celda.setAttribute('contenteditable', 'false');
+            celda.style.backgroundColor = '#f0f0f0';
+        });
+        
+        // Ocultar botones de editar/eliminar en filas
+        document.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        // Deshabilitar edición de nombres de módulo
+        document.querySelectorAll('.modulo-nombre').forEach(modulo => {
+            modulo.setAttribute('contenteditable', 'false');
+        });
+        
+        // Ocultar botones de editar/eliminar módulo
+        document.querySelectorAll('.grupo-modulo .edit-btn, .grupo-modulo .delete-btn').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        console.log('🔒 Modo lectura activado en Items');
+    }
+}
+// ============================
 // AÑADIR MÓDULO
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
@@ -225,7 +272,7 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (VERSIÓN QUE FUNCIONA)
+// AÑADIR ÍTEM
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -251,14 +298,14 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
     
-   let colOC = '';
-for (let i = 0; i < ordenCambio; i++) {
-    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
-}
-let colCM = '';
-for (let i = 0; i < contratoMod; i++) {
-    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
-}
+    let colOC = '';
+    for (let i = 0; i < ordenCambio; i++) {
+        colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+    }
+    let colCM = '';
+    for (let i = 0; i < contratoMod; i++) {
+        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+    }
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
@@ -321,7 +368,7 @@ function agregarGrupo(titulo, tipo) {
             td2.setAttribute('oninput', tipo === 'OC' ? 'calcularTotalOC(this)' : 'calcularTotalCM(this)');
             td2.innerText = '0';
             const td3 = document.createElement('td');
-            td3.contentEditable = true;  // ← AHORA ES EDITABLE MANUALMENTE
+            td3.contentEditable = true;
             td3.innerText = '0.00';
             td3.style.cursor = 'text';
             td3.style.backgroundColor = 'white';
@@ -341,6 +388,7 @@ function agregarGrupo(titulo, tipo) {
     
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
+
 // ============================
 // ACTUALIZAR TOTALES
 // ============================
@@ -726,6 +774,9 @@ async function cargarItems() {
         actualizarTotales();
         actualizarContadores();
         moduloActual = moduloCounter;
+        
+        // Aplicar modo lectura después de cargar los datos
+        aplicarModoLectura();
         
     } catch(e) { 
         console.error('Error cargando items:', e);
