@@ -235,6 +235,13 @@ table td:nth-child(2) {
 }
 
 /* ============================================
+   ALINEACIÓN DE DESCRIPCIÓN A LA IZQUIERDA
+   ============================================ */
+#tablaItems td:nth-child(2) {
+    text-align: left !important;
+}
+
+/* ============================================
    CUERPO DE LA TABLA
    ============================================ */
 td {
@@ -273,7 +280,7 @@ tbody tr:hover {
 .modulo-row {
     background: linear-gradient(to right, #dcdcdc, #efefef);
     font-weight: bold;
-    text-align: left !important;  /* ← CAMBIO: Alineado a la izquierda */
+    text-align: left !important;
     padding: 12px;
     color: black;
 }
@@ -820,10 +827,12 @@ input:disabled {
         border-radius: 0;
     }
 }
+
 input {
     background-color: white !important;
     color: black !important;
 }
+
 /* FORZAR QUE SE PUEDA HACER CLIC EN LOS INPUTS */
 input.oc-pu-0, input.oc-pu-1, input.oc-pu-2, input.oc-pu-3,
 input.cm-pu-0, input.cm-pu-1, input.cm-pu-2, input.cm-pu-3 {
@@ -835,6 +844,7 @@ input.cm-pu-0, input.cm-pu-1, input.cm-pu-2, input.cm-pu-3 {
 td:has(input) {
     overflow: visible !important;
 }
+
 /* FORZAR VISIBILIDAD DE OC Y CM */
 table {
     min-width: 100% !important;
