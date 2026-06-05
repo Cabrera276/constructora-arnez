@@ -96,24 +96,16 @@ function toggleModulo(moduloId, el) {
 }
 
 // ============================
-// ACTUALIZAR TOTAL DE CONTRATO ORIGINAL (MANUAL - SIN CÁLCULO AUTOMÁTICO)
+// FUNCIONES VACÍAS - SIN CÁLCULO AUTOMÁTICO
 // ============================
 function calcularTotalFila(fila) {
-    // Función vacía - el TOTAL se edita manualmente
+    // TOTAL EDITABLE MANUALMENTE
 }
-
-// ============================
-// CALCULAR TOTAL OC - MANUAL (NO AUTOMÁTICO)
-// ============================
 function calcularTotalOC(elemento) {
-    // EDITABLE MANUALMENTE - Sin cálculo automático
+    // TOTAL EDITABLE MANUALMENTE
 }
-
-// ============================
-// CALCULAR TOTAL CM - MANUAL (NO AUTOMÁTICO)
-// ============================
 function calcularTotalCM(elemento) {
-    // EDITABLE MANUALMENTE - Sin cálculo automático
+    // TOTAL EDITABLE MANUALMENTE
 }
 
 // ============================
@@ -169,7 +161,7 @@ function actualizarTotales() {
 }
 
 // ============================
-// MODO LECTURA - OCULTAR BOTONES
+// MODO LECTURA
 // ============================
 function aplicarModoLectura() {
     const usuarioRol = localStorage.getItem("usuarioRol");
@@ -308,6 +300,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
+    // TOTAL CONTRATO ORIGINAL: contenteditable="true" para que sea editable manualmente
     fila.innerHTML = `
         <td contenteditable="true" style="cursor:text;" placeholder="N° Ítem"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
@@ -538,10 +531,6 @@ async function guardarDatos() {
                 } else {
                     guardados++;
                 }
-                if (data.id && !item.id) {
-                    const fila = document.querySelector(`tr[data-modulo-padre="${item.modulo_id?.replace('MÓDULO ', '')}"] td:first-child:contains("${item.item_numero}")`)?.closest('tr');
-                    if (fila) fila.dataset.id = data.id;
-                }
             } else {
                 errores++;
             }
@@ -705,12 +694,13 @@ async function cargarItems() {
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td contenteditable="true">${cm.cantidad}</td><td contenteditable="true">${cm.precio}<td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">${cm.total}</td>`;
+                    colCM += `<td contenteditable="true">${cm.cantidad}</td><td contenteditable="true">${cm.precio}</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">${cm.total}</td>`;
                 }
                 
                 const fila = document.createElement('tr');
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
+                // TOTAL CONTRATO ORIGINAL: contenteditable="true"
                 fila.innerHTML = `
                     <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.descripcion || '')}</td>
@@ -755,6 +745,21 @@ function escapeHtml(str) {
         if (m === '>') return '&gt;';
         return m;
     });
+}
+
+// ============================
+// FORZAR TOTALES EDITABLES
+// ============================
+function forzarTotalesEditables() {
+    setTimeout(() => {
+        document.querySelectorAll('.total-fila').forEach(td => {
+            td.setAttribute('contenteditable', 'true');
+            td.style.cursor = 'text';
+            td.style.backgroundColor = 'white';
+            td.style.color = 'black';
+        });
+        console.log('✅ Totales del contrato original forzados a ser editables');
+    }, 100);
 }
 
 // ============================
@@ -813,5 +818,6 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
+    forzarTotalesEditables();
     console.log('🚀 Sistema cargado - TOTAL CONTRATO ORIGINAL editable manualmente');
 });
