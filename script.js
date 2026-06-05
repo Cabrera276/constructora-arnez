@@ -251,7 +251,7 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM
+// AÑADIR ÍTEM (CON TOTALES DE OC/CM EDITABLES)
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -277,14 +277,15 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
     
-    // ← CAMBIO: Sin oninput en OC y CM
+    // OC con clase para totales
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" style="cursor:text; background:white; color:black;">0.00</td>`;
+        colOC += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
     }
+    // CM con clase para totales
     let colCM = '';
     for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" style="cursor:text; background:white; color:black;">0.00</td>`;
+        colCM += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
     }
     
     const fila = document.createElement('tr');
@@ -335,12 +336,13 @@ function agregarGrupo(titulo, tipo) {
     fp.insertBefore(g, fp.children[fp.children.length - 2]);
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { const th = document.createElement('th'); th.innerText = t; fs.appendChild(th); });
     
+    const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
+    
     document.querySelectorAll('#tablaItems tr').forEach(fila => {
         if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
             const celdas = fila.cells;
             const pos = celdas.length - 2;
             
-            // ← CAMBIO: Sin oninput
             const td1 = document.createElement('td');
             td1.contentEditable = true;
             td1.innerText = '0';
@@ -351,6 +353,7 @@ function agregarGrupo(titulo, tipo) {
             
             const td3 = document.createElement('td');
             td3.contentEditable = true;
+            td3.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
             td3.innerText = '0.00';
             td3.style.cursor = 'text';
             td3.style.backgroundColor = 'white';
@@ -715,17 +718,18 @@ async function cargarItems() {
             tabla.appendChild(fm);
             
             itemsDelModulo.forEach(item => {
-                // ← CAMBIO: Sin oninput en OC y CM
+                // OC con clase para totales
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     const oc = ocdb.find(o => o.item_id === item.id && o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colOC += `<td contenteditable="true">${oc.cantidad}</td><td contenteditable="true">${oc.precio}</td><td contenteditable="true" style="cursor:text; background:white; color:black;">${oc.total}</td>`;
+                    colOC += `<td contenteditable="true">${oc.cantidad}</td><td contenteditable="true">${oc.precio}</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">${oc.total}</td>`;
                 }
                 
+                // CM con clase para totales
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td contenteditable="true">${cm.cantidad}</td><td contenteditable="true">${cm.precio}</td><td contenteditable="true" style="cursor:text; background:white; color:black;">${cm.total}</td>`;
+                    colCM += `<td contenteditable="true">${cm.cantidad}</td><td contenteditable="true">${cm.precio}</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">${cm.total}</td>`;
                 }
                 
                 const fila = document.createElement('tr');
@@ -834,5 +838,5 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
-    console.log('🚀 Sistema cargado');
+    console.log('🚀 Sistema cargado - Totales OC/CM editables');
 });
