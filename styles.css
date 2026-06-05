@@ -273,7 +273,7 @@ tbody tr:hover {
 .modulo-row {
     background: linear-gradient(to right, #dcdcdc, #efefef);
     font-weight: bold;
-    text-align: left;
+    text-align: left !important;  /* ← CAMBIO: Alineado a la izquierda */
     padding: 12px;
     color: black;
 }

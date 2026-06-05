@@ -112,39 +112,17 @@ function calcularTotalFila(fila) {
 }
 
 // ============================
-// CALCULAR TOTAL OC
+// CALCULAR TOTAL OC - MANUAL (NO AUTOMÁTICO)
 // ============================
 function calcularTotalOC(elemento) {
-    const fila = elemento.closest('tr');
-    const celdas = fila.querySelectorAll('td');
-    let ocIndex = 7;
-    
-    for (let i = 0; i < ordenCambio; i++) {
-        const cantidad = parseFloat(celdas[ocIndex]?.innerText) || 0;
-        const precio = parseFloat(celdas[ocIndex + 1]?.innerText) || 0;
-        const total = cantidad * precio;
-        if (celdas[ocIndex + 2]) celdas[ocIndex + 2].innerText = total.toFixed(2);
-        ocIndex += 3;
-    }
-    actualizarTotales();
+    // EDITABLE MANUALMENTE - Sin cálculo automático
 }
 
 // ============================
-// CALCULAR TOTAL CM
+// CALCULAR TOTAL CM - MANUAL (NO AUTOMÁTICO)
 // ============================
 function calcularTotalCM(elemento) {
-    const fila = elemento.closest('tr');
-    const celdas = fila.querySelectorAll('td');
-    let cmIndex = 7 + (ordenCambio * 3);
-    
-    for (let i = 0; i < contratoMod; i++) {
-        const cantidad = parseFloat(celdas[cmIndex]?.innerText) || 0;
-        const precio = parseFloat(celdas[cmIndex + 1]?.innerText) || 0;
-        const total = cantidad * precio;
-        if (celdas[cmIndex + 2]) celdas[cmIndex + 2].innerText = total.toFixed(2);
-        cmIndex += 3;
-    }
-    actualizarTotales();
+    // EDITABLE MANUALMENTE - Sin cálculo automático
 }
 
 // ============================
@@ -206,6 +184,7 @@ function aplicarModoLectura() {
         console.log('🔒 Modo lectura activado en Items');
     }
 }
+
 // ============================
 // AÑADIR MÓDULO
 // ============================
@@ -298,13 +277,14 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
     
+    // ← CAMBIO: Sin oninput en OC y CM
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
-        colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" oninput="calcularTotalOC(this)">0</td><td contenteditable="true" class="oc-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+        colOC += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" style="cursor:text; background:white; color:black;">0.00</td>`;
     }
     let colCM = '';
     for (let i = 0; i < contratoMod; i++) {
-        colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" oninput="calcularTotalCM(this)">0</td><td contenteditable="true" class="cm-total-${i}" style="cursor:text; background:white; color:black;">0.00</td>`;
+        colCM += `<td contenteditable="true">0</td><td contenteditable="true">0</td><td contenteditable="true" style="cursor:text; background:white; color:black;">0.00</td>`;
     }
     
     const fila = document.createElement('tr');
@@ -359,20 +339,23 @@ function agregarGrupo(titulo, tipo) {
         if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
             const celdas = fila.cells;
             const pos = celdas.length - 2;
+            
+            // ← CAMBIO: Sin oninput
             const td1 = document.createElement('td');
             td1.contentEditable = true;
-            td1.setAttribute('oninput', tipo === 'OC' ? 'calcularTotalOC(this)' : 'calcularTotalCM(this)');
             td1.innerText = '0';
+            
             const td2 = document.createElement('td');
             td2.contentEditable = true;
-            td2.setAttribute('oninput', tipo === 'OC' ? 'calcularTotalOC(this)' : 'calcularTotalCM(this)');
             td2.innerText = '0';
+            
             const td3 = document.createElement('td');
             td3.contentEditable = true;
             td3.innerText = '0.00';
             td3.style.cursor = 'text';
             td3.style.backgroundColor = 'white';
             td3.style.color = 'black';
+            
             fila.insertBefore(td3, celdas[pos]);
             fila.insertBefore(td2, celdas[pos]);
             fila.insertBefore(td1, celdas[pos]);
@@ -732,16 +715,17 @@ async function cargarItems() {
             tabla.appendChild(fm);
             
             itemsDelModulo.forEach(item => {
+                // ← CAMBIO: Sin oninput en OC y CM
                 let colOC = '';
                 for (let i = 0; i < ordenCambio; i++) {
                     const oc = ocdb.find(o => o.item_id === item.id && o.numero_oc === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colOC += `<td contenteditable="true" oninput="calcularTotalOC(this)">${oc.cantidad}</td><td contenteditable="true" oninput="calcularTotalOC(this)">${oc.precio}</td><td oninput="calcularTotalOC(this)">${oc.total}</td>`;
+                    colOC += `<td contenteditable="true">${oc.cantidad}</td><td contenteditable="true">${oc.precio}</td><td contenteditable="true" style="cursor:text; background:white; color:black;">${oc.total}</td>`;
                 }
                 
                 let colCM = '';
                 for (let i = 0; i < contratoMod; i++) {
                     const cm = cmdb.find(o => o.item_id === item.id && o.numero_cm === i + 1) || { cantidad: 0, precio: 0, total: 0 };
-                    colCM += `<td contenteditable="true" oninput="calcularTotalCM(this)">${cm.cantidad}</td><td contenteditable="true" oninput="calcularTotalCM(this)">${cm.precio}</td><td oninput="calcularTotalCM(this)">${cm.total}</td>`;
+                    colCM += `<td contenteditable="true">${cm.cantidad}</td><td contenteditable="true">${cm.precio}</td><td contenteditable="true" style="cursor:text; background:white; color:black;">${cm.total}</td>`;
                 }
                 
                 const fila = document.createElement('tr');
