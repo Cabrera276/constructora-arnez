@@ -121,32 +121,18 @@ function actualizarContadores() {
 }
 
 // ============================
-// ACTUALIZAR TOTALES GENERALES
+// ACTUALIZAR TOTALES GENERALES (SIN CALCULAR TOTAL MÓDULO)
 // ============================
 function actualizarTotales() {
     const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
     let totalGeneral = 0;
-    let totalesPorModulo = {};
     
     items.forEach(item => {
         const celdas = item.querySelectorAll('td');
         if (celdas.length < 6) return;
         
-        const moduloPadre = item.dataset.moduloPadre;
         const totalItem = parseFloat(celdas[5]?.innerText) || 0;
-        
-        if (!totalesPorModulo[moduloPadre]) totalesPorModulo[moduloPadre] = 0;
-        totalesPorModulo[moduloPadre] += totalItem;
         totalGeneral += totalItem;
-    });
-    
-    document.querySelectorAll('.total-modulo').forEach(totalMod => {
-        const moduloPadre = totalMod.dataset.moduloPadre;
-        const totalModulo = totalesPorModulo[moduloPadre] || 0;
-        const celdas = totalMod.querySelectorAll('td');
-        if (celdas.length > 1) {
-            celdas[1].innerText = totalModulo.toFixed(2);
-        }
     });
     
     const tfoot = document.querySelector('tfoot tr');
@@ -198,7 +184,7 @@ function aplicarModoLectura() {
 }
 
 // ============================
-// AÑADIR MÓDULO
+// AÑADIR MÓDULO (TOTAL MÓDULO EDITABLE)
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -225,7 +211,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td class="total-modulo-valor">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -300,7 +286,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
     
     const fila = document.createElement('tr');
     fila.dataset.moduloPadre = moduloId;
-    // TOTAL CONTRATO ORIGINAL: contenteditable="true" para que sea editable manualmente
     fila.innerHTML = `
         <td contenteditable="true" style="cursor:text;" placeholder="N° Ítem"></td>
         <td contenteditable="true" style="cursor:text;" placeholder="Descripción"></td>
@@ -623,7 +608,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS
+// CARGAR ITEMS (TOTAL MÓDULO EDITABLE)
 // ============================
 async function cargarItems() {
     try {
@@ -700,7 +685,6 @@ async function cargarItems() {
                 const fila = document.createElement('tr');
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
-                // TOTAL CONTRATO ORIGINAL: contenteditable="true"
                 fila.innerHTML = `
                     <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.descripcion || '')}</td>
@@ -719,7 +703,7 @@ async function cargarItems() {
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td class="total-modulo-valor">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
             tabla.appendChild(ft);
             
             moduloCounter++;
@@ -758,7 +742,13 @@ function forzarTotalesEditables() {
             td.style.backgroundColor = 'white';
             td.style.color = 'black';
         });
-        console.log('✅ Totales del contrato original forzados a ser editables');
+        document.querySelectorAll('.total-modulo-valor').forEach(td => {
+            td.setAttribute('contenteditable', 'true');
+            td.style.cursor = 'text';
+            td.style.backgroundColor = 'white';
+            td.style.color = 'black';
+        });
+        console.log('✅ Totales forzados a ser editables');
     }, 100);
 }
 
@@ -819,5 +809,5 @@ window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
     forzarTotalesEditables();
-    console.log('🚀 Sistema cargado - TOTAL CONTRATO ORIGINAL editable manualmente');
+    console.log('🚀 Sistema cargado - TOTAL MÓDULO editable manualmente');
 });
