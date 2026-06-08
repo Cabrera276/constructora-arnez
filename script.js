@@ -121,28 +121,10 @@ function actualizarContadores() {
 }
 
 // ============================
-// ACTUALIZAR TOTALES GENERALES (SIN CALCULAR TOTAL MÓDULO)
+// ACTUALIZAR TOTALES (SIN CÁLCULO - TODO MANUAL)
 // ============================
 function actualizarTotales() {
-    const items = document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)');
-    let totalGeneral = 0;
-    
-    items.forEach(item => {
-        const celdas = item.querySelectorAll('td');
-        if (celdas.length < 6) return;
-        
-        const totalItem = parseFloat(celdas[5]?.innerText) || 0;
-        totalGeneral += totalItem;
-    });
-    
-    const tfoot = document.querySelector('tfoot tr');
-    if (tfoot) {
-        const celdas = tfoot.querySelectorAll('td');
-        if (celdas.length > 1) {
-            celdas[1].innerHTML = `<strong>${totalGeneral.toFixed(2)}</strong>`;
-        }
-    }
-    
+    // Esta función ya no calcula nada, solo actualiza contadores
     actualizarContadores();
 }
 
@@ -242,7 +224,6 @@ function eliminarModulo(btn) {
         filaModulo.remove();
         document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`)?.remove();
         
-        actualizarTotales(); 
         actualizarContadores(); 
         mostrarToast('🗑 Módulo eliminado', 'info');
     });
@@ -306,7 +287,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
         tabla.appendChild(fila);
     }
     
-    actualizarTotales();
     actualizarContadores();
     mostrarToast('✅ Ítem agregado', 'success');
 });
@@ -423,7 +403,6 @@ async function eliminarFila(btn) {
             } catch(e) {}
         }
         fila.remove(); 
-        actualizarTotales(); 
         actualizarContadores(); 
         mostrarToast('🗑 Eliminado', 'info');
     });
@@ -567,7 +546,7 @@ function eliminarOC() {
             }
         });
         
-        actualizarTotales();
+        actualizarContadores();
         mostrarToast('🗑 OC eliminada', 'info');
     });
 }
@@ -602,13 +581,13 @@ function eliminarCM() {
             }
         });
         
-        actualizarTotales();
+        actualizarContadores();
         mostrarToast('🗑 CM eliminado', 'info');
     });
 }
 
 // ============================
-// CARGAR ITEMS (TOTAL MÓDULO EDITABLE)
+// CARGAR ITEMS (TOTAL MÓDULO Y TOTAL CONTRATO EDITABLES)
 // ============================
 async function cargarItems() {
     try {
@@ -686,7 +665,7 @@ async function cargarItems() {
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
                 fila.innerHTML = `
-                    <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
+                    <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}<td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.descripcion || '')}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.unidad || '')}</td>
                     <td contenteditable="true" style="cursor:text;">${item.cantidad || 0}</td>
@@ -709,7 +688,15 @@ async function cargarItems() {
             moduloCounter++;
         }
         
-        actualizarTotales();
+        // TOTAL CONTRATO EDITABLE
+        const tfoot = document.querySelector('tfoot tr');
+        if (tfoot) {
+            const celdas = tfoot.querySelectorAll('td');
+            if (celdas.length > 1) {
+                celdas[1].innerHTML = `<strong contenteditable="true" style="cursor:text; background:white; color:black;">0.00</strong>`;
+            }
+        }
+        
         actualizarContadores();
         moduloActual = moduloCounter;
         
@@ -748,7 +735,17 @@ function forzarTotalesEditables() {
             td.style.backgroundColor = 'white';
             td.style.color = 'black';
         });
-        console.log('✅ Totales forzados a ser editables');
+        const tfoot = document.querySelector('tfoot tr');
+        if (tfoot) {
+            const totalContrato = tfoot.querySelector('td:nth-child(7) strong');
+            if (totalContrato) {
+                totalContrato.setAttribute('contenteditable', 'true');
+                totalContrato.style.cursor = 'text';
+                totalContrato.style.backgroundColor = 'white';
+                totalContrato.style.color = 'black';
+            }
+        }
+        console.log('✅ Todos los totales forzados a ser editables');
     }, 100);
 }
 
@@ -809,5 +806,5 @@ window.addEventListener('load', () => {
     cargarItems();
     cargarModoOscuro();
     forzarTotalesEditables();
-    console.log('🚀 Sistema cargado - TOTAL MÓDULO editable manualmente');
+    console.log('🚀 Sistema cargado - TODOS LOS TOTALES EDITABLES MANUALMENTE');
 });
