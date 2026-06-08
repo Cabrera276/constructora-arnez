@@ -46,7 +46,7 @@ async function cargarTodo() {
         cmData = cms;
 
         if (!itemsData.length) {
-            document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff9800;text-align:center;padding:40px">No hay items cargados. Primero agregue items en la página de ITEMS.`;
+            document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff9800;text-align:center;padding:40px">No hay items cargados. Primero agregue items en la página de ITEMS.</td></tr>`;
             return;
         }
 
@@ -86,12 +86,21 @@ async function cargarTodo() {
 
         renderizarTabla();
         
+        // Cargar total acumulado guardado
+        const totalGuardado = localStorage.getItem('totalAcumuladoPlanillas');
+        if (totalGuardado) {
+            setTimeout(() => {
+                const inputTotal = document.querySelector('.total-acumulado-input');
+                if (inputTotal) inputTotal.value = totalGuardado;
+            }, 100);
+        }
+        
         // Aplicar modo lectura si es necesario
         aplicarModoLectura();
         
     } catch (error) {
         console.error('Error:', error);
-        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button>`;
+        document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button></td></tr>`;
     }
 }
 
@@ -156,9 +165,6 @@ function renderizarTabla() {
             <td style="font-weight:bold;background:#e8e8e8">${item.total || 0}</td>
         `;
         
-        const precioUnitario = item.precio_unitario || 0;
-        const totalContrato = item.total || 0;
-        
         for (let p = 1; p <= numeroPlanillas; p++) {
             const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, precio_unitario: 0, total: 0, avance: "0%" };
             
@@ -175,10 +181,12 @@ function renderizarTabla() {
             tdPU.style.background = "#fff9e6";
             
             const tdTotal = document.createElement('td');
+            tdTotal.contentEditable = 'true';
             tdTotal.className = 'planilla-total';
             tdTotal.textContent = guardado.total || '0';
             tdTotal.style.background = "#e8f5e9";
             tdTotal.style.fontWeight = "bold";
+            tdTotal.style.cursor = "text";
             
             const tdAvance = document.createElement('td');
             tdAvance.contentEditable = 'true';
@@ -186,16 +194,14 @@ function renderizarTabla() {
             tdAvance.textContent = guardado.avance || '0%';
             tdAvance.style.background = "#fff9e6";
             
+            // Evento sin cálculo automático - total editable manualmente
             const actualizarTotal = () => {
-                let cant = parseFloat(tdCant.textContent) || 0;
-                let pu = parseFloat(tdPU.textContent) || 0;
-                let totalCalc = cant * pu;
-                tdTotal.textContent = totalCalc.toFixed(2);
                 actualizarTotalGeneral();
             };
             
             tdCant.addEventListener('input', actualizarTotal);
             tdPU.addEventListener('input', actualizarTotal);
+            tdTotal.addEventListener('input', actualizarTotal);
             
             fila.appendChild(tdCant);
             fila.appendChild(tdPU);
@@ -314,7 +320,6 @@ function renderizarEvidencias(itemId) {
 }
 
 async function agregarEvidencia(itemId) {
-    // Si es usuario de lectura, no permitir
     if (usuarioRol === 'lectura') {
         alert("⚠️ Usuario de solo lectura. No puede agregar evidencias.");
         return;
@@ -396,7 +401,7 @@ function abrirModalEvidencia(itemId, evId) {
                 <button id="cerrarModalBtn" style="background:#e74c3c;border:none;width:30px;height:30px;border-radius:50%;color:white;cursor:pointer;font-size:16px">✕</button>
             </div>
             <div style="padding:20px">
-                <img id="modalImg" src="${evidencia.url}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
+                <img id="modalImg" src="${imagenUrl}" style="width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:15px">
                 <textarea id="modalDescEv" rows="3" style="width:100%;padding:10px;border-radius:8px;background:#2a2a2a;color:white;border:1px solid #444;margin-bottom:15px;resize:vertical" ${usuarioRol === 'lectura' ? 'disabled' : ''}>${evidencia.descripcion || ''}</textarea>
                 <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
                     <button id="guardarDescBtn" style="background:#27ae60;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-save"></i> Guardar</button>
@@ -409,7 +414,6 @@ function abrirModalEvidencia(itemId, evId) {
     
     document.body.appendChild(modal);
     
-    // Si es usuario de lectura, deshabilitar botones de edición en el modal
     if (usuarioRol === 'lectura') {
         const guardarBtn = document.getElementById('guardarDescBtn');
         const cambiarBtn = document.getElementById('cambiarImgBtn');
@@ -561,10 +565,12 @@ function agregarPlanilla() {
         tdPU.style.background = "#fff9e6";
         
         const tdTotal = document.createElement('td');
+        tdTotal.contentEditable = 'true';
         tdTotal.className = 'planilla-total';
         tdTotal.textContent = '0';
         tdTotal.style.background = "#e8f5e9";
         tdTotal.style.fontWeight = "bold";
+        tdTotal.style.cursor = "text";
         
         const tdAvance = document.createElement('td');
         tdAvance.contentEditable = 'true';
@@ -573,15 +579,12 @@ function agregarPlanilla() {
         tdAvance.style.background = "#fff9e6";
         
         const actualizarTotal = () => {
-            let cant = parseFloat(tdCant.textContent) || 0;
-            let pu = parseFloat(tdPU.textContent) || 0;
-            let totalCalc = cant * pu;
-            tdTotal.textContent = totalCalc.toFixed(2);
             actualizarTotalGeneral();
         };
         
         tdCant.addEventListener('input', actualizarTotal);
         tdPU.addEventListener('input', actualizarTotal);
+        tdTotal.addEventListener('input', actualizarTotal);
         
         const evidenciaCelda = fila.lastElementChild;
         fila.insertBefore(tdCant, evidenciaCelda);
@@ -624,12 +627,23 @@ function eliminarPlanilla() {
 }
 
 function actualizarTotalGeneral() {
-    let total = 0;
-    document.querySelectorAll('.planilla-total').forEach(td => {
-        total += parseFloat(td.textContent) || 0;
-    });
     const tfoot = document.getElementById('tablaFoot');
-    tfoot.innerHTML = `<td><td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td><td style="background:#ffc400;font-weight:bold;font-size:16px">${total.toFixed(2)}<td colspan="10">`;
+    
+    // Verificar si ya existe el footer con input editable
+    if (tfoot.children.length === 0 || !tfoot.querySelector('.total-acumulado-input')) {
+        tfoot.innerHTML = `<td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td>
+                           <td style="background:#ffc400;font-weight:bold;font-size:16px;padding:0">
+                               <input type="number" class="total-acumulado-input" value="0" step="any" 
+                                      style="width:150px; padding:8px; background:#ffc400; border:none; 
+                                             font-weight:bold; font-size:16px; text-align:center;">
+                            </td>
+                           <td colspan="10"></td>`;
+        
+        const inputTotal = tfoot.querySelector('.total-acumulado-input');
+        inputTotal.addEventListener('input', () => {
+            localStorage.setItem('totalAcumuladoPlanillas', inputTotal.value);
+        });
+    }
 }
 
 async function guardarTodo() {
@@ -656,6 +670,12 @@ async function guardarTodo() {
             }
         }
     });
+    
+    // Guardar total acumulado manual en localStorage
+    const totalAcumuladoInput = document.querySelector('.total-acumulado-input');
+    if (totalAcumuladoInput) {
+        localStorage.setItem('totalAcumuladoPlanillas', totalAcumuladoInput.value);
+    }
     
     if (!datos.length) { alert("No hay datos para guardar"); return; }
     
