@@ -31,7 +31,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ===== LOGIN (MODIFICADO - incluye rol) =====
+// ===== LOGIN =====
 app.post('/login', (req, res) => {
     const { usuario, password } = req.body;
     if (!usuario || !password) {
@@ -330,6 +330,120 @@ app.post('/eliminar-evidencia', (req, res) => {
     db.query('DELETE FROM evidencias WHERE id = ?', [evidencia_id], (err) => {
         if (err) return res.json({ success: false });
         res.json({ success: true });
+    });
+});
+
+// ===== TOTALES POR MÓDULO =====
+app.post('/guardar-totales-modulo-oc', (req, res) => {
+    const { modulo_nombre, totales_oc } = req.body;
+    
+    if (!modulo_nombre || !Array.isArray(totales_oc)) {
+        return res.json({ success: false, mensaje: 'Datos incompletos' });
+    }
+    
+    let pendientes = totales_oc.length;
+    if (pendientes === 0) return res.json({ success: true });
+    
+    totales_oc.forEach(oc => {
+        db.query(
+            'SELECT id FROM totales_modulo_oc WHERE modulo_nombre = ? AND numero_oc = ?',
+            [modulo_nombre, oc.numero_oc],
+            (err, result) => {
+                if (err) {
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: false });
+                    return;
+                }
+                
+                if (result && result.length > 0) {
+                    db.query(
+                        'UPDATE totales_modulo_oc SET total_modulo = ? WHERE modulo_nombre = ? AND numero_oc = ?',
+                        [oc.total_modulo, modulo_nombre, oc.numero_oc],
+                        (err) => {
+                            if (err) console.log('Error update OC:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                } else {
+                    db.query(
+                        'INSERT INTO totales_modulo_oc (modulo_nombre, numero_oc, total_modulo) VALUES (?, ?, ?)',
+                        [modulo_nombre, oc.numero_oc, oc.total_modulo],
+                        (err) => {
+                            if (err) console.log('Error insert OC:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                }
+            }
+        );
+    });
+});
+
+app.post('/guardar-totales-modulo-cm', (req, res) => {
+    const { modulo_nombre, totales_cm } = req.body;
+    
+    if (!modulo_nombre || !Array.isArray(totales_cm)) {
+        return res.json({ success: false, mensaje: 'Datos incompletos' });
+    }
+    
+    let pendientes = totales_cm.length;
+    if (pendientes === 0) return res.json({ success: true });
+    
+    totales_cm.forEach(cm => {
+        db.query(
+            'SELECT id FROM totales_modulo_cm WHERE modulo_nombre = ? AND numero_cm = ?',
+            [modulo_nombre, cm.numero_cm],
+            (err, result) => {
+                if (err) {
+                    pendientes--;
+                    if (pendientes === 0) res.json({ success: false });
+                    return;
+                }
+                
+                if (result && result.length > 0) {
+                    db.query(
+                        'UPDATE totales_modulo_cm SET total_modulo = ? WHERE modulo_nombre = ? AND numero_cm = ?',
+                        [cm.total_modulo, modulo_nombre, cm.numero_cm],
+                        (err) => {
+                            if (err) console.log('Error update CM:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                } else {
+                    db.query(
+                        'INSERT INTO totales_modulo_cm (modulo_nombre, numero_cm, total_modulo) VALUES (?, ?, ?)',
+                        [modulo_nombre, cm.numero_cm, cm.total_modulo],
+                        (err) => {
+                            if (err) console.log('Error insert CM:', err.message);
+                            pendientes--;
+                            if (pendientes === 0) res.json({ success: true });
+                        }
+                    );
+                }
+            }
+        );
+    });
+});
+
+app.get('/totales-modulo', (req, res) => {
+    db.query('SELECT * FROM totales_modulo_oc', (errOC, resultOC) => {
+        if (errOC) {
+            console.log('Error OC:', errOC.message);
+            resultOC = [];
+        }
+        db.query('SELECT * FROM totales_modulo_cm', (errCM, resultCM) => {
+            if (errCM) {
+                console.log('Error CM:', errCM.message);
+                resultCM = [];
+            }
+            res.json({
+                oc: resultOC || [],
+                cm: resultCM || []
+            });
+        });
     });
 });
 
