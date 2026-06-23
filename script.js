@@ -318,20 +318,23 @@ function agregarGrupo(titulo, tipo) {
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
     
-    // Referencia a la columna Acciones (última)
-    const acciones = fs.children[fs.children.length - 1];
+    // Posiciones: las últimas 2 son Incidencia % y Acciones
+    const totalActual = fs.children.length;
+    const posAcciones = totalActual - 1;
+    const posIncidencia = totalActual - 2;
+    const incidencia = fs.children[posIncidencia];
     
-    // Agregar encabezado del grupo
+    // Agregar encabezado del grupo en fila principal
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
-    fp.insertBefore(g, fp.children[fp.children.length - 2]);
+    fp.insertBefore(g, fp.children[posIncidencia]);
     
-    // Agregar subencabezados antes de Acciones
+    // Agregar subencabezados antes de Incidencia
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { 
         const th = document.createElement('th'); 
         th.innerText = t; 
-        fs.insertBefore(th, acciones);
+        fs.insertBefore(th, incidencia);
     });
     
     const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
