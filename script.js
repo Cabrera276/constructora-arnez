@@ -165,7 +165,7 @@ function aplicarModoLectura() {
 }
 
 // ============================
-// AÑADIR MÓDULO (TOTAL MÓDULO EDITABLE)
+// AÑADIR MÓDULO (SIN COLSPAN ESTÁTICO)
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -192,11 +192,11 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
+    // SIN COLSPAN - las celdas se distribuyen automáticamente
+    ft.innerHTML = `<td><strong>TOTAL MÓDULO</strong></td>
                     <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>
                     <td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>
-                    <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>
-                    <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 0}"></td>`;
+                    <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -295,7 +295,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 });
 
 // ============================
-// AÑADIR OC / CM
+// AÑADIR OC / CM (SIN COLSPAN ESTÁTICO)
 // ============================
 document.getElementById('btnOC').addEventListener('click', () => { 
     ordenCambio++; 
@@ -317,6 +317,7 @@ function agregarGrupo(titulo, tipo) {
     
     const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
     
+    // Agregar columnas a cada fila de ítems
     document.querySelectorAll('#tablaItems tr').forEach(fila => {
         if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
             const celdas = fila.cells;
@@ -344,41 +345,31 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
-    // Actualizar colspan de total-modulo para incluir nuevas columnas de totales OC/CM
-    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-    document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-        if (td.getAttribute('colspan')) {
-            td.setAttribute('colspan', totalColumnas);
-        }
-    });
-    
-    // Agregar celdas de totales OC/CM en la fila total-modulo
+    // Actualizar la fila total-modulo agregando nuevas celdas para los totales de OC/CM
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
-        const celdas = totalMod.querySelectorAll('td');
-        // Si no tiene las celdas de totales OC/CM, las agregamos
-        if (celdas.length < 8) {
-            const tdOCTotal = document.createElement('td');
-            tdOCTotal.contentEditable = true;
-            tdOCTotal.className = 'total-oc-valor';
-            tdOCTotal.style.cursor = 'text';
-            tdOCTotal.style.backgroundColor = '#e8f5e9';
-            tdOCTotal.style.color = 'black';
-            tdOCTotal.innerText = '0.00';
-            
-            const tdCMTotal = document.createElement('td');
-            tdCMTotal.contentEditable = true;
-            tdCMTotal.className = 'total-cm-valor';
-            tdCMTotal.style.cursor = 'text';
-            tdCMTotal.style.backgroundColor = '#e3f2fd';
-            tdCMTotal.style.color = 'black';
-            tdCMTotal.innerText = '0.00';
-            
-            // Insertar después del total módulo
-            const totalModuloCell = celdas[1];
-            if (totalModuloCell) {
-                totalModuloCell.parentNode.insertBefore(tdOCTotal, totalModuloCell.nextSibling);
-                totalModuloCell.parentNode.insertBefore(tdCMTotal, tdOCTotal.nextSibling);
-            }
+        const existingOC = totalMod.querySelector('.total-oc-valor');
+        const existingCM = totalMod.querySelector('.total-cm-valor');
+        
+        if (!existingOC && tipo === 'OC') {
+            const tdOC = document.createElement('td');
+            tdOC.contentEditable = true;
+            tdOC.className = 'total-oc-valor';
+            tdOC.style.cursor = 'text';
+            tdOC.style.backgroundColor = '#e8f5e9';
+            tdOC.style.color = 'black';
+            tdOC.innerText = '0.00';
+            totalMod.appendChild(tdOC);
+        }
+        
+        if (!existingCM && tipo === 'CM') {
+            const tdCM = document.createElement('td');
+            tdCM.contentEditable = true;
+            tdCM.className = 'total-cm-valor';
+            tdCM.style.cursor = 'text';
+            tdCM.style.backgroundColor = '#e3f2fd';
+            tdCM.style.color = 'black';
+            tdCM.innerText = '0.00';
+            totalMod.appendChild(tdCM);
         }
     });
     
@@ -573,10 +564,12 @@ function eliminarOC() {
         
         ordenCambio--;
         
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
+        // Eliminar la celda de total OC de la fila total-modulo
+        document.querySelectorAll('.total-modulo').forEach(totalMod => {
+            const tdOC = totalMod.querySelector('.total-oc-valor');
+            if (tdOC && tdOC.nextSibling) {
+                // Si existe CM, la eliminación de OC no afecta a CM
+                tdOC.remove();
             }
         });
         
@@ -608,10 +601,11 @@ function eliminarCM() {
         
         contratoMod--;
         
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
+        // Eliminar la celda de total CM de la fila total-modulo
+        document.querySelectorAll('.total-modulo').forEach(totalMod => {
+            const tdCM = totalMod.querySelector('.total-cm-valor');
+            if (tdCM) {
+                tdCM.remove();
             }
         });
         
@@ -621,7 +615,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS (CON TOTALES OC Y CM EDITABLES)
+// CARGAR ITEMS
 // ============================
 async function cargarItems() {
     try {
@@ -713,15 +707,14 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // TOTAL MÓDULO con totales OC y CM editables
+            // TOTAL MÓDULO - SIN COLSPAN
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
+            ft.innerHTML = `<td><strong>TOTAL MÓDULO</strong></td>
                             <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>
                             <td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>
-                            <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>
-                            <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 0}"></td>`;
+                            <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
             tabla.appendChild(ft);
             
             moduloCounter++;
