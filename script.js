@@ -317,14 +317,21 @@ document.getElementById('btnCM').addEventListener('click', () => {
 function agregarGrupo(titulo, tipo) {
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
+    
+    // Referencia a la columna Acciones (última)
+    const acciones = fs.children[fs.children.length - 1];
+    
+    // Agregar encabezado del grupo
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
     fp.insertBefore(g, fp.children[fp.children.length - 2]);
+    
+    // Agregar subencabezados antes de Acciones
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { 
         const th = document.createElement('th'); 
         th.innerText = t; 
-        fs.insertBefore(th, fs.children[fs.children.length - 2]);
+        fs.insertBefore(th, acciones);
     });
     
     const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
