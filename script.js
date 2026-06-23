@@ -587,7 +587,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS (TOTAL MÓDULO Y TOTAL CONTRATO EDITABLES)
+// CARGAR ITEMS (CORREGIDO)
 // ============================
 async function cargarItems() {
     try {
@@ -664,8 +664,9 @@ async function cargarItems() {
                 const fila = document.createElement('tr');
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
+                // CORREGIDO: Se cerró correctamente la etiqueta <td> del item_numero
                 fila.innerHTML = `
-                    <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}<td>
+                    <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.descripcion || '')}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.unidad || '')}</td>
                     <td contenteditable="true" style="cursor:text;">${item.cantidad || 0}</td>
