@@ -98,15 +98,9 @@ function toggleModulo(moduloId, el) {
 // ============================
 // FUNCIONES VACÍAS - SIN CÁLCULO AUTOMÁTICO
 // ============================
-function calcularTotalFila(fila) {
-    // TOTAL EDITABLE MANUALMENTE
-}
-function calcularTotalOC(elemento) {
-    // TOTAL EDITABLE MANUALMENTE
-}
-function calcularTotalCM(elemento) {
-    // TOTAL EDITABLE MANUALMENTE
-}
+function calcularTotalFila(fila) {}
+function calcularTotalOC(elemento) {}
+function calcularTotalCM(elemento) {}
 
 // ============================
 // ACTUALIZAR CONTADORES
@@ -168,20 +162,17 @@ function aplicarModoLectura() {
 // FUNCIÓN PARA GENERAR HTML DEL TOTAL DE MÓDULO
 // ============================
 function generarHTMLTotalModulo() {
-    let totalHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
-                    <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
+    let totalHTML = `<td></td><td></td><td></td><td></td><td></td>`;
+    totalHTML += `<td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black; font-weight:bold;">0.00</td>`;
     
-    // Agregar totales OC
     for (let i = 0; i < ordenCambio; i++) {
-        totalHTML += `<td colspan="2"></td><td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>`;
+        totalHTML += `<td></td><td></td><td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black; font-weight:bold;">0.00</td>`;
     }
     
-    // Agregar totales CM
     for (let i = 0; i < contratoMod; i++) {
-        totalHTML += `<td colspan="2"></td><td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
+        totalHTML += `<td></td><td></td><td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black; font-weight:bold;">0.00</td>`;
     }
     
-    // Columna de incidencia y acciones
     totalHTML += `<td></td><td></td>`;
     
     return totalHTML;
@@ -209,7 +200,7 @@ document.getElementById('btnModulo').addEventListener('click', () => {
                 <button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button>
             </div>
         </div>
-    </div>`;
+    </td>`;
     tabla.appendChild(fm);
     
     const ft = document.createElement('tr');
@@ -275,8 +266,6 @@ document.getElementById('btnItem').addEventListener('click', () => {
         if (isNaN(idx) || idx < 0 || idx >= modulos.length) return;
         moduloId = modulos[idx].dataset.moduloId;
     }
-    
-    const moduloNombre = document.querySelector(`.grupo-modulo[data-modulo-id="${moduloId}"] .modulo-nombre`)?.innerText;
     
     let colOC = '';
     for (let i = 0; i < ordenCambio; i++) {
@@ -367,13 +356,11 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
-    // Actualizar colspan de grupo-modulo
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td[colspan]').forEach(td => {
         td.setAttribute('colspan', totalColumnas);
     });
     
-    // REGENERAR todas las filas total-modulo para que coincidan las columnas
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         totalMod.innerHTML = generarHTMLTotalModulo();
     });
@@ -459,7 +446,7 @@ async function guardarDatos() {
         if (!descripcion) continue;
         
         let ocs = [];
-        let ocIndex = 6;
+        let ocIndex = 7;
         for (let i = 0; i < ordenCambio; i++) {
             ocs.push({
                 numero: i + 1,
@@ -471,7 +458,7 @@ async function guardarDatos() {
         }
         
         let cms = [];
-        let cmIndex = 6 + (ordenCambio * 3);
+        let cmIndex = 7 + (ordenCambio * 3);
         for (let i = 0; i < contratoMod; i++) {
             cms.push({
                 numero: i + 1,
@@ -497,7 +484,6 @@ async function guardarDatos() {
         });
     }
     
-    // ===== GUARDAR TOTALES DE MÓDULO =====
     const totalesModulo = [];
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const moduloId = totalMod.dataset.moduloPadre;
@@ -507,25 +493,23 @@ async function guardarDatos() {
         
         const celdas = totalMod.querySelectorAll('td');
         
-        // Totales OC
         let totalesOC = [];
-        let idx = 2;
+        let idx = 6;
         for (let i = 0; i < ordenCambio; i++) {
             totalesOC.push({
                 numero_oc: i + 1,
                 total_modulo: parseFloat(celdas[idx]?.innerText) || 0
             });
-            idx++;
+            idx += 3;
         }
         
-        // Totales CM
         let totalesCM = [];
         for (let i = 0; i < contratoMod; i++) {
             totalesCM.push({
                 numero_cm: i + 1,
                 total_modulo: parseFloat(celdas[idx]?.innerText) || 0
             });
-            idx++;
+            idx += 3;
         }
         
         totalesModulo.push({
@@ -535,7 +519,6 @@ async function guardarDatos() {
         });
     });
     
-    // ===== GUARDAR TODO =====
     const btn = document.getElementById('btnGuardar');
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
@@ -545,7 +528,6 @@ async function guardarDatos() {
     let actualizados = 0;
     let errores = 0;
     
-    // Guardar items
     if (datos.length > 0) {
         for (const item of datos) {
             try {
@@ -556,11 +538,8 @@ async function guardarDatos() {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    if (data.actualizado) {
-                        actualizados++;
-                    } else {
-                        guardados++;
-                    }
+                    if (data.actualizado) actualizados++;
+                    else guardados++;
                 } else {
                     errores++;
                 }
@@ -570,11 +549,9 @@ async function guardarDatos() {
         }
     }
     
-    // Guardar totales de módulo
     if (totalesModulo.length > 0) {
         for (const modulo of totalesModulo) {
             try {
-                // Guardar totales OC del módulo
                 if (modulo.totales_oc && modulo.totales_oc.length > 0) {
                     await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-oc`, {
                         method: 'POST',
@@ -586,7 +563,6 @@ async function guardarDatos() {
                     });
                 }
                 
-                // Guardar totales CM del módulo
                 if (modulo.totales_cm && modulo.totales_cm.length > 0) {
                     await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-cm`, {
                         method: 'POST',
@@ -642,7 +618,6 @@ function eliminarOC() {
             td.setAttribute('colspan', totalColumnas);
         });
         
-        // Regenerar totales de módulo
         document.querySelectorAll('.total-modulo').forEach(totalMod => {
             totalMod.innerHTML = generarHTMLTotalModulo();
         });
@@ -680,7 +655,6 @@ function eliminarCM() {
             td.setAttribute('colspan', totalColumnas);
         });
         
-        // Regenerar totales de módulo
         document.querySelectorAll('.total-modulo').forEach(totalMod => {
             totalMod.innerHTML = generarHTMLTotalModulo();
         });
@@ -755,7 +729,7 @@ async function cargarItems() {
                         <button class="delete-btn" onclick="eliminarModulo(this)"><i class="fa fa-trash"></i></button>
                     </div>
                 </div>
-            </div>`;
+            </td>`;
             tabla.appendChild(fm);
             
             itemsDelModulo.forEach(item => {
@@ -789,24 +763,23 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // TOTAL MÓDULO con totales OC y CM cargados de la BD
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
             
-            let totalModHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
-                            <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
+            let totalModHTML = `<td></td><td></td><td></td><td></td><td></td>`;
+            totalModHTML += `<td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black; font-weight:bold;">0.00</td>`;
             
             for (let i = 0; i < ordenCambio; i++) {
                 const totalOC = totalesDB.oc ? totalesDB.oc.find(o => o.modulo_nombre === moduloNombre && o.numero_oc === i + 1) : null;
                 const valor = totalOC ? totalOC.total_modulo : '0.00';
-                totalModHTML += `<td colspan="2"></td><td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">${valor}</td>`;
+                totalModHTML += `<td></td><td></td><td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black; font-weight:bold;">${valor}</td>`;
             }
             
             for (let i = 0; i < contratoMod; i++) {
                 const totalCM = totalesDB.cm ? totalesDB.cm.find(o => o.modulo_nombre === moduloNombre && o.numero_cm === i + 1) : null;
                 const valor = totalCM ? totalCM.total_modulo : '0.00';
-                totalModHTML += `<td colspan="2"></td><td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">${valor}</td>`;
+                totalModHTML += `<td></td><td></td><td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black; font-weight:bold;">${valor}</td>`;
             }
             
             totalModHTML += `<td></td><td></td>`;
@@ -816,7 +789,6 @@ async function cargarItems() {
             moduloCounter++;
         }
         
-        // TOTAL CONTRATO EDITABLE
         const tfoot = document.querySelector('tfoot tr');
         if (tfoot) {
             const celdas = tfoot.querySelectorAll('td');
