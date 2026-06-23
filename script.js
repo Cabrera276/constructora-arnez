@@ -124,7 +124,6 @@ function actualizarContadores() {
 // ACTUALIZAR TOTALES (SIN CÁLCULO - TODO MANUAL)
 // ============================
 function actualizarTotales() {
-    // Esta función ya no calcula nada, solo actualiza contadores
     actualizarContadores();
 }
 
@@ -193,7 +192,11 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
-    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+    ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
+                    <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>
+                    <td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>
+                    <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>
+                    <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 0}"></td>`;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -341,10 +344,41 @@ function agregarGrupo(titulo, tipo) {
         }
     });
     
+    // Actualizar colspan de total-modulo para incluir nuevas columnas de totales OC/CM
     const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
     document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
         if (td.getAttribute('colspan')) {
             td.setAttribute('colspan', totalColumnas);
+        }
+    });
+    
+    // Agregar celdas de totales OC/CM en la fila total-modulo
+    document.querySelectorAll('.total-modulo').forEach(totalMod => {
+        const celdas = totalMod.querySelectorAll('td');
+        // Si no tiene las celdas de totales OC/CM, las agregamos
+        if (celdas.length < 8) {
+            const tdOCTotal = document.createElement('td');
+            tdOCTotal.contentEditable = true;
+            tdOCTotal.className = 'total-oc-valor';
+            tdOCTotal.style.cursor = 'text';
+            tdOCTotal.style.backgroundColor = '#e8f5e9';
+            tdOCTotal.style.color = 'black';
+            tdOCTotal.innerText = '0.00';
+            
+            const tdCMTotal = document.createElement('td');
+            tdCMTotal.contentEditable = true;
+            tdCMTotal.className = 'total-cm-valor';
+            tdCMTotal.style.cursor = 'text';
+            tdCMTotal.style.backgroundColor = '#e3f2fd';
+            tdCMTotal.style.color = 'black';
+            tdCMTotal.innerText = '0.00';
+            
+            // Insertar después del total módulo
+            const totalModuloCell = celdas[1];
+            if (totalModuloCell) {
+                totalModuloCell.parentNode.insertBefore(tdOCTotal, totalModuloCell.nextSibling);
+                totalModuloCell.parentNode.insertBefore(tdCMTotal, tdOCTotal.nextSibling);
+            }
         }
     });
     
@@ -587,7 +621,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS (CORREGIDO)
+// CARGAR ITEMS (CON TOTALES OC Y CM EDITABLES)
 // ============================
 async function cargarItems() {
     try {
@@ -664,7 +698,6 @@ async function cargarItems() {
                 const fila = document.createElement('tr');
                 fila.dataset.id = item.id;
                 fila.dataset.moduloPadre = moduloCounter;
-                // CORREGIDO: Se cerró correctamente la etiqueta <td> del item_numero
                 fila.innerHTML = `
                     <td contenteditable="true" style="cursor:text;">${item.item_numero || ''}</td>
                     <td contenteditable="true" style="cursor:text;">${escapeHtml(item.descripcion || '')}</td>
@@ -680,10 +713,15 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
+            // TOTAL MÓDULO con totales OC y CM editables
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
-            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td><td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td><td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 2}"></td>`;
+            ft.innerHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
+                            <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>
+                            <td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>
+                            <td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>
+                            <td colspan="${(ordenCambio * 3) + (contratoMod * 3) + 0}"></td>`;
             tabla.appendChild(ft);
             
             moduloCounter++;
@@ -734,6 +772,18 @@ function forzarTotalesEditables() {
             td.setAttribute('contenteditable', 'true');
             td.style.cursor = 'text';
             td.style.backgroundColor = 'white';
+            td.style.color = 'black';
+        });
+        document.querySelectorAll('.total-oc-valor').forEach(td => {
+            td.setAttribute('contenteditable', 'true');
+            td.style.cursor = 'text';
+            td.style.backgroundColor = '#e8f5e9';
+            td.style.color = 'black';
+        });
+        document.querySelectorAll('.total-cm-valor').forEach(td => {
+            td.setAttribute('contenteditable', 'true');
+            td.style.cursor = 'text';
+            td.style.backgroundColor = '#e3f2fd';
             td.style.color = 'black';
         });
         const tfoot = document.querySelector('tfoot tr');
