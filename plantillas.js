@@ -13,6 +13,13 @@ let planillasGuardadas = {};
 
 window.addEventListener('load', () => cargarTodo());
 
+// Escuchar cambios en localStorage (cuando Items guarda, Planillas se actualiza)
+window.addEventListener('storage', (e) => {
+    if (e.key === 'itemsActualizados') {
+        cargarTodo();
+    }
+});
+
 async function fetchJSON(url, defaultValue = []) {
     try {
         const response = await fetch(url);
@@ -86,7 +93,6 @@ async function cargarTodo() {
 
         renderizarTabla();
         
-        // Cargar total acumulado guardado
         const totalGuardado = localStorage.getItem('totalAcumuladoPlanillas');
         if (totalGuardado) {
             setTimeout(() => {
@@ -95,7 +101,6 @@ async function cargarTodo() {
             }, 100);
         }
         
-        // Aplicar modo lectura si es necesario
         aplicarModoLectura();
         
     } catch (error) {
@@ -104,25 +109,19 @@ async function cargarTodo() {
     }
 }
 
-// ============================
-// MODO LECTURA - OCULTAR BOTONES
-// ============================
 function aplicarModoLectura() {
     if (usuarioRol === 'lectura') {
-        // Ocultar botones principales
         const botones = document.querySelectorAll('.btn-planilla-general');
         botones.forEach(btn => {
             btn.style.display = 'none';
         });
         
-        // Hacer celdas no editables
         const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
         celdasEditables.forEach(celda => {
             celda.setAttribute('contenteditable', 'false');
             celda.style.backgroundColor = '#f0f0f0';
         });
         
-        // Ocultar botón de agregar evidencia
         const botonesEvidencia = document.querySelectorAll('.btn-agregar-evidencia');
         botonesEvidencia.forEach(btn => {
             btn.style.display = 'none';
@@ -142,16 +141,29 @@ function renderizarTabla() {
     tbody.innerHTML = '';
     
     let moduloActual = null;
+    let itemsModulo = [];
     
-    for (const item of itemsData) {
+    // Primero, recorremos para insertar filas y totales
+    for (let i = 0; i < itemsData.length; i++) {
+        const item = itemsData[i];
+        const siguienteItem = itemsData[i + 1];
+        
         if (moduloActual !== item.modulo_id) {
+            // Si cambia de módulo, insertar total del módulo anterior
+            if (moduloActual !== null && itemsModulo.length > 0) {
+                insertarTotalModulo(tbody, itemsModulo);
+            }
             moduloActual = item.modulo_id;
+            itemsModulo = [];
+            
             const colspan = 4 + (numeroPlanillas * 4) + 1;
             const rowModulo = document.createElement('tr');
             rowModulo.className = 'fila-modulo';
             rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left;background:#e0e0e0">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')}${item.modulo_nombre ? ' - ' + item.modulo_nombre : ''}</td>`;
             tbody.appendChild(rowModulo);
         }
+        
+        itemsModulo.push(item);
         
         const fila = document.createElement('tr');
         fila.setAttribute('data-item-id', item.id);
@@ -194,7 +206,6 @@ function renderizarTabla() {
             tdAvance.textContent = guardado.avance || '0%';
             tdAvance.style.background = "#fff9e6";
             
-            // Evento sin cálculo automático - total editable manualmente
             const actualizarTotal = () => {
                 actualizarTotalGeneral();
             };
@@ -218,9 +229,41 @@ function renderizarTabla() {
         
         tbody.appendChild(fila);
         renderizarEvidencias(item.id);
+        
+        // Si es el último item o cambia de módulo, insertar total
+        if (!siguienteItem || siguienteItem.modulo_id !== item.modulo_id) {
+            insertarTotalModulo(tbody, itemsModulo);
+        }
     }
     
     actualizarTotalGeneral();
+}
+
+function insertarTotalModulo(tbody, itemsModulo) {
+    if (itemsModulo.length === 0) return;
+    
+    const colspan = 4 + (numeroPlanillas * 4) + 1;
+    const rowTotal = document.createElement('tr');
+    rowTotal.className = 'fila-total-modulo';
+    rowTotal.style.background = '#d5e8d4';
+    rowTotal.style.fontWeight = 'bold';
+    
+    let html = `<td colspan="6" style="text-align:right;padding:8px;background:#d5e8d4"><strong>TOTAL MÓDULO</strong></td>`;
+    
+    for (let p = 1; p <= numeroPlanillas; p++) {
+        let sumaTotal = 0;
+        itemsModulo.forEach(item => {
+            const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]);
+            if (guardado) sumaTotal += parseFloat(guardado.total) || 0;
+        });
+        html += `<td colspan="2" style="background:#d5e8d4"></td>`;
+        html += `<td style="background:#d5e8d4;color:#006400;font-size:15px;text-align:center">${sumaTotal.toFixed(2)}</td>`;
+        html += `<td style="background:#d5e8d4"></td>`;
+    }
+    
+    html += `<td style="background:#d5e8d4"></td>`;
+    rowTotal.innerHTML = html;
+    tbody.appendChild(rowTotal);
 }
 
 function renderizarCabeceras() {
@@ -307,6 +350,7 @@ function renderizarEvidencias(itemId) {
     btnAgregar.style.cursor = 'pointer';
     btnAgregar.style.marginTop = '8px';
     btnAgregar.style.width = '100%';
+    btnAgregar.className = 'btn-agregar-evidencia';
     btnAgregar.onclick = () => agregarEvidencia(itemId);
     
     if (evidencias.length >= 4) {
@@ -415,39 +459,25 @@ function abrirModalEvidencia(itemId, evId) {
     document.body.appendChild(modal);
     
     if (usuarioRol === 'lectura') {
-        const guardarBtn = document.getElementById('guardarDescBtn');
-        const cambiarBtn = document.getElementById('cambiarImgBtn');
-        const eliminarBtn = document.getElementById('eliminarEvBtn');
-        if (guardarBtn) guardarBtn.disabled = true;
-        if (cambiarBtn) cambiarBtn.disabled = true;
-        if (eliminarBtn) eliminarBtn.disabled = true;
-        guardarBtn.style.opacity = '0.5';
-        cambiarBtn.style.opacity = '0.5';
-        eliminarBtn.style.opacity = '0.5';
+        ['guardarDescBtn', 'cambiarImgBtn', 'eliminarEvBtn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+        });
     }
     
     document.getElementById('cerrarModalBtn').onclick = () => modal.remove();
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     document.getElementById('guardarDescBtn').onclick = async () => {
-        if (usuarioRol === 'lectura') {
-            alert("⚠️ Usuario de solo lectura. No puede modificar.");
-            return;
-        }
+        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
         const textarea = document.getElementById('modalDescEv');
         if (textarea) {
             const ev = evidenciasData[itemId]?.find(e => e.id == evId);
             if (ev) {
                 ev.descripcion = textarea.value;
                 await fetch(`${URL_SERVIDOR}/guardar-evidencia`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: ev.id,
-                        item_id: itemId,
-                        descripcion: ev.descripcion,
-                        orden: ev.orden || 0
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: ev.id, item_id: itemId, descripcion: ev.descripcion, orden: ev.orden || 0 })
                 });
                 alert("✅ Descripción guardada");
             }
@@ -457,188 +487,74 @@ function abrirModalEvidencia(itemId, evId) {
     };
     
     document.getElementById('cambiarImgBtn').onclick = () => {
-        if (usuarioRol === 'lectura') {
-            alert("⚠️ Usuario de solo lectura. No puede modificar.");
-            return;
-        }
+        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/jpeg,image/png,image/webp';
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
             const loadingMsg = document.createElement('div');
             loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:#ffc400;padding:10px;border-radius:8px;z-index:9999';
-            loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Actualizando imagen...';
+            loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Actualizando...';
             document.body.appendChild(loadingMsg);
-            
             try {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = async () => {
                     const res = await fetch(`${URL_SERVIDOR}/actualizar-evidencia-imagen`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            item_id: itemId,
-                            evidencia_id: evId,
-                            imagen_base64: reader.result
-                        })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ item_id: itemId, evidencia_id: evId, imagen_base64: reader.result })
                     });
                     const data = await res.json();
-                    if (data.success) {
-                        document.getElementById('modalImg').src = getImagenUrl(evId);
-                        alert("✅ Imagen actualizada");
-                    } else {
-                        throw new Error(data.error);
-                    }
+                    if (data.success) { document.getElementById('modalImg').src = getImagenUrl(evId); alert("✅ Imagen actualizada"); }
+                    else throw new Error(data.error);
                     loadingMsg.remove();
                 };
-            } catch (error) {
-                alert("❌ Error: " + error.message);
-                loadingMsg.remove();
-            }
+            } catch (error) { alert("❌ Error: " + error.message); loadingMsg.remove(); }
         };
         input.click();
     };
     
     document.getElementById('eliminarEvBtn').onclick = async () => {
-        if (usuarioRol === 'lectura') {
-            alert("⚠️ Usuario de solo lectura. No puede modificar.");
-            return;
-        }
+        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
         if (!confirm("¿Eliminar esta evidencia permanentemente?")) return;
-        
         try {
             await fetch(`${URL_SERVIDOR}/eliminar-evidencia`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ evidencia_id: evId, item_id: itemId })
             });
             evidenciasData[itemId] = (evidenciasData[itemId] || []).filter(e => e.id != evId);
             renderizarEvidencias(itemId);
             alert("✅ Evidencia eliminada");
             modal.remove();
-        } catch(err) {
-            alert("❌ Error al eliminar");
-        }
+        } catch(err) { alert("❌ Error al eliminar"); }
     };
 }
 
 function agregarPlanilla() {
-    if (usuarioRol === 'lectura') {
-        alert("⚠️ Usuario de solo lectura. No puede agregar planillas.");
-        return;
-    }
-    
+    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
     numeroPlanillas++;
-    
-    const row1 = document.querySelector('#tablaHead tr:first-child');
-    const row2 = document.querySelector('#tablaHead tr:last-child');
-    
-    const thGroup = document.createElement('th');
-    thGroup.colSpan = 4;
-    thGroup.textContent = `PLANILLA Nº${numeroPlanillas}`;
-    row1.insertBefore(thGroup, row1.lastElementChild);
-    
-    const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
-    const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
-    const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
-    const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
-    row2.insertBefore(thCant, row2.lastElementChild);
-    row2.insertBefore(thPU, row2.lastElementChild);
-    row2.insertBefore(thTotal, row2.lastElementChild);
-    row2.insertBefore(thAvance, row2.lastElementChild);
-    
-    document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
-        const tdCant = document.createElement('td');
-        tdCant.contentEditable = 'true';
-        tdCant.className = 'planilla-cant';
-        tdCant.textContent = '0';
-        tdCant.style.background = "#fff9e6";
-        
-        const tdPU = document.createElement('td');
-        tdPU.contentEditable = 'true';
-        tdPU.className = 'planilla-pu';
-        tdPU.textContent = '0';
-        tdPU.style.background = "#fff9e6";
-        
-        const tdTotal = document.createElement('td');
-        tdTotal.contentEditable = 'true';
-        tdTotal.className = 'planilla-total';
-        tdTotal.textContent = '0';
-        tdTotal.style.background = "#e8f5e9";
-        tdTotal.style.fontWeight = "bold";
-        tdTotal.style.cursor = "text";
-        
-        const tdAvance = document.createElement('td');
-        tdAvance.contentEditable = 'true';
-        tdAvance.className = 'planilla-avance';
-        tdAvance.textContent = '0%';
-        tdAvance.style.background = "#fff9e6";
-        
-        const actualizarTotal = () => {
-            actualizarTotalGeneral();
-        };
-        
-        tdCant.addEventListener('input', actualizarTotal);
-        tdPU.addEventListener('input', actualizarTotal);
-        tdTotal.addEventListener('input', actualizarTotal);
-        
-        const evidenciaCelda = fila.lastElementChild;
-        fila.insertBefore(tdCant, evidenciaCelda);
-        fila.insertBefore(tdPU, evidenciaCelda);
-        fila.insertBefore(tdTotal, evidenciaCelda);
-        fila.insertBefore(tdAvance, evidenciaCelda);
-    });
-    
-    actualizarTotalGeneral();
+    renderizarTabla();
 }
 
 function eliminarPlanilla() {
-    if (usuarioRol === 'lectura') {
-        alert("⚠️ Usuario de solo lectura. No puede eliminar planillas.");
-        return;
-    }
-    
-    if (numeroPlanillas <= 1) {
-        alert("Debe haber al menos una planilla");
-        return;
-    }
-    
-    const row1 = document.querySelector('#tablaHead tr:first-child');
-    const row2 = document.querySelector('#tablaHead tr:last-child');
-    
-    row1.removeChild(row1.children[row1.children.length - 2]);
-    for (let i = 0; i < 4; i++) {
-        row2.removeChild(row2.children[row2.children.length - 2]);
-    }
-    
-    document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
-        const evidenciaCelda = fila.lastElementChild;
-        for (let i = 0; i < 4; i++) {
-            fila.removeChild(evidenciaCelda.previousElementSibling);
-        }
-    });
-    
+    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
+    if (numeroPlanillas <= 1) { alert("Debe haber al menos una planilla"); return; }
     numeroPlanillas--;
-    actualizarTotalGeneral();
+    renderizarTabla();
 }
 
 function actualizarTotalGeneral() {
     const tfoot = document.getElementById('tablaFoot');
-    
-    // Verificar si ya existe el footer con input editable
     if (tfoot.children.length === 0 || !tfoot.querySelector('.total-acumulado-input')) {
-        tfoot.innerHTML = `<td colspan="5"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td>
+        const colspanTotal = 5 + (numeroPlanillas * 4);
+        tfoot.innerHTML = `<td colspan="${colspanTotal}" style="text-align:right;padding:8px"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td>
                            <td style="background:#ffc400;font-weight:bold;font-size:16px;padding:0">
                                <input type="number" class="total-acumulado-input" value="0" step="any" 
-                                      style="width:150px; padding:8px; background:#ffc400; border:none; 
-                                             font-weight:bold; font-size:16px; text-align:center;">
-                            </td>
-                           <td colspan="10"></td>`;
-        
+                                      style="width:150px;padding:8px;background:#ffc400;border:none;font-weight:bold;font-size:16px;text-align:center">
+                           </td>
+                           <td></td>`;
         const inputTotal = tfoot.querySelector('.total-acumulado-input');
         inputTotal.addEventListener('input', () => {
             localStorage.setItem('totalAcumuladoPlanillas', inputTotal.value);
@@ -647,10 +563,7 @@ function actualizarTotalGeneral() {
 }
 
 async function guardarTodo() {
-    if (usuarioRol === 'lectura') {
-        alert("⚠️ Usuario de solo lectura. No puede guardar cambios.");
-        return;
-    }
+    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
     
     const datos = [];
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
@@ -671,7 +584,6 @@ async function guardarTodo() {
         }
     });
     
-    // Guardar total acumulado manual en localStorage
     const totalAcumuladoInput = document.querySelector('.total-acumulado-input');
     if (totalAcumuladoInput) {
         localStorage.setItem('totalAcumuladoPlanillas', totalAcumuladoInput.value);
@@ -681,15 +593,14 @@ async function guardarTodo() {
     
     try {
         const res = await fetch(`${URL_SERVIDOR}/guardar-planillas`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
         });
         const result = await res.json();
         alert(result.success ? "✅ Planillas guardadas correctamente" : "❌ Error al guardar");
-    } catch(e) {
-        alert("❌ Error de conexión");
-    }
+        
+        // Notificar a otras pestañas que se actualizaron los datos
+        localStorage.setItem('planillasActualizadas', Date.now());
+    } catch(e) { alert("❌ Error de conexión"); }
 }
 
 function abrirContactos() { document.getElementById("modalContactos").style.display = "flex"; }
