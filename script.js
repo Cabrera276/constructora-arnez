@@ -192,8 +192,22 @@ document.getElementById('btnModulo').addEventListener('click', () => {
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
-    ft.innerHTML = `<td><strong>TOTAL MÓDULO</strong></td>
-                    <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
+    
+    // Empezar con TOTAL MÓDULO y su valor
+    let totalHTML = `<td><strong>TOTAL MÓDULO</strong></td>
+                     <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
+    
+    // Agregar espacios para OC existentes
+    for (let i = 0; i < ordenCambio; i++) {
+        totalHTML += `<td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>`;
+    }
+    
+    // Agregar espacios para CM existentes
+    for (let i = 0; i < contratoMod; i++) {
+        totalHTML += `<td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
+    }
+    
+    ft.innerHTML = totalHTML;
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -292,7 +306,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 });
 
 // ============================
-// AÑADIR OC / CM (CON ALINEACIÓN AUTOMÁTICA)
+// AÑADIR OC / CM
 // ============================
 document.getElementById('btnOC').addEventListener('click', () => { 
     ordenCambio++; 
@@ -315,87 +329,61 @@ function agregarGrupo(titulo, tipo) {
     const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
     
     // Agregar columnas a cada fila de ítems
-    document.querySelectorAll('#tablaItems tr').forEach(fila => {
-        if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
-            const celdas = fila.cells;
-            const pos = celdas.length - 2;
-            
-            const td1 = document.createElement('td');
-            td1.contentEditable = true;
-            td1.innerText = '0';
-            
-            const td2 = document.createElement('td');
-            td2.contentEditable = true;
-            td2.innerText = '0';
-            
-            const td3 = document.createElement('td');
-            td3.contentEditable = true;
-            td3.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
-            td3.innerText = '0.00';
-            td3.style.cursor = 'text';
-            td3.style.backgroundColor = 'white';
-            td3.style.color = 'black';
-            
-            fila.insertBefore(td3, celdas[pos]);
-            fila.insertBefore(td2, celdas[pos]);
-            fila.insertBefore(td1, celdas[pos]);
-        }
+    document.querySelectorAll('#tablaItems tr:not(.grupo-modulo):not(.total-modulo)').forEach(fila => {
+        const celdas = fila.cells;
+        const pos = celdas.length - 2;
+        
+        const td1 = document.createElement('td');
+        td1.contentEditable = true;
+        td1.innerText = '0';
+        
+        const td2 = document.createElement('td');
+        td2.contentEditable = true;
+        td2.innerText = '0';
+        
+        const td3 = document.createElement('td');
+        td3.contentEditable = true;
+        td3.className = tipo === 'OC' ? `oc-total-${nuevoIndice}` : `cm-total-${nuevoIndice}`;
+        td3.innerText = '0.00';
+        td3.style.cursor = 'text';
+        td3.style.backgroundColor = 'white';
+        td3.style.color = 'black';
+        
+        fila.insertBefore(td3, celdas[pos]);
+        fila.insertBefore(td2, celdas[pos]);
+        fila.insertBefore(td1, celdas[pos]);
     });
     
-    // Actualizar la fila total-modulo
+    // AGREGAR NUEVA CELDA DE TOTAL EN LA FILA TOTAL-MODULO
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const celdas = totalMod.querySelectorAll('td');
-        const totalValorCell = celdas[1];
         
-        // Si es OC, agregar celda de total OC después del total módulo valor
+        // Crear la celda de total para este nuevo bloque
+        const tdNuevoTotal = document.createElement('td');
+        tdNuevoTotal.contentEditable = true;
+        tdNuevoTotal.className = tipo === 'OC' ? 'total-oc-valor' : 'total-cm-valor';
+        tdNuevoTotal.style.cursor = 'text';
+        tdNuevoTotal.style.backgroundColor = tipo === 'OC' ? '#e8f5e9' : '#e3f2fd';
+        tdNuevoTotal.style.color = 'black';
+        tdNuevoTotal.innerText = '0.00';
+        
+        // Contar cuántas celdas de OC/CM ya existen
+        const celdasOC = totalMod.querySelectorAll('.total-oc-valor');
+        const celdasCM = totalMod.querySelectorAll('.total-cm-valor');
+        
+        let posicionInsert;
         if (tipo === 'OC') {
-            const tdOC = document.createElement('td');
-            tdOC.contentEditable = true;
-            tdOC.className = 'total-oc-valor';
-            tdOC.style.cursor = 'text';
-            tdOC.style.backgroundColor = '#e8f5e9';
-            tdOC.style.color = 'black';
-            tdOC.innerText = '0.00';
-            
-            if (totalValorCell.nextSibling) {
-                totalMod.insertBefore(tdOC, totalValorCell.nextSibling);
-            } else {
-                totalMod.appendChild(tdOC);
-            }
+            // Insertar después de todas las OC existentes
+            posicionInsert = 2 + celdasOC.length;
+        } else {
+            // Insertar después de todas las OC y CM existentes
+            posicionInsert = 2 + celdasOC.length + celdasCM.length;
         }
         
-        // Si es CM, agregar celda de total CM después de todas las OC
-        if (tipo === 'CM') {
-            const tdCM = document.createElement('td');
-            tdCM.contentEditable = true;
-            tdCM.className = 'total-cm-valor';
-            tdCM.style.cursor = 'text';
-            tdCM.style.backgroundColor = '#e3f2fd';
-            tdCM.style.color = 'black';
-            tdCM.innerText = '0.00';
-            
-            // Buscar la última celda de OC
-            const todasLasCeldas = totalMod.querySelectorAll('td');
-            let ultimaOC = null;
-            todasLasCeldas.forEach(td => {
-                if (td.classList.contains('total-oc-valor')) {
-                    ultimaOC = td;
-                }
-            });
-            
-            if (ultimaOC) {
-                if (ultimaOC.nextSibling) {
-                    totalMod.insertBefore(tdCM, ultimaOC.nextSibling);
-                } else {
-                    totalMod.appendChild(tdCM);
-                }
-            } else {
-                if (totalValorCell.nextSibling) {
-                    totalMod.insertBefore(tdCM, totalValorCell.nextSibling);
-                } else {
-                    totalMod.appendChild(tdCM);
-                }
-            }
+        if (posicionInsert < celdas.length) {
+            totalMod.insertBefore(tdNuevoTotal, celdas[posicionInsert]);
+        } else {
+            totalMod.appendChild(tdNuevoTotal);
         }
     });
     
@@ -464,97 +452,6 @@ async function eliminarFila(btn) {
         fila.remove(); 
         actualizarContadores(); 
         mostrarToast('🗑 Eliminado', 'info');
-    });
-}
-
-// ============================
-// ELIMINAR OC / CM
-// ============================
-function eliminarOC() {
-    if (ordenCambio <= 0) { mostrarToast('⚠️ No hay OC', 'warning'); return; }
-    
-    abrirModal('Eliminar OC', `¿Eliminar OC Nº${ordenCambio}?`, () => {
-        const filaPrincipal = document.getElementById('filaPrincipal');
-        const filaSecundaria = document.getElementById('filaSecundaria');
-        
-        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
-        for (let i = 0; i < 3; i++) {
-            filaSecundaria.lastElementChild.remove();
-        }
-        
-        document.querySelectorAll('#tablaItems tr').forEach(fila => {
-            if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
-                const pos = fila.cells.length - 3;
-                for (let i = 0; i < 3; i++) {
-                    if (fila.cells[pos]) fila.deleteCell(pos);
-                }
-            }
-        });
-        
-        ordenCambio--;
-        
-        // Eliminar la última celda de total OC
-        document.querySelectorAll('.total-modulo').forEach(totalMod => {
-            const ocCeldas = totalMod.querySelectorAll('.total-oc-valor');
-            if (ocCeldas.length > 0) {
-                const ultimaOC = ocCeldas[ocCeldas.length - 1];
-                ultimaOC.remove();
-            }
-        });
-        
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
-            }
-        });
-        
-        actualizarContadores();
-        mostrarToast('🗑 OC eliminada', 'info');
-    });
-}
-
-function eliminarCM() {
-    if (contratoMod <= 0) { mostrarToast('⚠️ No hay CM', 'warning'); return; }
-    
-    abrirModal('Eliminar CM', `¿Eliminar CM Nº${contratoMod}?`, () => {
-        const filaPrincipal = document.getElementById('filaPrincipal');
-        const filaSecundaria = document.getElementById('filaSecundaria');
-        
-        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
-        for (let i = 0; i < 3; i++) {
-            filaSecundaria.lastElementChild.remove();
-        }
-        
-        document.querySelectorAll('#tablaItems tr').forEach(fila => {
-            if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
-                const pos = fila.cells.length - 3;
-                for (let i = 0; i < 3; i++) {
-                    if (fila.cells[pos]) fila.deleteCell(pos);
-                }
-            }
-        });
-        
-        contratoMod--;
-        
-        // Eliminar la última celda de total CM
-        document.querySelectorAll('.total-modulo').forEach(totalMod => {
-            const cmCeldas = totalMod.querySelectorAll('.total-cm-valor');
-            if (cmCeldas.length > 0) {
-                const ultimaCM = cmCeldas[cmCeldas.length - 1];
-                ultimaCM.remove();
-            }
-        });
-        
-        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
-        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
-            if (td.getAttribute('colspan')) {
-                td.setAttribute('colspan', totalColumnas);
-            }
-        });
-        
-        actualizarContadores();
-        mostrarToast('🗑 CM eliminado', 'info');
     });
 }
 
@@ -664,6 +561,97 @@ async function guardarDatos() {
 }
 
 // ============================
+// ELIMINAR OC / CM
+// ============================
+function eliminarOC() {
+    if (ordenCambio <= 0) { mostrarToast('⚠️ No hay OC', 'warning'); return; }
+    
+    abrirModal('Eliminar OC', `¿Eliminar OC Nº${ordenCambio}?`, () => {
+        const filaPrincipal = document.getElementById('filaPrincipal');
+        const filaSecundaria = document.getElementById('filaSecundaria');
+        
+        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
+        for (let i = 0; i < 3; i++) {
+            filaSecundaria.lastElementChild.remove();
+        }
+        
+        document.querySelectorAll('#tablaItems tr').forEach(fila => {
+            if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
+                const pos = fila.cells.length - 3;
+                for (let i = 0; i < 3; i++) {
+                    if (fila.cells[pos]) fila.deleteCell(pos);
+                }
+            }
+        });
+        
+        ordenCambio--;
+        
+        // Eliminar la última celda de total OC
+        document.querySelectorAll('.total-modulo').forEach(totalMod => {
+            const ocCeldas = totalMod.querySelectorAll('.total-oc-valor');
+            if (ocCeldas.length > 0) {
+                const ultimaOC = ocCeldas[ocCeldas.length - 1];
+                ultimaOC.remove();
+            }
+        });
+        
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
+            }
+        });
+        
+        actualizarContadores();
+        mostrarToast('🗑 OC eliminada', 'info');
+    });
+}
+
+function eliminarCM() {
+    if (contratoMod <= 0) { mostrarToast('⚠️ No hay CM', 'warning'); return; }
+    
+    abrirModal('Eliminar CM', `¿Eliminar CM Nº${contratoMod}?`, () => {
+        const filaPrincipal = document.getElementById('filaPrincipal');
+        const filaSecundaria = document.getElementById('filaSecundaria');
+        
+        filaPrincipal.children[filaPrincipal.children.length - 3].remove();
+        for (let i = 0; i < 3; i++) {
+            filaSecundaria.lastElementChild.remove();
+        }
+        
+        document.querySelectorAll('#tablaItems tr').forEach(fila => {
+            if (!fila.querySelector('.modulo-row') && !fila.classList.contains('total-modulo')) {
+                const pos = fila.cells.length - 3;
+                for (let i = 0; i < 3; i++) {
+                    if (fila.cells[pos]) fila.deleteCell(pos);
+                }
+            }
+        });
+        
+        contratoMod--;
+        
+        // Eliminar la última celda de total CM
+        document.querySelectorAll('.total-modulo').forEach(totalMod => {
+            const cmCeldas = totalMod.querySelectorAll('.total-cm-valor');
+            if (cmCeldas.length > 0) {
+                const ultimaCM = cmCeldas[cmCeldas.length - 1];
+                ultimaCM.remove();
+            }
+        });
+        
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
+            }
+        });
+        
+        actualizarContadores();
+        mostrarToast('🗑 CM eliminado', 'info');
+    });
+}
+
+// ============================
 // CARGAR ITEMS
 // ============================
 async function cargarItems() {
@@ -756,7 +744,7 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // TOTAL MÓDULO con celdas dinámicas
+            // TOTAL MÓDULO
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
@@ -764,10 +752,12 @@ async function cargarItems() {
             let totalHTML = `<td><strong>TOTAL MÓDULO</strong></td>
                              <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
             
+            // Agregar celdas de total OC para cada OC existente
             for (let i = 0; i < ordenCambio; i++) {
                 totalHTML += `<td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>`;
             }
             
+            // Agregar celdas de total CM para cada CM existente
             for (let i = 0; i < contratoMod; i++) {
                 totalHTML += `<td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
             }
