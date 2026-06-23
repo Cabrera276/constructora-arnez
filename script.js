@@ -292,7 +292,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
 });
 
 // ============================
-// AÑADIR OC / CM (CON ALINEACIÓN CORRECTA)
+// AÑADIR OC / CM (CON ALINEACIÓN AUTOMÁTICA)
 // ============================
 document.getElementById('btnOC').addEventListener('click', () => { 
     ordenCambio++; 
@@ -345,19 +345,10 @@ function agregarGrupo(titulo, tipo) {
     // Actualizar la fila total-modulo
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const celdas = totalMod.querySelectorAll('td');
+        const totalValorCell = celdas[1];
         
+        // Si es OC, agregar celda de total OC después del total módulo valor
         if (tipo === 'OC') {
-            // Buscar la posición correcta para insertar TOTAL OC
-            // Debe ir después de TOTAL MÓDULO VALOR y después de otros OC existentes
-            let posicionInsert = 2; // Después de [TOTAL MÓDULO] y [TOTAL MÓDULO VALOR]
-            
-            // Si ya existen OC, insertar después de la última
-            const ocCeldas = totalMod.querySelectorAll('.total-oc-valor');
-            if (ocCeldas.length > 0) {
-                const ultimaOC = ocCeldas[ocCeldas.length - 1];
-                posicionInsert = Array.from(celdas).indexOf(ultimaOC) + 1;
-            }
-            
             const tdOC = document.createElement('td');
             tdOC.contentEditable = true;
             tdOC.className = 'total-oc-valor';
@@ -366,29 +357,15 @@ function agregarGrupo(titulo, tipo) {
             tdOC.style.color = 'black';
             tdOC.innerText = '0.00';
             
-            if (posicionInsert < celdas.length) {
-                totalMod.insertBefore(tdOC, celdas[posicionInsert]);
+            if (totalValorCell.nextSibling) {
+                totalMod.insertBefore(tdOC, totalValorCell.nextSibling);
             } else {
                 totalMod.appendChild(tdOC);
             }
         }
         
+        // Si es CM, agregar celda de total CM después de todas las OC
         if (tipo === 'CM') {
-            // Buscar la posición correcta para insertar TOTAL CM
-            // Debe ir después de todas las OC y después de otros CM existentes
-            let posicionInsert = 2;
-            const ocCeldas = totalMod.querySelectorAll('.total-oc-valor');
-            if (ocCeldas.length > 0) {
-                const ultimaOC = ocCeldas[ocCeldas.length - 1];
-                posicionInsert = Array.from(celdas).indexOf(ultimaOC) + 1;
-            }
-            
-            const cmCeldas = totalMod.querySelectorAll('.total-cm-valor');
-            if (cmCeldas.length > 0) {
-                const ultimaCM = cmCeldas[cmCeldas.length - 1];
-                posicionInsert = Array.from(celdas).indexOf(ultimaCM) + 1;
-            }
-            
             const tdCM = document.createElement('td');
             tdCM.contentEditable = true;
             tdCM.className = 'total-cm-valor';
@@ -397,11 +374,36 @@ function agregarGrupo(titulo, tipo) {
             tdCM.style.color = 'black';
             tdCM.innerText = '0.00';
             
-            if (posicionInsert < celdas.length) {
-                totalMod.insertBefore(tdCM, celdas[posicionInsert]);
+            // Buscar la última celda de OC
+            const todasLasCeldas = totalMod.querySelectorAll('td');
+            let ultimaOC = null;
+            todasLasCeldas.forEach(td => {
+                if (td.classList.contains('total-oc-valor')) {
+                    ultimaOC = td;
+                }
+            });
+            
+            if (ultimaOC) {
+                if (ultimaOC.nextSibling) {
+                    totalMod.insertBefore(tdCM, ultimaOC.nextSibling);
+                } else {
+                    totalMod.appendChild(tdCM);
+                }
             } else {
-                totalMod.appendChild(tdCM);
+                if (totalValorCell.nextSibling) {
+                    totalMod.insertBefore(tdCM, totalValorCell.nextSibling);
+                } else {
+                    totalMod.appendChild(tdCM);
+                }
             }
+        }
+    });
+    
+    // Actualizar colspan de las filas de módulo
+    const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+    document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+        if (td.getAttribute('colspan')) {
+            td.setAttribute('colspan', totalColumnas);
         }
     });
     
@@ -500,6 +502,13 @@ function eliminarOC() {
             }
         });
         
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
+            }
+        });
+        
         actualizarContadores();
         mostrarToast('🗑 OC eliminada', 'info');
     });
@@ -534,6 +543,13 @@ function eliminarCM() {
             if (cmCeldas.length > 0) {
                 const ultimaCM = cmCeldas[cmCeldas.length - 1];
                 ultimaCM.remove();
+            }
+        });
+        
+        const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
+        document.querySelectorAll('.grupo-modulo td, .total-modulo td').forEach(td => {
+            if (td.getAttribute('colspan')) {
+                td.setAttribute('colspan', totalColumnas);
             }
         });
         
@@ -740,21 +756,18 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // TOTAL MÓDULO
+            // TOTAL MÓDULO con celdas dinámicas
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
             
-            // Construir la fila de totales según las columnas existentes
             let totalHTML = `<td><strong>TOTAL MÓDULO</strong></td>
                              <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
             
-            // Agregar celdas de total OC para cada OC existente
             for (let i = 0; i < ordenCambio; i++) {
                 totalHTML += `<td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">0.00</td>`;
             }
             
-            // Agregar celdas de total CM para cada CM existente
             for (let i = 0; i < contratoMod; i++) {
                 totalHTML += `<td contenteditable="true" class="total-cm-valor" style="cursor:text; background:#e3f2fd; color:black;">0.00</td>`;
             }
