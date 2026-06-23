@@ -544,8 +544,6 @@ async function guardarDatos() {
     let guardados = 0;
     let actualizados = 0;
     let errores = 0;
-    let totalesGuardados = 0;
-    let totalesErrores = 0;
     
     // Guardar items
     if (datos.length > 0) {
@@ -578,7 +576,7 @@ async function guardarDatos() {
             try {
                 // Guardar totales OC del módulo
                 if (modulo.totales_oc && modulo.totales_oc.length > 0) {
-                    const resOC = await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-oc`, {
+                    await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-oc`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -586,13 +584,11 @@ async function guardarDatos() {
                             totales_oc: modulo.totales_oc
                         })
                     });
-                    if ((await resOC.json()).success) totalesGuardados++;
-                    else totalesErrores++;
                 }
                 
                 // Guardar totales CM del módulo
                 if (modulo.totales_cm && modulo.totales_cm.length > 0) {
-                    const resCM = await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-cm`, {
+                    await fetch(`${URL_SERVIDOR}/guardar-totales-modulo-cm`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -600,17 +596,12 @@ async function guardarDatos() {
                             totales_cm: modulo.totales_cm
                         })
                     });
-                    if ((await resCM.json()).success) totalesGuardados++;
-                    else totalesErrores++;
                 }
-            } catch(e) {
-                totalesErrores++;
-            }
+            } catch(e) {}
         }
     }
     
-    mostrarToast(`✅ ${guardados} nuevos, 🔄 ${actualizados} actualizados, ⚠️ ${errores} errores | 📊 ${totalesGuardados} totales guardados`, 
-        guardados > 0 || actualizados > 0 ? 'success' : 'error');
+    mostrarToast(`✅ ${guardados} nuevos, 🔄 ${actualizados} actualizados, ⚠️ ${errores} errores`, guardados > 0 || actualizados > 0 ? 'success' : 'error');
     
     if (guardados > 0 || actualizados > 0) {
         setTimeout(() => location.reload(), 1500);
@@ -704,17 +695,21 @@ function eliminarCM() {
 // ============================
 async function cargarItems() {
     try {
-        const [resItems, resOC, resCM, resTotales] = await Promise.all([
+        const [resItems, resOC, resCM] = await Promise.all([
             fetch(`${URL_SERVIDOR}/items`),
             fetch(`${URL_SERVIDOR}/ordenes-cambio`),
-            fetch(`${URL_SERVIDOR}/contratos-mod`),
-            fetch(`${URL_SERVIDOR}/totales-modulo`)
+            fetch(`${URL_SERVIDOR}/contratos-mod`)
         ]);
         
         let items = await resItems.json();
         const ocdb = await resOC.json();
         const cmdb = await resCM.json();
-        const totalesDB = await resTotales.json();
+        
+        let totalesDB = { oc: [], cm: [] };
+        try {
+            const resTotales = await fetch(`${URL_SERVIDOR}/totales-modulo`);
+            if (resTotales.ok) totalesDB = await resTotales.json();
+        } catch(e) {}
         
         const maxOC = Math.max(...ocdb.map(o => o.numero_oc), 0);
         for (let i = 0; i < maxOC; i++) { 
@@ -799,18 +794,15 @@ async function cargarItems() {
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
             
-            // Construir HTML con los valores guardados
             let totalModHTML = `<td colspan="5"><strong>TOTAL MÓDULO</strong></td>
                             <td contenteditable="true" class="total-modulo-valor" style="cursor:text; background:white; color:black;">0.00</td>`;
             
-            // Totales OC desde BD
             for (let i = 0; i < ordenCambio; i++) {
                 const totalOC = totalesDB.oc ? totalesDB.oc.find(o => o.modulo_nombre === moduloNombre && o.numero_oc === i + 1) : null;
                 const valor = totalOC ? totalOC.total_modulo : '0.00';
                 totalModHTML += `<td colspan="2"></td><td contenteditable="true" class="total-oc-valor" style="cursor:text; background:#e8f5e9; color:black;">${valor}</td>`;
             }
             
-            // Totales CM desde BD
             for (let i = 0; i < contratoMod; i++) {
                 const totalCM = totalesDB.cm ? totalesDB.cm.find(o => o.modulo_nombre === moduloNombre && o.numero_cm === i + 1) : null;
                 const valor = totalCM ? totalCM.total_modulo : '0.00';
