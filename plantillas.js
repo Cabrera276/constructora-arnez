@@ -162,7 +162,7 @@ function renderizarTabla() {
         // Columnas OC
         const ocsDelItem = ocData.filter(o => parseInt(o.item_id) === item.id);
         for (let o = 1; o <= numOC; o++) {
-            const oc = ocsDelItem.find(o => o.numero_oc === o) || { cantidad: 0, precio: 0, total: 0 };
+            const oc = ocsDelItem.find(oc => parseInt(oc.numero_oc) === o) || { cantidad: 0, precio: 0, total: 0 };
             fila.innerHTML += `<td style="background:#fff9e6">${oc.cantidad || 0}</td>`;
             fila.innerHTML += `<td style="background:#fff9e6">${oc.precio || 0}</td>`;
             fila.innerHTML += `<td style="background:#e8f5e9;font-weight:bold">${oc.total || 0}</td>`;
@@ -171,7 +171,7 @@ function renderizarTabla() {
         // Columnas CM
         const cmsDelItem = cmData.filter(c => parseInt(c.item_id) === item.id);
         for (let c = 1; c <= numCM; c++) {
-            const cm = cmsDelItem.find(c => c.numero_cm === c) || { cantidad: 0, precio: 0, total: 0 };
+            const cm = cmsDelItem.find(cm => parseInt(cm.numero_cm) === c) || { cantidad: 0, precio: 0, total: 0 };
             fila.innerHTML += `<td style="background:#fff9e6">${cm.cantidad || 0}</td>`;
             fila.innerHTML += `<td style="background:#fff9e6">${cm.precio || 0}</td>`;
             fila.innerHTML += `<td style="background:#e3f2fd;font-weight:bold">${cm.total || 0}</td>`;
