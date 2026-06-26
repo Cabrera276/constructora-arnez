@@ -545,7 +545,6 @@ async function guardarDatos() {
         }
     }
     
-    localStorage.setItem('itemsActualizados', Date.now());
     mostrarToast(`✅ ${guardados} nuevos, 🔄 ${actualizados} actualizados, ⚠️ ${errores} errores`, guardados > 0 || actualizados > 0 ? 'success' : 'error');
     if (guardados > 0 || actualizados > 0) setTimeout(() => location.reload(), 1500);
     btn.innerHTML = textoOriginal;
