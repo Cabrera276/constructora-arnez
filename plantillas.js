@@ -160,7 +160,7 @@ function renderizarTabla() {
         `;
         
         // Columnas OC
-        const ocsDelItem = ocData.filter(o => o.item_id === item.id);
+        const ocsDelItem = ocData.filter(o => parseInt(o.item_id) === item.id);
         for (let o = 1; o <= numOC; o++) {
             const oc = ocsDelItem.find(o => o.numero_oc === o) || { cantidad: 0, precio: 0, total: 0 };
             fila.innerHTML += `<td style="background:#fff9e6">${oc.cantidad || 0}</td>`;
@@ -169,7 +169,7 @@ function renderizarTabla() {
         }
         
         // Columnas CM
-        const cmsDelItem = cmData.filter(c => c.item_id === item.id);
+        const cmsDelItem = cmData.filter(c => parseInt(c.item_id) === item.id);
         for (let c = 1; c <= numCM; c++) {
             const cm = cmsDelItem.find(c => c.numero_cm === c) || { cantidad: 0, precio: 0, total: 0 };
             fila.innerHTML += `<td style="background:#fff9e6">${cm.cantidad || 0}</td>`;
