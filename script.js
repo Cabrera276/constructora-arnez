@@ -317,14 +317,22 @@ document.getElementById('btnCM').addEventListener('click', () => {
 function agregarGrupo(titulo, tipo) {
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
+    
+    // La columna ACCIONES es la última en filaPrincipal, INCIDENCIA es la penúltima
+    const incidenciaFP = fp.children[fp.children.length - 2];
+    
+    // Agregar encabezado del grupo antes de INCIDENCIA
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
-    fp.insertBefore(g, fp.children[fp.children.length - 2]);
+    fp.insertBefore(g, incidenciaFP);
+    
+    // En filaSecundaria no hay INCIDENCIA ni ACCIONES, solo los subencabezados
+    // Agregar al final de filaSecundaria
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { 
         const th = document.createElement('th'); 
         th.innerText = t; 
-        fs.insertBefore(th, fs.children[fs.children.length - 2]);
+        fs.appendChild(th);
     });
     
     const nuevoIndice = (tipo === 'OC' ? ordenCambio : contratoMod) - 1;
@@ -367,7 +375,6 @@ function agregarGrupo(titulo, tipo) {
     
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
-
 // ============================
 // EDITAR ÍTEM
 // ============================
