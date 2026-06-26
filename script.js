@@ -317,18 +317,13 @@ document.getElementById('btnCM').addEventListener('click', () => {
 function agregarGrupo(titulo, tipo) {
     const fp = document.getElementById('filaPrincipal');
     const fs = document.getElementById('filaSecundaria');
-    
-    // La columna ACCIONES es la última en filaPrincipal, INCIDENCIA es la penúltima
     const incidenciaFP = fp.children[fp.children.length - 2];
     
-    // Agregar encabezado del grupo antes de INCIDENCIA
     const g = document.createElement('th'); 
     g.colSpan = 3; 
     g.innerText = titulo;
     fp.insertBefore(g, incidenciaFP);
     
-    // En filaSecundaria no hay INCIDENCIA ni ACCIONES, solo los subencabezados
-    // Agregar al final de filaSecundaria
     ['CANT.', 'P.U.Bs', 'TOTAL'].forEach(t => { 
         const th = document.createElement('th'); 
         th.innerText = t; 
@@ -375,6 +370,7 @@ function agregarGrupo(titulo, tipo) {
     
     mostrarToast(`✅ ${titulo} agregado`, 'success');
 }
+
 // ============================
 // EDITAR ÍTEM
 // ============================
@@ -491,7 +487,6 @@ async function guardarDatos() {
         });
     }
     
-    // Guardar totales de módulo
     const totalesModulo = [];
     document.querySelectorAll('.total-modulo').forEach(totalMod => {
         const moduloId = totalMod.dataset.moduloPadre;
@@ -656,6 +651,20 @@ async function cargarItems() {
             if (resTotales.ok) totalesDB = await resTotales.json();
         } catch(e) {}
         
+        // Limpiar encabezados OC/CM anteriores
+        const fsHeader = document.getElementById('filaSecundaria');
+        while (fsHeader.children.length > 3) {
+            fsHeader.removeChild(fsHeader.lastElementChild);
+        }
+        const fpHeader = document.getElementById('filaPrincipal');
+        while (fpHeader.children.length > 6) {
+            fpHeader.removeChild(fpHeader.children[fpHeader.children.length - 3]);
+        }
+        
+        // Resetear contadores antes de reconstruir
+        ordenCambio = 0;
+        contratoMod = 0;
+        
         const maxOC = Math.max(...ocdb.map(o => o.numero_oc), 0);
         for (let i = 0; i < maxOC; i++) { 
             ordenCambio++; 
@@ -734,7 +743,6 @@ async function cargarItems() {
                 tabla.appendChild(fila);
             });
             
-            // TOTAL MÓDULO con totales cargados de BD
             const ft = document.createElement('tr');
             ft.classList.add('total-modulo');
             ft.dataset.moduloPadre = moduloCounter;
