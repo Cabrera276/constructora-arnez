@@ -13,12 +13,14 @@ let planillasGuardadas = {};
 
 window.addEventListener('load', () => cargarTodo());
 
-// Escuchar cambios en localStorage (cuando Items guarda, Planillas se actualiza)
-window.addEventListener('storage', (e) => {
-    if (e.key === 'itemsActualizados') {
-        cargarTodo();
+let ultimaActualizacion = Date.now();
+setInterval(async () => {
+    const itemsActualizados = localStorage.getItem('itemsActualizados');
+    if (itemsActualizados && parseInt(itemsActualizados) > ultimaActualizacion) {
+        ultimaActualizacion = parseInt(itemsActualizados);
+        await cargarTodo();
     }
-});
+}, 3000);
 
 async function fetchJSON(url, defaultValue = []) {
     try {
@@ -26,14 +28,9 @@ async function fetchJSON(url, defaultValue = []) {
         if (!response.ok) return defaultValue;
         const text = await response.text();
         if (text.trim().startsWith('<')) return defaultValue;
-        try {
-            return JSON.parse(text);
-        } catch(e) {
-            return defaultValue;
-        }
-    } catch(error) {
-        return defaultValue;
-    }
+        try { return JSON.parse(text); }
+        catch(e) { return defaultValue; }
+    } catch(error) { return defaultValue; }
 }
 
 async function cargarTodo() {
@@ -62,10 +59,7 @@ async function cargarTodo() {
             evidenciasDB.forEach(ev => {
                 if (!evidenciasData[ev.item_id]) evidenciasData[ev.item_id] = [];
                 evidenciasData[ev.item_id].push({
-                    id: ev.id,
-                    url: ev.url_imagen,
-                    descripcion: ev.descripcion || '',
-                    orden: ev.orden || 0
+                    id: ev.id, url: ev.url_imagen, descripcion: ev.descripcion || '', orden: ev.orden || 0
                 });
             });
         }
@@ -84,10 +78,8 @@ async function cargarTodo() {
         planillasDB.forEach(p => {
             if (!planillasGuardadas[p.item_id]) planillasGuardadas[p.item_id] = {};
             planillasGuardadas[p.item_id][p.numero_planilla] = {
-                cantidad: p.cantidad || 0,
-                precio_unitario: p.precio_unitario || 0,
-                total: p.total || 0,
-                avance: p.avance || "0%"
+                cantidad: p.cantidad || 0, precio_unitario: p.precio_unitario || 0,
+                total: p.total || 0, avance: p.avance || "0%"
             };
         });
 
@@ -102,7 +94,6 @@ async function cargarTodo() {
         }
         
         aplicarModoLectura();
-        
     } catch (error) {
         console.error('Error:', error);
         document.getElementById('tablaBody').innerHTML = `<tr><td colspan="20" style="color:#ff6b6b;text-align:center;padding:40px">Error al cargar datos.<br><button onclick="location.reload()" style="background:#ffc400;border:none;padding:8px 16px;border-radius:20px;margin-top:10px;cursor:pointer">Reintentar</button></td></tr>`;
@@ -111,22 +102,12 @@ async function cargarTodo() {
 
 function aplicarModoLectura() {
     if (usuarioRol === 'lectura') {
-        const botones = document.querySelectorAll('.btn-planilla-general');
-        botones.forEach(btn => {
-            btn.style.display = 'none';
-        });
-        
-        const celdasEditables = document.querySelectorAll('[contenteditable="true"]');
-        celdasEditables.forEach(celda => {
+        document.querySelectorAll('.btn-planilla-general').forEach(btn => btn.style.display = 'none');
+        document.querySelectorAll('[contenteditable="true"]').forEach(celda => {
             celda.setAttribute('contenteditable', 'false');
             celda.style.backgroundColor = '#f0f0f0';
         });
-        
-        const botonesEvidencia = document.querySelectorAll('.btn-agregar-evidencia');
-        botonesEvidencia.forEach(btn => {
-            btn.style.display = 'none';
-        });
-        
+        document.querySelectorAll('.btn-agregar-evidencia').forEach(btn => btn.style.display = 'none');
         console.log('🔒 Modo lectura activado en Planillas');
     }
 }
@@ -140,23 +121,24 @@ function renderizarTabla() {
     const tbody = document.getElementById('tablaBody');
     tbody.innerHTML = '';
     
+    const numOC = Math.max(...ocData.map(o => o.numero_oc || 0), 0);
+    const numCM = Math.max(...cmData.map(c => c.numero_cm || 0), 0);
+    
     let moduloActual = null;
     let itemsModulo = [];
     
-    // Primero, recorremos para insertar filas y totales
     for (let i = 0; i < itemsData.length; i++) {
         const item = itemsData[i];
         const siguienteItem = itemsData[i + 1];
         
         if (moduloActual !== item.modulo_id) {
-            // Si cambia de módulo, insertar total del módulo anterior
             if (moduloActual !== null && itemsModulo.length > 0) {
-                insertarTotalModulo(tbody, itemsModulo);
+                insertarTotalModulo(tbody, itemsModulo, numOC, numCM);
             }
             moduloActual = item.modulo_id;
             itemsModulo = [];
             
-            const colspan = 4 + (numeroPlanillas * 4) + 1;
+            const colspan = 6 + (numOC * 3) + (numCM * 3) + (numeroPlanillas * 4) + 1;
             const rowModulo = document.createElement('tr');
             rowModulo.className = 'fila-modulo';
             rowModulo.innerHTML = `<td colspan="${colspan}" style="font-weight:bold;padding:10px;text-align:left;background:#e0e0e0">📦 MÓDULO ${String(item.modulo_id).padStart(2, '0')}${item.modulo_nombre ? ' - ' + item.modulo_nombre : ''}</td>`;
@@ -176,6 +158,24 @@ function renderizarTabla() {
             <td style="background:#e8e8e8">${item.precio_unitario || 0}</td>
             <td style="font-weight:bold;background:#e8e8e8">${item.total || 0}</td>
         `;
+        
+        // Columnas OC
+        const ocsDelItem = ocData.filter(o => o.item_id === item.id);
+        for (let o = 1; o <= numOC; o++) {
+            const oc = ocsDelItem.find(o => o.numero_oc === o) || { cantidad: 0, precio: 0, total: 0 };
+            fila.innerHTML += `<td style="background:#fff9e6">${oc.cantidad || 0}</td>`;
+            fila.innerHTML += `<td style="background:#fff9e6">${oc.precio || 0}</td>`;
+            fila.innerHTML += `<td style="background:#e8f5e9;font-weight:bold">${oc.total || 0}</td>`;
+        }
+        
+        // Columnas CM
+        const cmsDelItem = cmData.filter(c => c.item_id === item.id);
+        for (let c = 1; c <= numCM; c++) {
+            const cm = cmsDelItem.find(c => c.numero_cm === c) || { cantidad: 0, precio: 0, total: 0 };
+            fila.innerHTML += `<td style="background:#fff9e6">${cm.cantidad || 0}</td>`;
+            fila.innerHTML += `<td style="background:#fff9e6">${cm.precio || 0}</td>`;
+            fila.innerHTML += `<td style="background:#e3f2fd;font-weight:bold">${cm.total || 0}</td>`;
+        }
         
         for (let p = 1; p <= numeroPlanillas; p++) {
             const guardado = (planillasGuardadas[item.id] && planillasGuardadas[item.id][p]) || { cantidad: 0, precio_unitario: 0, total: 0, avance: "0%" };
@@ -206,13 +206,9 @@ function renderizarTabla() {
             tdAvance.textContent = guardado.avance || '0%';
             tdAvance.style.background = "#fff9e6";
             
-            const actualizarTotal = () => {
-                actualizarTotalGeneral();
-            };
-            
-            tdCant.addEventListener('input', actualizarTotal);
-            tdPU.addEventListener('input', actualizarTotal);
-            tdTotal.addEventListener('input', actualizarTotal);
+            tdCant.addEventListener('input', () => actualizarTotalGeneral());
+            tdPU.addEventListener('input', () => actualizarTotalGeneral());
+            tdTotal.addEventListener('input', () => actualizarTotalGeneral());
             
             fila.appendChild(tdCant);
             fila.appendChild(tdPU);
@@ -230,25 +226,34 @@ function renderizarTabla() {
         tbody.appendChild(fila);
         renderizarEvidencias(item.id);
         
-        // Si es el último item o cambia de módulo, insertar total
         if (!siguienteItem || siguienteItem.modulo_id !== item.modulo_id) {
-            insertarTotalModulo(tbody, itemsModulo);
+            insertarTotalModulo(tbody, itemsModulo, numOC, numCM);
         }
     }
     
     actualizarTotalGeneral();
 }
 
-function insertarTotalModulo(tbody, itemsModulo) {
+function insertarTotalModulo(tbody, itemsModulo, numOC, numCM) {
     if (itemsModulo.length === 0) return;
     
-    const colspan = 4 + (numeroPlanillas * 4) + 1;
     const rowTotal = document.createElement('tr');
     rowTotal.className = 'fila-total-modulo';
     rowTotal.style.background = '#d5e8d4';
     rowTotal.style.fontWeight = 'bold';
     
-    let html = `<td colspan="6" style="text-align:right;padding:8px;background:#d5e8d4"><strong>TOTAL MÓDULO</strong></td>`;
+    let html = `<td colspan="5" style="text-align:right;padding:8px;background:#d5e8d4"><strong>TOTAL MÓDULO</strong></td>`;
+    html += `<td contenteditable="true" class="total-modulo-contrato" style="background:white;color:black;cursor:text;text-align:center">0.00</td>`;
+    
+    for (let o = 0; o < numOC; o++) {
+        html += `<td colspan="2" style="background:#d5e8d4"></td>`;
+        html += `<td contenteditable="true" class="total-modulo-oc" style="background:#e8f5e9;color:black;cursor:text;text-align:center">0.00</td>`;
+    }
+    
+    for (let c = 0; c < numCM; c++) {
+        html += `<td colspan="2" style="background:#d5e8d4"></td>`;
+        html += `<td contenteditable="true" class="total-modulo-cm" style="background:#e3f2fd;color:black;cursor:text;text-align:center">0.00</td>`;
+    }
     
     for (let p = 1; p <= numeroPlanillas; p++) {
         let sumaTotal = 0;
@@ -257,7 +262,7 @@ function insertarTotalModulo(tbody, itemsModulo) {
             if (guardado) sumaTotal += parseFloat(guardado.total) || 0;
         });
         html += `<td colspan="2" style="background:#d5e8d4"></td>`;
-        html += `<td style="background:#d5e8d4;color:#006400;font-size:15px;text-align:center">${sumaTotal.toFixed(2)}</td>`;
+        html += `<td contenteditable="true" class="total-modulo-planilla" style="background:#ffc400;color:black;cursor:text;font-weight:bold;text-align:center;font-size:14px">${sumaTotal.toFixed(2)}</td>`;
         html += `<td style="background:#d5e8d4"></td>`;
     }
     
@@ -270,6 +275,9 @@ function renderizarCabeceras() {
     const thead = document.getElementById('tablaHead');
     thead.innerHTML = '';
     
+    const numOC = Math.max(...ocData.map(o => o.numero_oc || 0), 0);
+    const numCM = Math.max(...cmData.map(c => c.numero_cm || 0), 0);
+    
     const row1 = document.createElement('tr');
     const row2 = document.createElement('tr');
     
@@ -279,25 +287,30 @@ function renderizarCabeceras() {
         <th rowspan="2">UNID.</th>
         <th colspan="3">CONTRATO ORIGINAL</th>
     `;
+    row2.innerHTML = `<th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>`;
     
-    row2.innerHTML = `
-        <th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>
-    `;
+    for (let o = 1; o <= numOC; o++) {
+        const thGroup = document.createElement('th');
+        thGroup.colSpan = 3;
+        thGroup.textContent = `ORDEN CAMBIO Nº${o}`;
+        row1.appendChild(thGroup);
+        row2.innerHTML += `<th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>`;
+    }
+    
+    for (let c = 1; c <= numCM; c++) {
+        const thGroup = document.createElement('th');
+        thGroup.colSpan = 3;
+        thGroup.textContent = `CONTRATO MOD Nº${c}`;
+        row1.appendChild(thGroup);
+        row2.innerHTML += `<th>CANT.</th><th>P.U.Bs</th><th>TOTAL</th>`;
+    }
     
     for (let i = 1; i <= numeroPlanillas; i++) {
         const thGroup = document.createElement('th');
         thGroup.colSpan = 4;
         thGroup.textContent = `PLANILLA Nº${i}`;
         row1.appendChild(thGroup);
-        
-        const thCant = document.createElement('th'); thCant.textContent = "CANTIDAD";
-        const thPU = document.createElement('th'); thPU.textContent = "P.U. (Bs)";
-        const thTotal = document.createElement('th'); thTotal.textContent = "TOTAL";
-        const thAvance = document.createElement('th'); thAvance.textContent = "% AVANCE";
-        row2.appendChild(thCant);
-        row2.appendChild(thPU);
-        row2.appendChild(thTotal);
-        row2.appendChild(thAvance);
+        row2.innerHTML += `<th>CANTIDAD</th><th>P.U. (Bs)</th><th>TOTAL</th><th>% AVANCE</th>`;
     }
     
     const thEvidencia = document.createElement('th');
@@ -328,12 +341,8 @@ function renderizarEvidencias(itemId) {
         evidencias.forEach(ev => {
             const img = document.createElement('img');
             img.src = ev.url;
-            img.style.width = '55px';
-            img.style.height = '55px';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '6px';
-            img.style.cursor = 'pointer';
-            img.style.border = '2px solid #ffc400';
+            img.style.width = '55px'; img.style.height = '55px'; img.style.objectFit = 'cover';
+            img.style.borderRadius = '6px'; img.style.cursor = 'pointer'; img.style.border = '2px solid #ffc400';
             img.onclick = () => abrirModalEvidencia(itemId, ev.id);
             galeria.appendChild(img);
         });
@@ -341,15 +350,7 @@ function renderizarEvidencias(itemId) {
     
     const btnAgregar = document.createElement('button');
     btnAgregar.innerHTML = '<i class="fa fa-plus"></i> Agregar evidencia';
-    btnAgregar.style.background = '#00b894';
-    btnAgregar.style.color = 'white';
-    btnAgregar.style.border = 'none';
-    btnAgregar.style.padding = '5px 10px';
-    btnAgregar.style.borderRadius = '15px';
-    btnAgregar.style.fontSize = '10px';
-    btnAgregar.style.cursor = 'pointer';
-    btnAgregar.style.marginTop = '8px';
-    btnAgregar.style.width = '100%';
+    btnAgregar.style.cssText = 'background:#00b894;color:white;border:none;padding:5px 10px;border-radius:15px;font-size:10px;cursor:pointer;margin-top:8px;width:100%';
     btnAgregar.className = 'btn-agregar-evidencia';
     btnAgregar.onclick = () => agregarEvidencia(itemId);
     
@@ -364,67 +365,37 @@ function renderizarEvidencias(itemId) {
 }
 
 async function agregarEvidencia(itemId) {
-    if (usuarioRol === 'lectura') {
-        alert("⚠️ Usuario de solo lectura. No puede agregar evidencias.");
-        return;
-    }
-    
+    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
     const evidencias = evidenciasData[itemId] || [];
-    if (evidencias.length >= 4) {
-        alert("⚠️ Máximo 4 imágenes por ítem");
-        return;
-    }
+    if (evidencias.length >= 4) { alert("⚠️ Máximo 4 imágenes"); return; }
     
     const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/jpeg,image/png,image/webp';
+    input.type = 'file'; input.accept = 'image/jpeg,image/png,image/webp';
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
         const loadingMsg = document.createElement('div');
         loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:#ffc400;padding:10px;border-radius:8px;z-index:9999';
-        loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Subiendo imagen...';
+        loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Subiendo...';
         document.body.appendChild(loadingMsg);
-        
         try {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                const imagenBase64 = reader.result;
-                
-                const response = await fetch(`${URL_SERVIDOR}/subir-evidencia`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        item_id: itemId,
-                        descripcion: '',
-                        orden: evidencias.length,
-                        imagen_base64: imagenBase64
-                    })
+                const res = await fetch(`${URL_SERVIDOR}/subir-evidencia`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId, descripcion: '', orden: evidencias.length, imagen_base64: reader.result })
                 });
-                
-                const data = await response.json();
-                
+                const data = await res.json();
                 if (data.success) {
-                    const nuevaEvidencia = {
-                        id: data.id,
-                        descripcion: '',
-                        orden: evidencias.length
-                    };
                     if (!evidenciasData[itemId]) evidenciasData[itemId] = [];
-                    evidenciasData[itemId].push(nuevaEvidencia);
+                    evidenciasData[itemId].push({ id: data.id, descripcion: '', orden: evidencias.length });
                     renderizarEvidencias(itemId);
-                    alert("✅ Imagen guardada en la base de datos");
-                } else {
-                    throw new Error(data.error || 'Error al guardar');
-                }
+                    alert("✅ Imagen guardada");
+                } else throw new Error(data.error);
                 loadingMsg.remove();
             };
-        } catch (error) {
-            alert("❌ Error: " + error.message);
-            loadingMsg.remove();
-        }
+        } catch (error) { alert("❌ Error: " + error.message); loadingMsg.remove(); }
     };
     input.click();
 }
@@ -432,12 +403,10 @@ async function agregarEvidencia(itemId) {
 function abrirModalEvidencia(itemId, evId) {
     const evidencia = evidenciasData[itemId]?.find(e => e.id == evId);
     if (!evidencia) return;
-    
     const imagenUrl = getImagenUrl(evId);
     
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:200000';
-    
     modal.innerHTML = `
         <div style="background:#1a1a1a;border-radius:16px;max-width:500px;width:90%;border:2px solid #ffc400">
             <div style="padding:15px;background:#0d0d0d;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center">
@@ -453,9 +422,7 @@ function abrirModalEvidencia(itemId, evId) {
                     <button id="eliminarEvBtn" style="background:#e74c3c;border:none;padding:8px 16px;border-radius:20px;color:white;cursor:pointer"><i class="fa fa-trash"></i> Eliminar</button>
                 </div>
             </div>
-        </div>
-    `;
-    
+        </div>`;
     document.body.appendChild(modal);
     
     if (usuarioRol === 'lectura') {
@@ -469,7 +436,7 @@ function abrirModalEvidencia(itemId, evId) {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     document.getElementById('guardarDescBtn').onclick = async () => {
-        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
+        if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
         const textarea = document.getElementById('modalDescEv');
         if (textarea) {
             const ev = evidenciasData[itemId]?.find(e => e.id == evId);
@@ -482,18 +449,15 @@ function abrirModalEvidencia(itemId, evId) {
                 alert("✅ Descripción guardada");
             }
         }
-        modal.remove();
-        renderizarEvidencias(itemId);
+        modal.remove(); renderizarEvidencias(itemId);
     };
     
     document.getElementById('cambiarImgBtn').onclick = () => {
-        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
+        if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
         const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/jpeg,image/png,image/webp';
+        input.type = 'file'; input.accept = 'image/jpeg,image/png,image/webp';
         input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            const file = e.target.files[0]; if (!file) return;
             const loadingMsg = document.createElement('div');
             loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#333;color:#ffc400;padding:10px;border-radius:8px;z-index:9999';
             loadingMsg.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Actualizando...';
@@ -507,7 +471,7 @@ function abrirModalEvidencia(itemId, evId) {
                         body: JSON.stringify({ item_id: itemId, evidencia_id: evId, imagen_base64: reader.result })
                     });
                     const data = await res.json();
-                    if (data.success) { document.getElementById('modalImg').src = getImagenUrl(evId); alert("✅ Imagen actualizada"); }
+                    if (data.success) { document.getElementById('modalImg').src = getImagenUrl(evId); alert("✅ Actualizada"); }
                     else throw new Error(data.error);
                     loadingMsg.remove();
                 };
@@ -517,8 +481,8 @@ function abrirModalEvidencia(itemId, evId) {
     };
     
     document.getElementById('eliminarEvBtn').onclick = async () => {
-        if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
-        if (!confirm("¿Eliminar esta evidencia permanentemente?")) return;
+        if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
+        if (!confirm("¿Eliminar permanentemente?")) return;
         try {
             await fetch(`${URL_SERVIDOR}/eliminar-evidencia`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -526,45 +490,45 @@ function abrirModalEvidencia(itemId, evId) {
             });
             evidenciasData[itemId] = (evidenciasData[itemId] || []).filter(e => e.id != evId);
             renderizarEvidencias(itemId);
-            alert("✅ Evidencia eliminada");
+            alert("✅ Eliminada");
             modal.remove();
-        } catch(err) { alert("❌ Error al eliminar"); }
+        } catch(err) { alert("❌ Error"); }
     };
 }
 
 function agregarPlanilla() {
-    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
+    if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
     numeroPlanillas++;
     renderizarTabla();
 }
 
 function eliminarPlanilla() {
-    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
-    if (numeroPlanillas <= 1) { alert("Debe haber al menos una planilla"); return; }
+    if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
+    if (numeroPlanillas <= 1) { alert("Mínimo una planilla"); return; }
     numeroPlanillas--;
     renderizarTabla();
 }
 
 function actualizarTotalGeneral() {
     const tfoot = document.getElementById('tablaFoot');
+    const numOC = Math.max(...ocData.map(o => o.numero_oc || 0), 0);
+    const numCM = Math.max(...cmData.map(c => c.numero_cm || 0), 0);
+    const colspanTotal = 5 + (numOC * 3) + (numCM * 3) + (numeroPlanillas * 4);
     if (tfoot.children.length === 0 || !tfoot.querySelector('.total-acumulado-input')) {
-        const colspanTotal = 5 + (numeroPlanillas * 4);
         tfoot.innerHTML = `<td colspan="${colspanTotal}" style="text-align:right;padding:8px"><strong>TOTAL ACUMULADO PLANILLAS (Bs)</strong></td>
                            <td style="background:#ffc400;font-weight:bold;font-size:16px;padding:0">
                                <input type="number" class="total-acumulado-input" value="0" step="any" 
                                       style="width:150px;padding:8px;background:#ffc400;border:none;font-weight:bold;font-size:16px;text-align:center">
                            </td>
                            <td></td>`;
-        const inputTotal = tfoot.querySelector('.total-acumulado-input');
-        inputTotal.addEventListener('input', () => {
-            localStorage.setItem('totalAcumuladoPlanillas', inputTotal.value);
+        tfoot.querySelector('.total-acumulado-input').addEventListener('input', function() {
+            localStorage.setItem('totalAcumuladoPlanillas', this.value);
         });
     }
 }
 
 async function guardarTodo() {
-    if (usuarioRol === 'lectura') { alert("⚠️ Usuario de solo lectura."); return; }
-    
+    if (usuarioRol === 'lectura') { alert("⚠️ Solo lectura."); return; }
     const datos = [];
     document.querySelectorAll('#tablaBody tr[data-item-id]').forEach(fila => {
         const itemId = parseInt(fila.getAttribute('data-item-id'));
@@ -573,8 +537,7 @@ async function guardarTodo() {
             const idx = (p - 1) * 4;
             if (celdas[idx]) {
                 datos.push({
-                    numero_planilla: p,
-                    item_id: itemId,
+                    numero_planilla: p, item_id: itemId,
                     cantidad: parseFloat(celdas[idx].textContent) || 0,
                     precio_unitario: parseFloat(celdas[idx + 1].textContent) || 0,
                     total: parseFloat(celdas[idx + 2].textContent) || 0,
@@ -585,20 +548,15 @@ async function guardarTodo() {
     });
     
     const totalAcumuladoInput = document.querySelector('.total-acumulado-input');
-    if (totalAcumuladoInput) {
-        localStorage.setItem('totalAcumuladoPlanillas', totalAcumuladoInput.value);
-    }
-    
-    if (!datos.length) { alert("No hay datos para guardar"); return; }
+    if (totalAcumuladoInput) localStorage.setItem('totalAcumuladoPlanillas', totalAcumuladoInput.value);
+    if (!datos.length) { alert("No hay datos"); return; }
     
     try {
         const res = await fetch(`${URL_SERVIDOR}/guardar-planillas`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
         });
         const result = await res.json();
-        alert(result.success ? "✅ Planillas guardadas correctamente" : "❌ Error al guardar");
-        
-        // Notificar a otras pestañas que se actualizaron los datos
+        alert(result.success ? "✅ Guardado correctamente" : "❌ Error");
         localStorage.setItem('planillasActualizadas', Date.now());
     } catch(e) { alert("❌ Error de conexión"); }
 }
@@ -607,7 +565,4 @@ function abrirContactos() { document.getElementById("modalContactos").style.disp
 function cerrarContactos() { document.getElementById("modalContactos").style.display = "none"; }
 window.addEventListener("click", e => { if (e.target === document.getElementById("modalContactos")) cerrarContactos(); });
 
-function toggleMenu() {
-    const menu = document.querySelector('.menu');
-    menu?.classList.toggle('activo');
-}
+function toggleMenu() { document.querySelector('.menu')?.classList.toggle('activo'); }
