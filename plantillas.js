@@ -130,11 +130,9 @@ function renderizarTabla() {
     for (let i = 0; i < itemsData.length; i++) {
         const item = itemsData[i];
         const siguienteItem = itemsData[i + 1];
+        const cambiaModulo = !siguienteItem || siguienteItem.modulo_id !== item.modulo_id;
         
         if (moduloActual !== item.modulo_id) {
-            if (moduloActual !== null && itemsModulo.length > 0) {
-                insertarTotalModulo(tbody, itemsModulo, numOC, numCM);
-            }
             moduloActual = item.modulo_id;
             itemsModulo = [];
             
@@ -159,7 +157,6 @@ function renderizarTabla() {
             <td style="font-weight:bold;background:#e8e8e8">${item.total || 0}</td>
         `;
         
-        // Columnas OC
         const ocsDelItem = ocData.filter(o => parseInt(o.item_id) === item.id);
         for (let o = 1; o <= numOC; o++) {
             const oc = ocsDelItem.find(oc => parseInt(oc.numero_oc) === o) || { cantidad: 0, precio: 0, total: 0 };
@@ -168,7 +165,6 @@ function renderizarTabla() {
             fila.innerHTML += `<td style="background:#e8f5e9;font-weight:bold">${oc.total || 0}</td>`;
         }
         
-        // Columnas CM
         const cmsDelItem = cmData.filter(c => parseInt(c.item_id) === item.id);
         for (let c = 1; c <= numCM; c++) {
             const cm = cmsDelItem.find(cm => parseInt(cm.numero_cm) === c) || { cantidad: 0, precio: 0, total: 0 };
@@ -226,7 +222,7 @@ function renderizarTabla() {
         tbody.appendChild(fila);
         renderizarEvidencias(item.id);
         
-        if (!siguienteItem || siguienteItem.modulo_id !== item.modulo_id) {
+        if (cambiaModulo) {
             insertarTotalModulo(tbody, itemsModulo, numOC, numCM);
         }
     }
