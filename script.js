@@ -103,12 +103,13 @@ function calcularTotalOC(elemento) {}
 function calcularTotalCM(elemento) {}
 
 // ============================
-// ACTUALIZAR CONTADORES
+// ACTUALIZAR CONTADORES (CORREGIDO)
 // ============================
 function actualizarContadores() {
     document.querySelectorAll('.grupo-modulo').forEach(modulo => {
         const moduloId = modulo.dataset.moduloId;
-        const items = document.querySelectorAll(`tr[data-modulo-padre="${moduloId}"]`);
+        // ✅ CORREGIDO: Excluir la fila .total-modulo del conteo
+        const items = document.querySelectorAll(`tr[data-modulo-padre="${moduloId}"]:not(.total-modulo)`);
         const badge = modulo.querySelector('.badge-items');
         if (badge) badge.textContent = `${items.length} ítems`;
     });
@@ -179,7 +180,7 @@ function generarHTMLTotalModulo() {
 }
 
 // ============================
-// AÑADIR MÓDULO (TOTAL MÓDULO EDITABLE)
+// AÑADIR MÓDULO (CORREGIDO - GARANTIZA ORDEN AL FINAL)
 // ============================
 document.getElementById('btnModulo').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -201,12 +202,16 @@ document.getElementById('btnModulo').addEventListener('click', () => {
             </div>
         </div>
     </td>`;
+    
+    // ✅ CORREGIDO: Usar appendChild para agregar al final del tbody
     tabla.appendChild(fm);
     
     const ft = document.createElement('tr');
     ft.classList.add('total-modulo');
     ft.dataset.moduloPadre = moduloActual;
     ft.innerHTML = generarHTMLTotalModulo();
+    
+    // ✅ CORREGIDO: La fila total también va al final, después del módulo
     tabla.appendChild(ft);
     
     moduloActual++;
@@ -243,7 +248,7 @@ function eliminarModulo(btn) {
 }
 
 // ============================
-// AÑADIR ÍTEM (TOTAL CONTRATO ORIGINAL EDITABLE)
+// AÑADIR ÍTEM
 // ============================
 document.getElementById('btnItem').addEventListener('click', () => {
     const tabla = document.getElementById('tablaItems');
@@ -291,6 +296,7 @@ document.getElementById('btnItem').addEventListener('click', () => {
         <td class="acciones-cell"><div class="table-actions"><button class="edit-btn" onclick="editarFila(this)"><i class="fa fa-pen"></i></button><button class="delete-btn" onclick="eliminarFila(this)"><i class="fa fa-trash"></i></button></div></td>
     `;
     
+    // ✅ Insertar antes de la fila total-modulo del módulo correspondiente
     const totalModulo = document.querySelector(`.total-modulo[data-modulo-padre="${moduloId}"]`);
     if (totalModulo) {
         tabla.insertBefore(fila, totalModulo);
@@ -631,7 +637,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS (CON TOTALES OC Y CM EDITABLES)
+// CARGAR ITEMS (CORREGIDO - ORDEN GARANTIZADO CON MAP)
 // ============================
 async function cargarItems() {
     try {
@@ -680,18 +686,20 @@ async function cargarItems() {
         const tabla = document.getElementById('tablaItems');
         tabla.innerHTML = '';
         
-        const itemsPorModulo = {};
+        // ✅ CORREGIDO: Usar Map en lugar de objeto para garantizar orden de inserción
+        const itemsPorModulo = new Map();
         items.forEach(item => {
             const moduloNombre = String(item.modulo_id || 'Sin módulo').trim();
-            if (!itemsPorModulo[moduloNombre]) {
-                itemsPorModulo[moduloNombre] = [];
+            if (!itemsPorModulo.has(moduloNombre)) {
+                itemsPorModulo.set(moduloNombre, []);
             }
-            itemsPorModulo[moduloNombre].push(item);
+            itemsPorModulo.get(moduloNombre).push(item);
         });
         
         let moduloCounter = 1;
         
-        for (const [moduloNombre, itemsDelModulo] of Object.entries(itemsPorModulo)) {
+        // ✅ CORREGIDO: Iterar sobre Map que garantiza orden
+        for (const [moduloNombre, itemsDelModulo] of itemsPorModulo) {
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             
             const fm = document.createElement('tr');
