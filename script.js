@@ -637,7 +637,7 @@ function eliminarCM() {
 }
 
 // ============================
-// CARGAR ITEMS (CORREGIDO - ORDEN GARANTIZADO CON MAP)
+// CARGAR ITEMS (CORREGIDO - ORDEN GARANTIZADO CON MAP Y ORDENADO POR NÚMERO)
 // ============================
 async function cargarItems() {
     try {
@@ -696,10 +696,17 @@ async function cargarItems() {
             itemsPorModulo.get(moduloNombre).push(item);
         });
         
+        // ✅ NUEVO: Ordenar módulos por número (M01, M02, M03, M04...)
+        const modulosOrdenados = [...itemsPorModulo.entries()].sort((a, b) => {
+            const numA = parseInt(a[0].match(/M(\d+)/)?.[1] || '0');
+            const numB = parseInt(b[0].match(/M(\d+)/)?.[1] || '0');
+            return numA - numB;
+        });
+        
         let moduloCounter = 1;
         
-        // ✅ CORREGIDO: Iterar sobre Map que garantiza orden
-        for (const [moduloNombre, itemsDelModulo] of itemsPorModulo) {
+        // ✅ CORREGIDO: Iterar sobre módulos ordenados
+        for (const [moduloNombre, itemsDelModulo] of modulosOrdenados) {
             const totalColumnas = 8 + (ordenCambio * 3) + (contratoMod * 3);
             
             const fm = document.createElement('tr');
